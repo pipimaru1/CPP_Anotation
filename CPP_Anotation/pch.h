@@ -9,6 +9,7 @@
 
 // プリコンパイルするヘッダーをここに追加します
 // 先に記述
+#define NOMINMAX
 #include <windows.h>
 #include <gdiplus.h>
 using namespace Gdiplus;

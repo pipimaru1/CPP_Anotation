@@ -127,7 +127,7 @@ const wchar_t* g_imagePath = L"./Image01.jpg";  // JPEGまたはPNG
 // ヒント：WM_SIZEメッセージを処理し、GetClientRect関数を使用してウィンドウのクライアント領域のサイズを取得します。
 
 /////////////////////////////////////////////////////////////////////////
-// 課題: 全てのグローバル変数は、専用のクラスで定義してください。
+// 課題: 全てのグローバル変数は、専用の構造体かクラスで定義してください。
 // マラス定義はヘッダーファイルに記述し、他のCPPからも参照できるようにします。
 // グローバル変数に画像の幅と高さを格納し、ウィンドウのサイズに合わせて画像をリサイズします。
 
@@ -142,6 +142,7 @@ const wchar_t* g_imagePath = L"./Image01.jpg";  // JPEGまたはPNG
 // 　キーAとキーDを使用して、前の画像と次の画像に切り替えます。
 // 　画像ファイルのパスを配列に格納し、インデックスを管理します。
 
+//
 
 /////////////////////////////////////////////////////////////////////////
 //  関数: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -209,6 +210,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
+
 // バージョン情報ボックスのメッセージ ハンドラーです。
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -228,3 +230,4 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return (INT_PTR)FALSE;
 }
+

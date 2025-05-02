@@ -113,10 +113,53 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     return TRUE;
 }
 
+///////////////////////////////////////////////////////
+// グローバル変数の定義
+// 課題ではヘッダファイルに記載だが、教材のためにここに記載します。
+struct GlobalParams
+{
+    //ウィンドウサイズ
+    RECT rect;
+    int width;
+    int height;
+
+    //イメージファイル
+	std::vector<std::wstring> imgPaths; // 画像ファイルのパスを格納する配列
+	size_t imgIndex; // 現在の画像インデックス
+
+    // 対象とする画像拡張子パターン
+    std::vector<std::wstring> IMAGE_EXTENSIONS;
+    GlobalParams();
+};
+
+///////////////////////////////////////////////////
+//コンストラクタ
+GlobalParams::GlobalParams()
+	:IMAGE_EXTENSIONS{	L"*.jpg", L"*.jpeg", L"*.png", L"*.bmp", L"*.gif"}
+{
+	rect.left = 0;
+	rect.top = 0;
+	rect.right = 0;
+	rect.bottom = 0;
+	width = 0;
+	height = 0;
+
+	imgPaths.clear();
+	imgIndex = 0;
+}
+
+
+// グローバル変数のインスタンスを作成
+GlobalParams GP;
+
+// 画像ファイルのパスの配列を取得する関数
+int GetImgsPaths(const std::wstring& folderPath, std::vector<std::wstring>* imagePaths);
+
+
 // フィルパスのフォルダは'/'で区切る必要があります。
 // '\'で記述する場合は'\\'に置き換える必要があります。
 const wchar_t* g_imagePath = L"./Image01.jpg";  // JPEGまたはPNG
-
+const wchar_t* g_imageFolder = L"../images/";  // JPEGまたはPNG
 
 /////////////////////////////////////////////////////////////////////////
 // 課題：ウィンドウのサイズ変更時に画像をリサイズしてください
@@ -149,11 +192,12 @@ const wchar_t* g_imagePath = L"./Image01.jpg";  // JPEGまたはPNG
 //  WM_CREATE  - ウィンドウの作成時に画像を読み込む
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    static Image* image = nullptr;
     switch (message)
     {
     case WM_CREATE:
-        image = new Image(g_imagePath); // 絶対パスを指定
+		GP.imgPaths.clear();
+		GetImgsPaths(g_imageFolder, &GP.imgPaths); // フォルダ内の画像ファイルを取得
+
         break;
 
     case WM_COMMAND:
@@ -175,27 +219,89 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     break;
     case WM_PAINT:
     {
+        static Image* image = nullptr;
+		if (GP.imgPaths.size() > 0)
+		{
+			// 画像のパスを取得
+            image = new Image(GP.imgPaths[GP.imgIndex].c_str()); // 絶対パスを指定
+        }
+        else
+		{
+			// 画像が見つからない場合は、NO Image
+			image = new Image(L"NO Image");
+		}
+
         if (image)
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-            Graphics graphics(hdc);
-            graphics.DrawImage(image, 0, 0);
+
+            // メモリDC作成
+            HDC memDC = CreateCompatibleDC(hdc);
+            HBITMAP memBitmap = CreateCompatibleBitmap(hdc, GP.width, GP.height);
+            HBITMAP oldBitmap = (HBITMAP)SelectObject(memDC, memBitmap);
+
+            // GDI+ の Graphics を memDC に結びつける
+            Graphics graphics(memDC);
+            graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+            graphics.SetSmoothingMode(SmoothingModeAntiAlias); // 任意
+
+            // 背景塗りつぶし（必要に応じて）
+            graphics.Clear(Color(0, 0, 0)); // 黒背景
+
+            // 補間品質
+            graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+
+            //スケーリングしながら描画
+            graphics.DrawImage(image, 0, 0, GP.width, GP.height);
+            graphics.Flush();
+
+            // 最後に画面に転送
+            BitBlt(hdc, 0, 0, GP.width, GP.height, memDC, 0, 0, SRCCOPY);
+
+            // クリーンアップ
+            SelectObject(memDC, oldBitmap);
+            DeleteObject(memBitmap);
+            DeleteDC(memDC);
             EndPaint(hWnd, &ps);
         }
         break;
     }
     break;
+
+    //バッグラウンド描画を無効にする
+    case WM_ERASEBKGND: 
+        return 1;  // 背景の塗りつぶし処理を行った（何もしないけど）ことをOSに伝える
+
     case WM_SIZE:
     {
         // ウィンドウのサイズ変更時の処理
-        RECT rect;
-        GetClientRect(hWnd, &rect);
-        int width = rect.right - rect.left;
-        int height = rect.bottom - rect.top;
+        //RECT rect;
+        GetClientRect(hWnd, &GP.rect);
+        GP.width = GP.rect.right - GP.rect.left;
+        GP.height = GP.rect.bottom - GP.rect.top;
         // 画像をウィンドウのサイズに合わせて描画する場合は、ここで処理を追加
     }
     break;
+
+	case WM_KEYDOWN:
+		// キー入力処理
+		switch (wParam)
+		{
+		case 'A': // 前の画像
+			if (GP.imgPaths.size() > 0) {
+				GP.imgIndex = (GP.imgIndex + GP.imgPaths.size() - 1) % GP.imgPaths.size();
+			}
+			break;
+		case 'D': // 次の画像
+			if (GP.imgPaths.size() > 0) {
+				GP.imgIndex = (GP.imgIndex + 1) % GP.imgPaths.size();
+			}
+			break;
+		}
+		InvalidateRect(hWnd, NULL, TRUE); // 再描画
+		break;
+
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
@@ -223,4 +329,50 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     }
     return (INT_PTR)FALSE;
+}
+
+///////////////////////////////////////////////////////////////////////
+// 画像ファイルかどうかを判定する関数
+bool IsImageFile(const std::wstring& fileName)
+{
+    for (const auto& pattern : GP.IMAGE_EXTENSIONS) {
+        if (PathMatchSpecW(fileName.c_str(), pattern.c_str())) {
+            return true;
+        }
+    }
+    return false;
+}
+
+///////////////////////////////////////////////////////////////////////
+// フォルダの画像ファイルを取得する関数
+int GetImgsPaths(const std::wstring& folderPath, std::vector<std::wstring>* imagePaths)
+{
+    imagePaths->clear();
+
+    std::wstring searchPath = folderPath;
+    if (!searchPath.empty() && searchPath.back() != L'\\')
+        searchPath += L'\\';
+    searchPath += L"*.*";  // 全ファイル対象
+
+    WIN32_FIND_DATAW findData;
+    HANDLE hFind = FindFirstFileW(searchPath.c_str(), &findData);
+    if (hFind == INVALID_HANDLE_VALUE) {
+        return 0; // フォルダが見つからない
+    }
+
+    do {
+        if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            std::wstring fileName = findData.cFileName;
+            if (IsImageFile(fileName)) {
+                std::wstring fullPath = folderPath;
+                if (!fullPath.empty() && fullPath.back() != L'\\')
+                    fullPath += L'\\';
+                fullPath += fileName;
+                imagePaths->push_back(fullPath);
+            }
+        }
+    } while (FindNextFileW(hFind, &findData));
+
+    FindClose(hFind);
+    return static_cast<int>(imagePaths->size());
 }

@@ -18,9 +18,13 @@ using namespace Gdiplus;
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>
-
+#include <string>
+#include <vector>
+#include <shlwapi.h>  // PathMatchSpecW 用
 
 //残すが不要
 #include "framework.h"
+
+#pragma comment(lib, "Shlwapi.lib")
 
 #endif //PCH_H
