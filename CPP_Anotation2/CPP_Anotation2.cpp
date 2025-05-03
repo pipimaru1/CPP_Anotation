@@ -1,11 +1,15 @@
 ﻿// CPP_Anotation.cpp : アプリケーションのエントリ ポイントを定義します。
-//
 
 #include "pch.h"
 #include "framework.h"
+#include "CPP_AnnoGblParams.h"
+#include "CPP_AnnoFuctions.h"
 #include "CPP_Anotation2.h"
 
+// 必要なライブラリ
 #pragma comment(lib, "gdiplus.lib")
+#pragma comment(lib, "Shlwapi.lib")
+
 
 #define MAX_LOADSTRING 100
 
@@ -89,7 +93,6 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     return RegisterClassExW(&wcex);
 }
 
-
 ///////////////////////////////////////////////////////
 //   関数: InitInstance(HINSTANCE, int)
 //   目的: インスタンス ハンドルを保存して、メイン ウィンドウを作成します
@@ -113,74 +116,38 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     return TRUE;
 }
 
-///////////////////////////////////////////////////////
-// グローバル変数の定義
-// 課題ではヘッダファイルに記載だが、教材のためにここに記載します。
-struct GlobalParams
-{
-    //ウィンドウサイズ
-    RECT rect;
-    int width;
-    int height;
+/////////////////////////////////////////////////////////////////////////
+// 課題：このプログラムはメモリリークしています。
+// 現象を確認してください。
+// 原因を突き止めて、メモリリークを防ぐために必要な処理を追加してください。
 
-    //イメージファイル
-	std::vector<std::wstring> imgPaths; // 画像ファイルのパスを格納する配列
-	size_t imgIndex; // 現在の画像インデックス
+/////////////////////////////////////////////////////////////////////////
+// 課題1: アノテーション矩形クラスを作ってください
+// 
+// 課題2: アノテーション矩形クラスに、クラシフィケーションナンバー、
+// 　　　 クラス名、線の色、線の幅などの要素を追加してください。
+// 
+// 課題3: 矩形を作成する時に、アノテーション名を付ける機能を追加してください
+// ヒント: WM_LBUTTONUPイベントにポップアップメニューを表示する処理を追加します
+//         アノテーションの名前リストは固定で構いません。グローバル変数に定義しておきます。
+//
+// 課題4: 矩形にアノテーション名を表示してください。
 
-    // 対象とする画像拡張子パターン
-    std::vector<std::wstring> IMAGE_EXTENSIONS;
-    GlobalParams();
-};
-
-///////////////////////////////////////////////////
-//コンストラクタ
-GlobalParams::GlobalParams()
-	:IMAGE_EXTENSIONS{	L"*.jpg", L"*.jpeg", L"*.png", L"*.bmp", L"*.gif"}
-{
-	rect.left = 0;
-	rect.top = 0;
-	rect.right = 0;
-	rect.bottom = 0;
-	width = 0;
-	height = 0;
-
-	imgPaths.clear();
-	imgIndex = 0;
-}
+// [上級]
+// 課題: 矩形を選択する機能を追加してください。
+// 矩形を選択した時に、ポップアップメニューを表示
+// 選択中の矩形の色を変更
+//
+// 課題: 矩形を移動する機能を追加
+// 
+// 課題: 矩形を削除する機能を追加
 
 
-// グローバル変数のインスタンスを作成
-GlobalParams GP;
-
-// 画像ファイルのパスの配列を取得する関数
-int GetImgsPaths(const std::wstring& folderPath, std::vector<std::wstring>* imagePaths);
-
-
+/////////////////////////////////////////////////////////////////////////
+// 画像フォルダのパス
 // フィルパスのフォルダは'/'で区切る必要があります。
 // '\'で記述する場合は'\\'に置き換える必要があります。
-const wchar_t* g_imagePath = L"./Image01.jpg";  // JPEGまたはPNG
 const wchar_t* g_imageFolder = L"../images/";  // JPEGまたはPNG
-
-/////////////////////////////////////////////////////////////////////////
-// 課題：ウィンドウのサイズ変更時に画像をリサイズしてください
-// ヒント：WM_SIZEメッセージを処理し、GetClientRect関数を使用してウィンドウのクライアント領域のサイズを取得します。
-
-/////////////////////////////////////////////////////////////////////////
-// 課題: 全てのグローバル変数は、専用のクラスで定義してください。
-// マラス定義はヘッダーファイルに記述し、他のCPPからも参照できるようにします。
-// グローバル変数に画像の幅と高さを格納し、ウィンドウのサイズに合わせて画像をリサイズします。
-
-// 課題 :マウスドラッグで矩形を描画する機能を追加してください。
-// 　ヒント：WM_LBUTTONDOWN、WM_MOUSEMOVE、WM_LBUTTONUPメッセージを処理して、
-// 　マウスの左ボタンが押されたとき、移動中、ボタンが離されたときの処理を行います。
-
-// 課題: 任意の画像ファイルを読み込む機能を追加してください。
-
-// 課題 :キー入力で次の画像と前の画像に切り替える機能を追加してください。
-// 　ヒント：WM_KEYDOWNメッセージを処理して、キー入力を検出します。
-// 　キーAとキーDを使用して、前の画像と次の画像に切り替えます。
-// 　画像ファイルのパスを配列に格納し、インデックスを管理します。
-
 
 /////////////////////////////////////////////////////////////////////////
 //  関数: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -231,40 +198,73 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			image = new Image(L"NO Image");
 		}
 
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+
+        // メモリDC作成
+        HDC memDC = CreateCompatibleDC(hdc);
+        HBITMAP memBitmap = CreateCompatibleBitmap(hdc, GP.width, GP.height);
+        HBITMAP oldBitmap = (HBITMAP)SelectObject(memDC, memBitmap);
+
+        // GDI+ の Graphics を memDC に結びつける
+        Graphics graphics(memDC);
+        graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+        graphics.SetSmoothingMode(SmoothingModeAntiAlias); // 任意
+
+        // 背景塗りつぶし（必要に応じて）
+        graphics.Clear(Color(0, 0, 0)); // 黒背景
+
+        // 補間品質
+        graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
         if (image)
         {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-
-            // メモリDC作成
-            HDC memDC = CreateCompatibleDC(hdc);
-            HBITMAP memBitmap = CreateCompatibleBitmap(hdc, GP.width, GP.height);
-            HBITMAP oldBitmap = (HBITMAP)SelectObject(memDC, memBitmap);
-
-            // GDI+ の Graphics を memDC に結びつける
-            Graphics graphics(memDC);
-            graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
-            graphics.SetSmoothingMode(SmoothingModeAntiAlias); // 任意
-
-            // 背景塗りつぶし（必要に応じて）
-            graphics.Clear(Color(0, 0, 0)); // 黒背景
-
-            // 補間品質
-            graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
 
             //スケーリングしながら描画
             graphics.DrawImage(image, 0, 0, GP.width, GP.height);
             graphics.Flush();
 
-            // 最後に画面に転送
-            BitBlt(hdc, 0, 0, GP.width, GP.height, memDC, 0, 0, SRCCOPY);
-
-            // クリーンアップ
-            SelectObject(memDC, oldBitmap);
-            DeleteObject(memBitmap);
-            DeleteDC(memDC);
-            EndPaint(hWnd, &ps);
         }
+		
+        // 矩形を描画
+		for (const auto& rect : GP.rects) 
+        {
+			Pen pen(Color(0, 128, 255), 2);
+            graphics.DrawRectangle(&pen,
+                rect.X * GP.width,
+                rect.Y * GP.height,
+                rect.Width * GP.width,
+                rect.Height * GP.height
+            );
+		}
+		
+        // ドラッグ中の矩形を描画
+		if (GP.isDragging) 
+        {
+            Pen pen(Color(255, 0, 0), 2);
+            float x = GP.rect_tmp.X;
+            float y = GP.rect_tmp.Y;
+            float w = GP.rect_tmp.Width;
+            float h = GP.rect_tmp.Height;
+
+            if (w < 0) { x += w; w = -w; }
+            if (h < 0) { y += h; h = -h; }
+
+            graphics.DrawRectangle(&pen,
+                x * GP.width,
+                y * GP.height,
+                w * GP.width,
+                h * GP.height);
+        }
+
+        // 最後に画面に転送
+        BitBlt(hdc, 0, 0, GP.width, GP.height, memDC, 0, 0, SRCCOPY);
+
+        // クリーンアップ
+        SelectObject(memDC, oldBitmap);
+        DeleteObject(memBitmap);
+        DeleteDC(memDC);
+        EndPaint(hWnd, &ps);
+
         break;
     }
     break;
@@ -277,23 +277,92 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         // ウィンドウのサイズ変更時の処理
         //RECT rect;
-        GetClientRect(hWnd, &GP.rect);
-        GP.width = GP.rect.right - GP.rect.left;
-        GP.height = GP.rect.bottom - GP.rect.top;
+        GetClientRect(hWnd, &GP.rect_win);
+        GP.width = GP.rect_win.right - GP.rect_win.left;
+        GP.height = GP.rect_win.bottom - GP.rect_win.top;
         // 画像をウィンドウのサイズに合わせて描画する場合は、ここで処理を追加
     }
     break;
+	// マウスの左ボタンが押されたときの処理
+	case WM_LBUTTONDOWN:
+	{
+		// マウスの位置を取得
+		POINT pt;
+		GetCursorPos(&pt);
+		ScreenToClient(hWnd, &pt);
+		// 矩形の開始位置を設定
+        GP.rect_tmp.X = float(pt.x) / float(GP.width);
+        GP.rect_tmp.Y = float(pt.y) / float(GP.height);
+		GP.rect_tmp.Width = 0;
+		GP.rect_tmp.Height = 0;
+		//NormalizeRect(GP.rect_tmp); // 矩形の座標を正規化
 
+		GP.isDragging = true; // ドラッグ中フラグを立てる
+		//GP.rects.push_back(rect); // 矩形を追加
+		SetCapture(hWnd); // マウスキャプチャを取得
+	}
+	break;
+	// マウスの移動中の処理
+	case WM_MOUSEMOVE:
+	{
+		if (GP.isDragging) {
+			// マウスの位置を取得
+			POINT pt;
+			GetCursorPos(&pt);
+			ScreenToClient(hWnd, &pt);
+            GP.rect_tmp.Width = float(pt.x) / float(GP.width) - GP.rect_tmp.X;
+            GP.rect_tmp.Height = float(pt.y) / float(GP.height) - GP.rect_tmp.Y;
+            //NormalizeRect(GP.rect_tmp); // 矩形の座標を正規化
+
+            // 再描画
+			InvalidateRect(hWnd, NULL, TRUE);
+		}
+	}
+	break;
+
+	// マウスの左ボタンが離されたときの処理
+	case WM_LBUTTONUP:
+	{
+		if (GP.isDragging) {
+			// マウスの位置を取得
+			POINT pt;
+			GetCursorPos(&pt);
+			ScreenToClient(hWnd, &pt);
+			// 矩形の幅と高さを計算
+            GP.rect_tmp.Width = float(pt.x) / float(GP.width) - GP.rect_tmp.X;
+            GP.rect_tmp.Height = float(pt.y) / float(GP.height) - GP.rect_tmp.Y;
+            NormalizeRect(GP.rect_tmp); // 矩形の座標を正規化
+
+            // 矩形を追加
+			GP.rects.push_back(GP.rect_tmp);
+
+			// テンポラリ矩形の座標をリセット
+			GP.rect_tmp.X = 0;
+			GP.rect_tmp.Y = 0;
+			GP.rect_tmp.Width = 0;
+			GP.rect_tmp.Height = 0;
+			GP.isDragging = false; // ドラッグ中フラグを下ろす
+			ReleaseCapture(); // マウスキャプチャを解放
+			// 再描画
+			InvalidateRect(hWnd, NULL, TRUE);
+		}
+	}
+	break;
+
+    //キー入力を処理する
 	case WM_KEYDOWN:
-		// キー入力処理
+		// swtch文で入力されたキーを判定、処理を分ける
+		// swtch文が二重になっている(Windowsプログラミングでは定石)
 		switch (wParam)
 		{
 		case 'A': // 前の画像
-			if (GP.imgPaths.size() > 0) {
+        case VK_LEFT:
+            if (GP.imgPaths.size() > 0) {
 				GP.imgIndex = (GP.imgIndex + GP.imgPaths.size() - 1) % GP.imgPaths.size();
 			}
 			break;
 		case 'D': // 次の画像
+		case VK_RIGHT:
 			if (GP.imgPaths.size() > 0) {
 				GP.imgIndex = (GP.imgIndex + 1) % GP.imgPaths.size();
 			}
@@ -331,48 +400,3 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
-///////////////////////////////////////////////////////////////////////
-// 画像ファイルかどうかを判定する関数
-bool IsImageFile(const std::wstring& fileName)
-{
-    for (const auto& pattern : GP.IMAGE_EXTENSIONS) {
-        if (PathMatchSpecW(fileName.c_str(), pattern.c_str())) {
-            return true;
-        }
-    }
-    return false;
-}
-
-///////////////////////////////////////////////////////////////////////
-// フォルダの画像ファイルを取得する関数
-int GetImgsPaths(const std::wstring& folderPath, std::vector<std::wstring>* imagePaths)
-{
-    imagePaths->clear();
-
-    std::wstring searchPath = folderPath;
-    if (!searchPath.empty() && searchPath.back() != L'\\')
-        searchPath += L'\\';
-    searchPath += L"*.*";  // 全ファイル対象
-
-    WIN32_FIND_DATAW findData;
-    HANDLE hFind = FindFirstFileW(searchPath.c_str(), &findData);
-    if (hFind == INVALID_HANDLE_VALUE) {
-        return 0; // フォルダが見つからない
-    }
-
-    do {
-        if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-            std::wstring fileName = findData.cFileName;
-            if (IsImageFile(fileName)) {
-                std::wstring fullPath = folderPath;
-                if (!fullPath.empty() && fullPath.back() != L'\\')
-                    fullPath += L'\\';
-                fullPath += fileName;
-                imagePaths->push_back(fullPath);
-            }
-        }
-    } while (FindNextFileW(hFind, &findData));
-
-    FindClose(hFind);
-    return static_cast<int>(imagePaths->size());
-}

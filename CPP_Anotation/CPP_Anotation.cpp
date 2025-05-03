@@ -89,16 +89,10 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     return RegisterClassExW(&wcex);
 }
 
-//
 //   関数: InitInstance(HINSTANCE, int)
-//
 //   目的: インスタンス ハンドルを保存して、メイン ウィンドウを作成します
-//
-//   コメント:
-//
 //        この関数で、グローバル変数でインスタンス ハンドルを保存し、
 //        メイン プログラム ウィンドウを作成および表示します。
-//
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // グローバル変数にインスタンス ハンドルを格納する
@@ -119,7 +113,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 // フィルパスのフォルダは'/'で区切る必要があります。
 // '\'で記述する場合は'\\'に置き換える必要があります。
-const wchar_t* g_imagePath = L"./Image01.jpg";  // JPEGまたはPNG
+const wchar_t* g_imagePath = L"../images/Image01.jpg";  // JPEGまたはPNG
 
 
 /////////////////////////////////////////////////////////////////////////

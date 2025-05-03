@@ -1,0 +1,66 @@
+#include "pch.h"
+#include "framework.h"
+#include "CPP_AnnoGblParams.h"
+#include "CPP_AnnoFuctions.h"
+#include "CPP_Anotation2.h"
+
+
+///////////////////////////////////////////////////////////////////////
+// 画像ファイルかどうかを判定する関数
+bool IsImageFile(const std::wstring& fileName)
+{
+    for (const auto& pattern : GP.IMAGE_EXTENSIONS) {
+        if (PathMatchSpecW(fileName.c_str(), pattern.c_str())) {
+            return true;
+        }
+    }
+    return false;
+}
+
+///////////////////////////////////////////////////////////////////////
+// フォルダの画像ファイルを取得する関数
+int GetImgsPaths(const std::wstring& folderPath, std::vector<std::wstring>* imagePaths)
+{
+    imagePaths->clear();
+
+    std::wstring searchPath = folderPath;
+    if (!searchPath.empty() && searchPath.back() != L'\\')
+        searchPath += L'\\';
+    searchPath += L"*.*";  // 全ファイル対象
+
+    WIN32_FIND_DATAW findData;
+    HANDLE hFind = FindFirstFileW(searchPath.c_str(), &findData);
+    if (hFind == INVALID_HANDLE_VALUE) {
+        return 0; // フォルダが見つからない
+    }
+
+    do {
+        if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            std::wstring fileName = findData.cFileName;
+            if (IsImageFile(fileName)) {
+                std::wstring fullPath = folderPath;
+                if (!fullPath.empty() && fullPath.back() != L'\\')
+                    fullPath += L'\\';
+                fullPath += fileName;
+                imagePaths->push_back(fullPath);
+            }
+        }
+    } while (FindNextFileW(hFind, &findData));
+
+    FindClose(hFind);
+    return static_cast<int>(imagePaths->size());
+
+}
+
+///////////////////////////////////////////////////////////////////////
+// 矩形の座標を正規化する関数
+void NormalizeRect(RectF& r) {
+    if (r.Width < 0) {
+        r.X += r.Width;
+        r.Width = -r.Width;
+    }
+    if (r.Height < 0) {
+        r.Y += r.Height;
+        r.Height = -r.Height;
+    }
+}
