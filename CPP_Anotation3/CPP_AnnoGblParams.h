@@ -40,17 +40,35 @@ struct GlobalParams
 	std::vector<AnnoObject>     objs; // 矩形の配列
      
     // マウスドラッグ中
-    AnnoObject                 obj_tmp; // 矩形の座標
+    AnnoObject                  obj_tmp; // 矩形の座標
     bool    isDragging ; // マウスドラッグ中かどうか	
     size_t  rectIndex; // 現在の矩形インデックス
 
     // 対象とする画像拡張子パターン
-    std::vector<std::wstring> IMAGE_EXTENSIONS;
-    GlobalParams();
+    std::vector<std::wstring>   IMAGE_EXTENSIONS;
 
 	// クラシフィケーションの名前
-    std::vector<std::wstring> ClsNames;
+    std::vector<std::wstring>       ClsNames;
+    std::vector<Gdiplus::Color>     ClsColors;
+    std::vector<Gdiplus::DashStyle> ClsDashStyles;
+	std::vector<int>                ClsPenWidths;
+
+
+    // フォント関連はポインタに
+    Gdiplus::FontFamily* fontFamily;
+    Gdiplus::Font* font;
+    //Gdiplus::SolidBrush  fontBrush;
+
+
 	int selectedClsIdx; // 選択されたクラシフィケーションのインデックス
+
+    // フォント生成を遅延させるメソッド
+    void InitFont();
+    void DestroyFont();
+
+    //コンストラクタ
+    GlobalParams();
+    ~GlobalParams();
 
 };
 

@@ -37,7 +37,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // TODO: ここにコードを挿入してください。
     GdiplusStartupInput gdiplusStartupInput;
     GdiplusStartup(&g_GdiToken, &gdiplusStartupInput, NULL);
-
+    // GDIPlusのスタートの後に フォントを生成
+    GP.InitFont();
 
     // グローバル文字列を初期化する
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -64,6 +65,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         }
     }
     // 最後に終了処理
+    GP.DestroyFont();
     GdiplusShutdown(g_GdiToken);
 
     return (int)msg.wParam;
@@ -172,6 +174,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_COMMAND:
     {
         int wmId = LOWORD(wParam);
+
+        // 動的メニューIDの範囲判定（例: IDM_PMENU_CLSNAME00～）
+        const UINT BASE_ID = IDM_PMENU_CLSNAME00;
+        size_t clsCount = GP.ClsNames.size();
+        if (wmId >= BASE_ID && wmId < BASE_ID + clsCount) 
+        {
+            GP.selectedClsIdx = wmId - BASE_ID;
+            break; // 処理したので switch を抜ける
+        }
+
         // 選択されたメニューの解析:
         switch (wmId)
         {
@@ -195,6 +207,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case IDM_EXIT:
             DestroyWindow(hWnd);
             break;
+
         default:
             return DefWindowProc(hWnd, message, wParam, lParam);
         }
@@ -244,13 +257,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // 矩形を描画
 		for (const auto& _obj : GP.objs) 
         {
-			Pen pen(Color(0, 128, 255), 2);
-            graphics.DrawRectangle(&pen,
-                _obj.rect.X * GP.width,
-                _obj.rect.Y * GP.height,
-                _obj.rect.Width * GP.width,
-                _obj.rect.Height * GP.height
-            );
+            //Pen pen(Color(0, 128, 255), 2);
+			Pen pen(_obj.color, _obj.penWidth);
+			pen.SetDashStyle(_obj.dashStyle);
+
+            float x0 = _obj.rect.X * GP.width;
+            float y0 = _obj.rect.Y * GP.height;
+            float w = _obj.rect.Width * GP.width;
+            float h = _obj.rect.Height * GP.height;
+
+            graphics.DrawRectangle(&pen, x0, y0, w, h);
+
+            // テキストと同色のブラシを作る
+            Gdiplus::SolidBrush textBrush(_obj.color);
+
+            const std::wstring text = _obj.ClassName;
+
+            // 文字列の大体の高さを取得
+            RectF   textBounds;
+            graphics.MeasureString(text.c_str(), -1, GP.font, PointF(0, 0), &textBounds);
+            float textHeight = textBounds.Height;
+
+            // テキストを矩形の左上外側にオフセット
+            PointF  textPos(x0, y0 - textHeight - 2.0f);
+            // 文字列描画
+            graphics.DrawString(text.c_str(), -1, GP.font, textPos, &textBrush);
+
 		}
 		
         // ドラッグ中の矩形を描画
@@ -353,60 +385,69 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             GP.obj_tmp.rect.Height = float(pt.y) / float(GP.height) - GP.obj_tmp.rect.Y;
             NormalizeRect(GP.obj_tmp.rect); // 矩形の座標を正規化
 
-
-			// テンポラリ矩形の座標をリセット
-			GP.obj_tmp.rect.X = 0;
-			GP.obj_tmp.rect.Y = 0;
-			GP.obj_tmp.rect.Width = 0;
-			GP.obj_tmp.rect.Height = 0;
-			GP.isDragging = false; // ドラッグ中フラグを下ろす
-            
-
-			// クラシフィケーションを選択するポップアップメニューを表示
-            size_t CANCEL_NUM = 0;
             HMENU hPopup = CreatePopupMenu();
             if (hPopup)
             {
+                //マウスカーソルの位置を取得
                 POINT pt2;
                 GetCursorPos(&pt2);
-                // なぜ初期値が-1なのか考えよう
-                GP.selectedClsIdx = -1;
 
-                // 動的にメニュー項目を追加
-                size_t i = 0;
-                for ( i= 0; i <  GP.ClsNames.size(); ++i)
+                //ホップアップメニューの作成
+                for (size_t i = 0; i < GP.ClsNames.size(); ++i)
                 {
-                    AppendMenuW(hPopup, MF_STRING, IDM_PMENU_CLSNAME00 + (UINT)i, GP.ClsNames[i].c_str());
+                    AppendMenuW(hPopup, MF_STRING, IDM_PMENU_CLSNAME00 + (UINT)i,
+                        GP.ClsNames[i].c_str());
                 }
-				CANCEL_NUM = i; //iは最後のインデックス そのまま使ってもいいが、用途を明確にする。
-                AppendMenuW(hPopup, MF_STRING, IDM_PMENU_CLSNAME00 + (UINT)CANCEL_NUM, L"CANCEL");
+                AppendMenuW(hPopup, MF_STRING,
+                    IDM_PMENU_CLSNAME00 + (UINT)GP.ClsNames.size(),
+                    L"CANCEL");
 
-                SetForegroundWindow(hWnd);  // 必須
-                // ポップアップメニュー表示
-                TrackPopupMenu(hPopup, TPM_RIGHTBUTTON, pt2.x, pt2.y, 0, hWnd, NULL);
+                //念のためウィンドウを手前に
+                SetForegroundWindow(hWnd);
+
+                // ポップアップメニューの表示
+                UINT cmd = TrackPopupMenuEx(
+                    hPopup,
+                    TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_RETURNCMD,
+                    pt2.x, pt2.y,
+                    hWnd,
+                    NULL
+                );
+                // ポップアップメニューの破棄
                 DestroyMenu(hPopup);
+
+                // 戻り値 cmd で即時処理
+                if (cmd >= IDM_PMENU_CLSNAME00 && cmd < (IDM_PMENU_CLSNAME00 + GP.ClsNames.size()))
+                {
+                    GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
+
+					// 選択されたクラシフィケーションのインデックスを取得 その他属性の設定
+                    GP.obj_tmp.ClassName = GP.ClsNames[GP.selectedClsIdx];
+					GP.obj_tmp.CalassNum = GP.selectedClsIdx;
+					GP.obj_tmp.color = GP.ClsColors[GP.selectedClsIdx];
+					GP.obj_tmp.dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
+					GP.obj_tmp.penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
+
+                    // オブジェクト情報を登録
+                    GP.objs.push_back(GP.obj_tmp);
+                    //InvalidateRect(hWnd, NULL, TRUE);
+                }
             }
 
-            // 配列に矩形を追加
-            if (GP.selectedClsIdx != CANCEL_NUM) 
-            {
-                GP.obj_tmp.ClassName = GP.ClsNames[GP.selectedClsIdx];
-                GP.obj_tmp.CalassNum = (int)GP.selectedClsIdx;
-                GP.obj_tmp.color = Color(0, 128, 255); // 色を設定
-                GP.obj_tmp.penWidth = 2; // ペンの幅を設定
-                GP.obj_tmp.dashStyle = DashStyleSolid; // ダッシュスタイルを設定
-                GP.objs.push_back(GP.obj_tmp);
-            }
-
-			// 再描画
+            // 再描画
 			InvalidateRect(hWnd, NULL, TRUE);
-		}
+
+            // 後始末
+            // テンポラリ矩形の座標をリセット
+            GP.obj_tmp.rect.X = 0;
+            GP.obj_tmp.rect.Y = 0;
+            GP.obj_tmp.rect.Width = 0;
+            GP.obj_tmp.rect.Height = 0;
+            GP.isDragging = false; // ドラッグ中フラグを下ろす
+
+        }
 	}
 	break;
-    case IDM_PMENU_CLSNAME00:
-		GP.selectedClsIdx = 0;
-		break;
-
 
 
     //キー入力を処理する

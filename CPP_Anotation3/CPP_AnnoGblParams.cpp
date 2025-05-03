@@ -7,7 +7,8 @@
 ///////////////////////////////////////////////////
 //コンストラクタ
 GlobalParams::GlobalParams()
-	:IMAGE_EXTENSIONS{ L"*.jpg", L"*.jpeg", L"*.png", L"*.bmp", L"*.gif" }
+	:IMAGE_EXTENSIONS{ L"*.jpg", L"*.jpeg", L"*.png", L"*.bmp", L"*.gif" },
+	fontFamily(nullptr), font(nullptr)
 {
 	/// ウィンドウサイズ
 	rect_win.left = 0;
@@ -41,11 +42,65 @@ GlobalParams::GlobalParams()
 		L"cargo",
 		L"car"
 	};
-	
+	ClsColors = {
+		Gdiplus::Color(255, 255, 0),
+		Gdiplus::Color(255, 0, 0),
+		Gdiplus::Color(0, 255, 0),
+		Gdiplus::Color(0, 0, 255),
+		Gdiplus::Color(255, 0, 255),
+		Gdiplus::Color(0, 255, 255),
+		Gdiplus::Color(128, 128, 128),
+		Gdiplus::Color(128, 0, 128),
+		Gdiplus::Color(128, 128, 0),
+		Gdiplus::Color(0, 128, 128),
+		Gdiplus::Color(192, 192, 192),
+		Gdiplus::Color(255, 165, 0)
+	};
+	ClsDashStyles = {
+		Gdiplus::DashStyleSolid,
+		Gdiplus::DashStyleDash,
+		Gdiplus::DashStyleDot,
+		Gdiplus::DashStyleDashDot,
+		Gdiplus::DashStyleDashDotDot,
+		Gdiplus::DashStyleCustom,
+		Gdiplus::DashStyleSolid,
+		Gdiplus::DashStyleDash,
+		Gdiplus::DashStyleDot,
+		Gdiplus::DashStyleDashDot,
+		Gdiplus::DashStyleDashDotDot,
+		Gdiplus::DashStyleCustom
+	};
+	ClsPenWidths ={
+		2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
+	};
+
 	// 選択されたクラシフィケーションのインデックスの初期化
 	// なぜ初期値が-1なのか考えよう
 	selectedClsIdx = -1; 
 }
+
+///////////////////////////////////////////////////
+void GlobalParams::InitFont()
+{
+	fontFamily = new Gdiplus::FontFamily(L"Arial");
+	font = new Gdiplus::Font(fontFamily, 12.0f,
+		Gdiplus::FontStyleRegular,
+		Gdiplus::UnitPixel);
+}
+
+void GlobalParams::DestroyFont()
+{
+	delete font;
+	delete fontFamily;
+	font = nullptr;
+	fontFamily = nullptr;
+}
+
+GlobalParams::~GlobalParams()
+{
+	DestroyFont();
+}
+
 
 // グローバル変数のインスタンスを作成
 GlobalParams GP;
