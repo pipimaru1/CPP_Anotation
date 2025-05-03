@@ -4,7 +4,7 @@
 #include "framework.h"
 #include "CPP_AnnoGblParams.h"
 #include "CPP_AnnoFuctions.h"
-#include "CPP_Anotation2.h"
+#include "CPP_Anotation3.h"
 
 // 必要なライブラリ
 #pragma comment(lib, "gdiplus.lib")
@@ -120,24 +120,19 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 // 課題：このプログラムはメモリリークしています。
 // 現象を確認してください。
 // 原因を突き止めて、メモリリークを防ぐために必要な処理を追加してください。
+
 /////////////////////////////////////////////////////////////////////////
-// 課題1: アノテーションデータょ格納する物体(オブジェクト)クラスを作ってください
-// ヒント: 矩形データを格納するクラスを作成します。
-//         矩形配列をそのクラスで置き換え、コンパイルエラーを直していくと簡単です。
+// 課題1: アノテーションクラスを作ってください
+// ヒント 矩形データを格納するクラスを作成します。
 // 
-// 課題2: 物体クラスに、クラシフィケーションナンバー、
+// 課題2: アノテーションクラスに、クラシフィケーションナンバー、
 // 　　　 クラス名、線の色、線の幅などの要素を追加してください。
-
-////////////////////////////////////////////////////////////////////////　　　　
-// ★★物体の種類のことを「クラシフィケーション」と呼びます。★★
-////////////////////////////////////////////////////////////////////////　　　　
-
 // 
-// 課題3: 矩形を作成する時に、クラシフィケーション名を付ける機能を追加してください
+// 課題3: 矩形を作成する時に、アノテーション名を付ける機能を追加してください
 // ヒント: WM_LBUTTONUPイベントにポップアップメニューを表示する処理を追加します
-//         クラシフィケーション名のリストは固定で構いません。グローバル変数に定義してください。
+//         アノテーションの名前リストは固定で構いません。グローバル変数に定義しておきます。
 //
-// 課題4: 矩形に登録されたクラシフィケーション名を表示してください。
+// 課題4: 矩形にアノテーション名を表示してください。
 
 // [上級]
 // 課題: 矩形を選択する機能を追加してください。
@@ -247,14 +242,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
 		
         // 矩形を描画
-		for (const auto& rect : GP.rects) 
+		for (const auto& _obj : GP.objs) 
         {
 			Pen pen(Color(0, 128, 255), 2);
             graphics.DrawRectangle(&pen,
-                rect.X * GP.width,
-                rect.Y * GP.height,
-                rect.Width * GP.width,
-                rect.Height * GP.height
+                _obj.rect.X * GP.width,
+                _obj.rect.Y * GP.height,
+                _obj.rect.Width * GP.width,
+                _obj.rect.Height * GP.height
             );
 		}
 		
@@ -262,10 +257,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (GP.isDragging) 
         {
             Pen pen(Color(255, 0, 0), 2);
-            float x = GP.rect_tmp.X;
-            float y = GP.rect_tmp.Y;
-            float w = GP.rect_tmp.Width;
-            float h = GP.rect_tmp.Height;
+            float x = GP.obj_tmp.rect.X;
+            float y = GP.obj_tmp.rect.Y;
+            float w = GP.obj_tmp.rect.Width;
+            float h = GP.obj_tmp.rect.Height;
 
             if (w < 0) { x += w; w = -w; }
             if (h < 0) { y += h; h = -h; }
@@ -286,8 +281,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         DeleteDC(memDC);
         EndPaint(hWnd, &ps);
 
-        //
-        
+        ///メモリの開放
+		delete image; 
+		image = nullptr; // 念のためnullにする
+
         break;
     }
     break;
@@ -314,11 +311,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		GetCursorPos(&pt);
 		ScreenToClient(hWnd, &pt);
 		// 矩形の開始位置を設定
-        GP.rect_tmp.X = float(pt.x) / float(GP.width);
-        GP.rect_tmp.Y = float(pt.y) / float(GP.height);
-		GP.rect_tmp.Width = 0;
-		GP.rect_tmp.Height = 0;
-		//NormalizeRect(GP.rect_tmp); // 矩形の座標を正規化
+        GP.obj_tmp.rect.X = float(pt.x) / float(GP.width);
+        GP.obj_tmp.rect.Y = float(pt.y) / float(GP.height);
+		GP.obj_tmp.rect.Width = 0;
+		GP.obj_tmp.rect.Height = 0;
 
 		GP.isDragging = true; // ドラッグ中フラグを立てる
 		//GP.rects.push_back(rect); // 矩形を追加
@@ -333,9 +329,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			POINT pt;
 			GetCursorPos(&pt);
 			ScreenToClient(hWnd, &pt);
-            GP.rect_tmp.Width = float(pt.x) / float(GP.width) - GP.rect_tmp.X;
-            GP.rect_tmp.Height = float(pt.y) / float(GP.height) - GP.rect_tmp.Y;
-            //NormalizeRect(GP.rect_tmp); // 矩形の座標を正規化
+            GP.obj_tmp.rect.Width = float(pt.x) / float(GP.width) - GP.obj_tmp.rect.X;
+            GP.obj_tmp.rect.Height = float(pt.y) / float(GP.height) - GP.obj_tmp.rect.Y;
 
             // 再描画
 			InvalidateRect(hWnd, NULL, TRUE);
@@ -351,26 +346,67 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			POINT pt;
 			GetCursorPos(&pt);
 			ScreenToClient(hWnd, &pt);
-			// 矩形の幅と高さを計算
-            GP.rect_tmp.Width = float(pt.x) / float(GP.width) - GP.rect_tmp.X;
-            GP.rect_tmp.Height = float(pt.y) / float(GP.height) - GP.rect_tmp.Y;
-            NormalizeRect(GP.rect_tmp); // 矩形の座標を正規化
+            ReleaseCapture(); // マウスキャプチャを解放
 
-            // 矩形を追加
-			GP.rects.push_back(GP.rect_tmp);
+            // 矩形の幅と高さを計算
+            GP.obj_tmp.rect.Width = float(pt.x) / float(GP.width) - GP.obj_tmp.rect.X;
+            GP.obj_tmp.rect.Height = float(pt.y) / float(GP.height) - GP.obj_tmp.rect.Y;
+            NormalizeRect(GP.obj_tmp.rect); // 矩形の座標を正規化
+
 
 			// テンポラリ矩形の座標をリセット
-			GP.rect_tmp.X = 0;
-			GP.rect_tmp.Y = 0;
-			GP.rect_tmp.Width = 0;
-			GP.rect_tmp.Height = 0;
+			GP.obj_tmp.rect.X = 0;
+			GP.obj_tmp.rect.Y = 0;
+			GP.obj_tmp.rect.Width = 0;
+			GP.obj_tmp.rect.Height = 0;
 			GP.isDragging = false; // ドラッグ中フラグを下ろす
-			ReleaseCapture(); // マウスキャプチャを解放
+            
+
+			// クラシフィケーションを選択するポップアップメニューを表示
+            size_t CANCEL_NUM = 0;
+            HMENU hPopup = CreatePopupMenu();
+            if (hPopup)
+            {
+                POINT pt2;
+                GetCursorPos(&pt2);
+                // なぜ初期値が-1なのか考えよう
+                GP.selectedClsIdx = -1;
+
+                // 動的にメニュー項目を追加
+                size_t i = 0;
+                for ( i= 0; i <  GP.ClsNames.size(); ++i)
+                {
+                    AppendMenuW(hPopup, MF_STRING, IDM_PMENU_CLSNAME00 + (UINT)i, GP.ClsNames[i].c_str());
+                }
+				CANCEL_NUM = i; //iは最後のインデックス そのまま使ってもいいが、用途を明確にする。
+                AppendMenuW(hPopup, MF_STRING, IDM_PMENU_CLSNAME00 + (UINT)CANCEL_NUM, L"CANCEL");
+
+                SetForegroundWindow(hWnd);  // 必須
+                // ポップアップメニュー表示
+                TrackPopupMenu(hPopup, TPM_RIGHTBUTTON, pt2.x, pt2.y, 0, hWnd, NULL);
+                DestroyMenu(hPopup);
+            }
+
+            // 配列に矩形を追加
+            if (GP.selectedClsIdx != CANCEL_NUM) 
+            {
+                GP.obj_tmp.ClassName = GP.ClsNames[GP.selectedClsIdx];
+                GP.obj_tmp.CalassNum = (int)GP.selectedClsIdx;
+                GP.obj_tmp.color = Color(0, 128, 255); // 色を設定
+                GP.obj_tmp.penWidth = 2; // ペンの幅を設定
+                GP.obj_tmp.dashStyle = DashStyleSolid; // ダッシュスタイルを設定
+                GP.objs.push_back(GP.obj_tmp);
+            }
+
 			// 再描画
 			InvalidateRect(hWnd, NULL, TRUE);
 		}
 	}
 	break;
+    case IDM_PMENU_CLSNAME00:
+		GP.selectedClsIdx = 0;
+		break;
+
 
 
     //キー入力を処理する

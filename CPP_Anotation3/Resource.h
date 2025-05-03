@@ -1,6 +1,6 @@
 ﻿//{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ で生成されたインクルード ファイルです。
-// 次で使用: CPP_Anotation2.rc
+// 次で使用: CPP_Anotation3.rc
 
 #define IDS_APP_TITLE			103
 
@@ -15,6 +15,24 @@
 
 //追加 200台から
 #define IDM_SELECT_FOLDER		200
+
+//2200まではクラシフィケーション用
+#define IDM_PMENU_CLSNAME00		2000 //動的ポップアップメニューのID 
+#define IDM_PMENU_CLSNAME01		2001
+#define IDM_PMENU_CLSNAME02		2002
+#define IDM_PMENU_CLSNAME03		2003
+#define IDM_PMENU_CLSNAME04		2004
+#define IDM_PMENU_CLSNAME05		2005
+#define IDM_PMENU_CLSNAME06		2006
+#define IDM_PMENU_CLSNAME07		2007
+#define IDM_PMENU_CLSNAME08		2008
+#define IDM_PMENU_CLSNAME09		2009
+#define IDM_PMENU_CLSNAME10		2010
+#define IDM_PMENU_CLSNAME11		2011
+#define IDM_PMENU_CLSNAME12		2012
+#define IDM_PMENU_CLSNAME13		2013
+#define IDM_PMENU_CLSNAME14		2014
+#define IDM_PMENU_CLSNAME15		2015 //とりあえず16個分確報 必要であれば増やす
 
 
 #define IDC_MYICON				2

@@ -11,9 +11,10 @@ struct GlobalParams
     int width;
     int height;
 
-    //イメージファイル
+    //イメージファイル関連
     std::vector<std::wstring> imgPaths; // 画像ファイルのパスを格納する配列
     size_t imgIndex; // 現在の画像インデックス
+	std::wstring imgFolderPath; // 現在の画像フォルダ
 
     // 矩形の配列
     std::vector<Gdiplus::RectF> rects; // 矩形の配列

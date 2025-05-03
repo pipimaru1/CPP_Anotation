@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{C16138E6-3BC8-4DAC-837C-3C14C4936A60}</ProjectGuid>
+    <ProjectGuid>{B83FDF9B-FE63-49A2-9D1E-4913FB193C1B}</ProjectGuid>
     <RootNamespace>CPPAnotation</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -136,7 +136,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="CPP_Anotation2.h" />
+    <ClInclude Include="CPP_Anotation3.h" />
     <ClInclude Include="CPP_AnnoGblParams.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
@@ -146,7 +146,7 @@
   <ItemGroup>
     <ClCompile Include="CPP_AnnoFuctions.cpp" />
     <ClCompile Include="CPP_AnnoFuctions.h" />
-    <ClCompile Include="CPP_Anotation2.cpp" />
+    <ClCompile Include="CPP_Anotation3.cpp" />
     <ClCompile Include="CPP_AnnoGblParams.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
