@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/CPP_Anotation4/CPP_AnnoGblParams.BAK
+/CPP_Anotation4/CPP_AnnoFuctions.BAK
+/CPP_Anotation4/CPP_Anotation.BAK
+/CPP_Anotation4/CPP_Anotation3.vcxproj.BAK
+/CPP_Anotation4/CPP_Anotation3.BAK
+/CPP_Anotation4/Resource.BAK
