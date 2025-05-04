@@ -11,13 +11,27 @@ struct Annotation
     int             CalassNum; // 現在のラベルインデックス
 
 	//描画情報
-    Gdiplus::Color  color; // 色
-	int 		 penWidth; // ペンの幅
-	Gdiplus::DashStyle dashStyle; // ダッシュスタイル
+    Gdiplus::Color      color; // 色
+	int 		        penWidth; // ペンの幅
+	Gdiplus::DashStyle  dashStyle; // ダッシュスタイル
 
 	// コンストラクタ
     Annotation();
 };
+
+///////////////////////////////////////////////////////
+// 画像クラス
+// 1つの画像のパスと矩形の配列を持つクラス
+struct ImgObject
+{
+    std::wstring path;         // 画像のパス
+    std::vector<Annotation> objs; // 矩形の配列
+    size_t      objIdx;           // 現在の矩形インデックス
+
+    // コンストラクタ
+    ImgObject();
+};
+
 
 ///////////////////////////////////////////////////////
 // グローバル変数の定義
@@ -30,17 +44,17 @@ struct GlobalParams
     int height;
 
     //イメージファイル関連
-    std::vector<std::wstring>   imgPaths; // 画像ファイルのパスを格納する配列
+	std::vector<ImgObject>      imgObjs; // 画像ファイルのパスと矩形の配列
     size_t                      imgIdx; // 現在の画像インデックス
 	std::wstring                imgFolderPath; // 現在の画像フォルダ
 
     // 矩形の配列
-	std::vector<Annotation>     objs; // 矩形の配列
-     
+	//std::vector<Annotation>     objs; // 矩形の配列
+    //size_t      objIdx;     // 現在の矩形インデックス
+
     // マウスドラッグ中
-    Annotation                  obj_tmp; // 矩形の座標
-    bool    isDragging ; // マウスドラッグ中かどうか	
-    size_t  rectIndex; // 現在の矩形インデックス
+    Annotation  anno_tmp;    // 矩形の座標
+    bool        isDragging; // マウスドラッグ中かどうか	
 
     // 対象とする画像拡張子パターン
     std::vector<std::wstring>   IMAGE_EXTENSIONS;
@@ -51,12 +65,10 @@ struct GlobalParams
     std::vector<Gdiplus::DashStyle> ClsDashStyles;
 	std::vector<int>                ClsPenWidths;
 
-
     // フォント関連はポインタに
     Gdiplus::FontFamily* fontFamily;
     Gdiplus::Font* font;
     //Gdiplus::SolidBrush  fontBrush;
-
 
 	int selectedClsIdx; // 選択されたクラシフィケーションのインデックス
 

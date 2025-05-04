@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "framework.h"
 #include "CPP_AnnoGblParams.h"
-#include "CPP_Anotation3.h"
+#include "CPP_Anotation4.h"
 
 
 ///////////////////////////////////////////////////
@@ -19,13 +19,13 @@ GlobalParams::GlobalParams()
 	height = 0;
 
 	// 画像ファイル関連
-	imgPaths.clear();
+	imgObjs.clear(); // 画像ファイルのパスと矩形の配列
 	imgIdx = 0;
 	isDragging = false;
 
 	// 矩形配列
 	imgFolderPath.clear();
-	rectIndex = 0;
+	//objIdx = 0;
 
 	// クラシフィケーションの初期化
 	ClsNames = { 
@@ -125,4 +125,14 @@ Annotation::Annotation()
 	dashStyle = Gdiplus::DashStyleSolid;
 
 
+}
+
+///////////////////////////////////////////////////
+ImgObject::ImgObject()
+{
+	// 画像のパスの初期化
+	path.clear();
+	// 矩形の配列の初期化
+	objs.clear();
+	objIdx = 0;
 }

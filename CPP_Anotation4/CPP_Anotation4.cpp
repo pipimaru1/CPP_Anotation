@@ -4,7 +4,7 @@
 #include "framework.h"
 #include "CPP_AnnoGblParams.h"
 #include "CPP_AnnoFuctions.h"
-#include "CPP_Anotation3.h"
+#include "CPP_Anotation4.h"
 
 // 必要なライブラリ
 #pragma comment(lib, "gdiplus.lib")
@@ -174,9 +174,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
     case WM_CREATE:
-		GP.imgPaths.clear();
+		GP.imgObjs.clear(); // 画像ファイルのパスと矩形の配列
 		GP.imgFolderPath = INIT_IMGFOLDER; // フォルダパスを指定
-		GetImgsPaths(GP.imgFolderPath, GP.imgPaths); // フォルダ内の画像ファイルを取得
+
+        GetImgsPaths(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
 
         break;
 
@@ -200,9 +201,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             GP.imgFolderPath = GetFolderPath(hWnd); // フォルダ選択ダイアログを表示
             if (!GP.imgFolderPath.empty()) {
+				// 画像ファイルのパスと矩形の配列をクリア
+                GP.imgObjs.clear();
                 // フォルダが選択された場合、画像ファイルを取得
-                GP.imgPaths.clear();
-                GetImgsPaths(GP.imgFolderPath, GP.imgPaths); // フォルダ内の画像ファイルを取得
+                GetImgsPaths(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
                 GP.imgIdx = 0; // インデックスをリセット
             }
             // 再描画
@@ -225,10 +227,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_PAINT:
     {
         static Image* image = nullptr;
-		if (GP.imgPaths.size() > 0)
+		if (GP.imgObjs.size() > 0)
 		{
 			// 画像のパスを取得
-            image = new Image(GP.imgPaths[GP.imgIdx].c_str()); // 絶対パスを指定
+            image = new Image(GP.imgObjs[GP.imgIdx].path.c_str()); // 絶対パスを指定
         }
         else
 		{
@@ -264,10 +266,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
 		
         // 矩形を描画
-		for (const auto& _obj : GP.objs) 
-        {
-            //Pen pen(Color(0, 128, 255), 2);
-			Pen pen(_obj.color, _obj.penWidth);
+		for (int i = 0; i < GP.imgObjs[GP.imgIdx].objs.size(); i++)
+		{
+            Annotation& _obj = GP.imgObjs[GP.imgIdx].objs[i];
+
+            Pen pen(_obj.color, _obj.penWidth);
 			pen.SetDashStyle(_obj.dashStyle);
 
             float x0 = _obj.rect.X * GP.width;
@@ -298,10 +301,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (GP.isDragging) 
         {
             Pen pen(Color(255, 0, 0), 2);
-            float x = GP.obj_tmp.rect.X;
-            float y = GP.obj_tmp.rect.Y;
-            float w = GP.obj_tmp.rect.Width;
-            float h = GP.obj_tmp.rect.Height;
+            float x = GP.anno_tmp.rect.X;
+            float y = GP.anno_tmp.rect.Y;
+            float w = GP.anno_tmp.rect.Width;
+            float h = GP.anno_tmp.rect.Height;
 
             if (w < 0) { x += w; w = -w; }
             if (h < 0) { y += h; h = -h; }
@@ -352,10 +355,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		GetCursorPos(&pt);
 		ScreenToClient(hWnd, &pt);
 		// 矩形の開始位置を設定
-        GP.obj_tmp.rect.X = float(pt.x) / float(GP.width);
-        GP.obj_tmp.rect.Y = float(pt.y) / float(GP.height);
-		GP.obj_tmp.rect.Width = 0;
-		GP.obj_tmp.rect.Height = 0;
+        GP.anno_tmp.rect.X = float(pt.x) / float(GP.width);
+        GP.anno_tmp.rect.Y = float(pt.y) / float(GP.height);
+		GP.anno_tmp.rect.Width = 0;
+		GP.anno_tmp.rect.Height = 0;
 
 		GP.isDragging = true; // ドラッグ中フラグを立てる
 		//GP.rects.push_back(rect); // 矩形を追加
@@ -370,8 +373,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			POINT pt;
 			GetCursorPos(&pt);
 			ScreenToClient(hWnd, &pt);
-            GP.obj_tmp.rect.Width = float(pt.x) / float(GP.width) - GP.obj_tmp.rect.X;
-            GP.obj_tmp.rect.Height = float(pt.y) / float(GP.height) - GP.obj_tmp.rect.Y;
+            GP.anno_tmp.rect.Width = float(pt.x) / float(GP.width) - GP.anno_tmp.rect.X;
+            GP.anno_tmp.rect.Height = float(pt.y) / float(GP.height) - GP.anno_tmp.rect.Y;
 
             // 再描画
 			InvalidateRect(hWnd, NULL, TRUE);
@@ -390,9 +393,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             ReleaseCapture(); // マウスキャプチャを解放
 
             // 矩形の幅と高さを計算
-            GP.obj_tmp.rect.Width = float(pt.x) / float(GP.width) - GP.obj_tmp.rect.X;
-            GP.obj_tmp.rect.Height = float(pt.y) / float(GP.height) - GP.obj_tmp.rect.Y;
-            NormalizeRect(GP.obj_tmp.rect); // 矩形の座標を正規化
+            GP.anno_tmp.rect.Width = float(pt.x) / float(GP.width) - GP.anno_tmp.rect.X;
+            GP.anno_tmp.rect.Height = float(pt.y) / float(GP.height) - GP.anno_tmp.rect.Y;
+            NormalizeRect(GP.anno_tmp.rect); // 矩形の座標を正規化
 
             HMENU hPopup = CreatePopupMenu();
             if (hPopup)
@@ -431,14 +434,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
 
 					// 選択されたクラシフィケーションのインデックスを取得 その他属性の設定
-                    GP.obj_tmp.ClassName = GP.ClsNames[GP.selectedClsIdx];
-					GP.obj_tmp.CalassNum = GP.selectedClsIdx;
-					GP.obj_tmp.color = GP.ClsColors[GP.selectedClsIdx];
-					GP.obj_tmp.dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
-					GP.obj_tmp.penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
+                    GP.anno_tmp.ClassName = GP.ClsNames[GP.selectedClsIdx];
+					GP.anno_tmp.CalassNum = GP.selectedClsIdx;
+					GP.anno_tmp.color = GP.ClsColors[GP.selectedClsIdx];
+					GP.anno_tmp.dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
+					GP.anno_tmp.penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
 
                     // オブジェクト情報を登録
-                    GP.objs.push_back(GP.obj_tmp);
+                    //GP.objs.push_back(GP.anno_tmp);
+					GP.imgObjs[GP.imgIdx].objs.push_back(GP.anno_tmp);
                     //InvalidateRect(hWnd, NULL, TRUE);
                 }
             }
@@ -448,10 +452,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             // 後始末
             // テンポラリ矩形の座標をリセット
-            GP.obj_tmp.rect.X = 0;
-            GP.obj_tmp.rect.Y = 0;
-            GP.obj_tmp.rect.Width = 0;
-            GP.obj_tmp.rect.Height = 0;
+            GP.anno_tmp.rect.X = 0;
+            GP.anno_tmp.rect.Y = 0;
+            GP.anno_tmp.rect.Width = 0;
+            GP.anno_tmp.rect.Height = 0;
             GP.isDragging = false; // ドラッグ中フラグを下ろす
 
         }
@@ -467,14 +471,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 		case 'A': // 前の画像
         case VK_LEFT:
-            if (GP.imgPaths.size() > 0) {
-				GP.imgIdx = (GP.imgIdx + GP.imgPaths.size() - 1) % GP.imgPaths.size();
+            if (GP.imgObjs.size() > 0) {
+				GP.imgIdx = (GP.imgIdx + GP.imgObjs.size() - 1) % GP.imgObjs.size();
 			}
 			break;
 		case 'D': // 次の画像
 		case VK_RIGHT:
-			if (GP.imgPaths.size() > 0) {
-				GP.imgIdx = (GP.imgIdx + 1) % GP.imgPaths.size();
+			if (GP.imgObjs.size() > 0) {
+				GP.imgIdx = (GP.imgIdx + 1) % GP.imgObjs.size();
 			}
 			break;
 		}
