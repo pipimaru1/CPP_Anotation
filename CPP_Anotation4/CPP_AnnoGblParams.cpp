@@ -106,9 +106,6 @@ GlobalParams::~GlobalParams()
 }
 
 
-// グローバル変数のインスタンスを作成
-GlobalParams GP;
-
 
 ///////////////////////////////////////////////////
 Annotation::Annotation()
@@ -130,23 +127,8 @@ Annotation::Annotation()
 }
 
 ///////////////////////////////////////////////////
-ImgObject::ImgObject()
-{
-	// 画像のパスの初期化
-	path.clear();
-	// 矩形の配列の初期化
-	objs.clear();
-	objIdx = 0;
-	// GDI+のイメージオブジェクトの初期化
-	image = nullptr;
-}
 
-ImgObject::~ImgObject()
-{
-	// GDI+のイメージオブジェクトの解放
-	if (image) //nullでなければ
-	{
-		delete image;
-		image = nullptr; // 念のためnullにする
-	}
-}
+ImgObject::ImgObject() = default;
+ImgObject::~ImgObject() = default;
+
+

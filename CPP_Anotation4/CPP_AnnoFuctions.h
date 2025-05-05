@@ -5,8 +5,8 @@
 
 
 // 画像ファイルのパスの配列を取得する関数
-//int GetImgsPaths(const std::wstring& folderPath, std::vector<std::wstring>* imagePaths);
 int GetImgsPaths(const std::wstring& folderPath, std::vector <ImgObject>& _imgObjs);
+int GetImageData(const std::wstring& folderPath, std::vector <ImgObject>& _imgObjs);
 
 
 // 矩形の座標を正規化する関数

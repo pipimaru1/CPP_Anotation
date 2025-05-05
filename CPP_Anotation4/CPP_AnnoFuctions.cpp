@@ -40,8 +40,7 @@ int GetImgsPaths(const std::wstring& folderPath, std::vector <ImgObject>& _imgOb
             std::wstring fileName = findData.cFileName;
             if (IsImageFile(fileName)) 
             {
-                //ImgObject _imgobj;
-				//_imgObjs.reserve(_imgObjs.size() + 1); // 予めメモリを確保
+
 				_imgObjs.emplace_back();//要素を追加
 				ImgObject& _imgobj = _imgObjs.back(); // 追加した要素を参照
                 
@@ -50,13 +49,11 @@ int GetImgsPaths(const std::wstring& folderPath, std::vector <ImgObject>& _imgOb
                 if (!_imgobj.path.empty() && _imgobj.path.back() != L'\\')
                     _imgobj.path += L'\\';
                 _imgobj.path += fileName;
-                //_imgObjs.push_back(_imgobj);
 
-				// 画像の読み込み
-				_imgobj.image = new Gdiplus::Image(_imgobj.path.c_str());   
-                if (_imgobj.image == nullptr) {
-                    // 画像の読み込み失敗
-                    _imgobj.image = new Gdiplus::Image(L"NO Image");
+                _imgobj.image = std::make_unique<Gdiplus::Image>(_imgobj.path.c_str());
+                // 失敗判定はポインタの null ではなく GDI+ ステータスで
+                if (_imgobj.image->GetLastStatus() != Gdiplus::Ok) {
+                    _imgobj.image = std::make_unique<Gdiplus::Image>(L"NO Image");
                 }
 
                 // 矩形の初期化
@@ -65,6 +62,52 @@ int GetImgsPaths(const std::wstring& folderPath, std::vector <ImgObject>& _imgOb
 
                 //_imgObjs.push_back(_imgobj);
             }
+        }
+    } while (FindNextFileW(hFind, &findData));
+
+    FindClose(hFind);
+    return static_cast<int>(_imgObjs.size());
+}
+///////////////////////////////////////////////////////////////////////
+// フォルダの画像ファイルから画像データを取得する関数
+int GetImageData(const std::wstring& folderPath, std::vector<ImgObject>& _imgObjs)
+{
+    _imgObjs.clear();
+    _imgObjs.reserve(100);
+
+    // ベースパスを先に作っておく
+    std::wstring base = folderPath;
+    if (!base.empty() && base.back() != L'\\') base += L'\\';
+    std::wstring searchPath = base + L"*.*";
+
+    WIN32_FIND_DATAW findData;
+    HANDLE hFind = FindFirstFileW(searchPath.c_str(), &findData);
+    if (hFind == INVALID_HANDLE_VALUE) return 0;
+
+    do {
+        if ((findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
+        {
+            std::wstring fn = findData.cFileName;
+            if (!IsImageFile(fn)) continue;
+
+            // ① 要素を追加して参照を取得
+            ImgObject& img = _imgObjs.emplace_back();
+
+            // ② パス設定
+            img.path = base + fn;
+
+            // ③ 画像読み込み（unique_ptr で安全管理）
+			// メモリリーク防止のため、unique_ptr を使用
+            img.image = std::make_unique<Gdiplus::Image>(img.path.c_str());
+
+            // 失敗判定はポインタの null ではなく GDI+ ステータスで行う
+            if (img.image->GetLastStatus() != Gdiplus::Ok) 
+            {
+				// 画像読み込み失敗時は NO Image を表示
+                img.image = std::make_unique<Gdiplus::Image>(L"NO Image");
+            }
+
+            // ④ objs はデフォルトで空なので clear 不要、objIdx も既に 0
         }
     } while (FindNextFileW(hFind, &findData));
 

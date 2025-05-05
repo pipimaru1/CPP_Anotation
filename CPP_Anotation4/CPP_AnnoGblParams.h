@@ -26,13 +26,23 @@ struct ImgObject
 {
     std::wstring path;          // 画像のパス
     std::vector<Annotation> objs;   // 矩形の配列
-    size_t      objIdx;             // 現在の矩形インデックス
-	Gdiplus::Image* image;          // GDI+のイメージオブジェクト
-    //std::unique_ptr<Gdiplus::Image> image;  // 生ポインタは禁止！
+    size_t      objIdx{0};             // 現在の矩形インデックス
 
-    // コンストラクタ
+    std::unique_ptr<Gdiplus::Image> image;  // 生ポインタは禁止！
+
+    // コンストラクタはデフォルトでOK
     ImgObject();
+    // デストラクタもデフォルトでＯＫ
     ~ImgObject();
+
+    // コピーは禁止（生ポインタ二重解放を防ぐ）
+    ImgObject(const ImgObject&) = delete;
+    ImgObject& operator=(const ImgObject&) = delete;
+
+    // ムーブはデフォルトでＯＫ（unique_ptr がムーブされる）
+    ImgObject(ImgObject&&) noexcept = default;
+    ImgObject& operator=(ImgObject&&) noexcept = default;
+
 };
 
 
@@ -50,8 +60,6 @@ struct GlobalParams
 	std::vector<ImgObject>      imgObjs; // 画像ファイルのパスと矩形の配列
     size_t                      imgIdx; // 現在の画像インデックス
 	std::wstring                imgFolderPath; // 現在の画像フォルダ
-
-   
 
     // マウスドラッグ中
     Annotation  anno_tmp;    // 矩形の座標

@@ -13,6 +13,22 @@
 
 #define MAX_LOADSTRING 100
 
+// グローバル変数のインスタンスを作成
+GlobalParams GP;
+
+//struct GdiplusRAII {
+//    ULONG_PTR token{ 0 };
+//    GdiplusRAII() {
+//        Gdiplus::GdiplusStartupInput in;
+//        Gdiplus::GdiplusStartup(&token, &in, nullptr);
+//    }
+//    ~GdiplusRAII() {
+//        Gdiplus::GdiplusShutdown(token);   // ここが最後に呼ばれる
+//    }
+//};
+//
+//GdiplusRAII gdi;
+
 // グローバル変数:
 HINSTANCE hInst;                                // 現在のインターフェイス
 WCHAR szTitle[MAX_LOADSTRING];                  // タイトル バーのテキスト
@@ -37,6 +53,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // TODO: ここにコードを挿入してください。
     GdiplusStartupInput gdiplusStartupInput;
     GdiplusStartup(&g_GdiToken, &gdiplusStartupInput, NULL);
+
     // GDIPlusのスタートの後に フォントを生成
     GP.InitFont();
 
@@ -64,6 +81,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             DispatchMessage(&msg);
         }
     }
+
+	//GDIをシャットダウンする前に画像オブジェクトをクリアする
+    GP.imgObjs.clear();
     // 最後に終了処理
     GP.DestroyFont();
     GdiplusShutdown(g_GdiToken);
@@ -122,6 +142,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 // WM_PIANTでファイルの画像を毎回読み込んで描画するのは処理が重いので、
 // 画像データを保持しておき、必要なときに描画するようにする
 // ヒント 画像データを保持するためImgObjectクラスに画像データを保持するメンバ変数を追加する
+// 画像フォルダ設定時に画像データを読み込むようにする
+// 済　やってしまった・・・
 
 /////////////////////////////////////////////////////////////////////////
 // 上級課題
@@ -152,7 +174,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		GP.imgObjs.clear(); // 画像ファイルのパスと矩形の配列
 		GP.imgFolderPath = INIT_IMGFOLDER; // フォルダパスを指定
 
-        GetImgsPaths(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
+        GetImageData(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
 
         break;
 
@@ -206,7 +228,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				// 画像ファイルのパスと矩形の配列をクリア
                 GP.imgObjs.clear();
                 // フォルダが選択された場合、画像ファイルを取得
-                GetImgsPaths(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
+                GetImageData(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
                 GP.imgIdx = 0; // インデックスをリセット
             }
             // 再描画
@@ -270,7 +292,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             if (GP.imgObjs[GP.imgIdx].image)
             {
                 //スケーリングしながら描画
-                graphics.DrawImage(GP.imgObjs[GP.imgIdx].image, 0, 0, GP.width, GP.height);
+                graphics.DrawImage(GP.imgObjs[GP.imgIdx].image.get(), 0, 0, GP.width, GP.height);
                 graphics.Flush();
 
             }
