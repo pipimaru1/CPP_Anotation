@@ -175,3 +175,50 @@ std::wstring GetFileName(HWND hWnd)
 	}
 	return fileName;
 }
+
+///////////////////////////////////////////////////////////////////////
+// ファイルパスから拡張子を指定の拡張子に変更する関数
+// 入力値はファイルパスと拡張子
+// 出力値は変更後のファイルパス std::wstring
+std::wstring ChangeFileExtension(const std::wstring& filePath, const std::wstring& newExt)
+{
+	std::wstring newFilePath = filePath;
+	size_t pos = newFilePath.find_last_of(L'.');
+	if (pos != std::wstring::npos) {
+		newFilePath.erase(pos);
+	}
+	newFilePath += newExt;
+	return newFilePath;
+}
+///////////////////////////////////////////////////////////////////////
+// ファイルパスから拡張子を取り除く関数
+// 入力値はファイルパス
+// 出力値は拡張子を取り除いたファイルパス std::wstring
+std::wstring RemoveFileExtension(const std::wstring& filePath)
+{
+	std::wstring newFilePath = filePath;
+	size_t pos = newFilePath.find_last_of(L'.');
+	if (pos != std::wstring::npos) {
+		newFilePath.erase(pos);
+	}
+	return newFilePath;
+}
+
+
+///////////////////////////////////////////////////////////////////////
+// ファイルパスからファイル名のみ抽出する関数
+// 拡張子も削除
+// 入力値はファイルパス
+// 出力値はファイル名 std::wstring
+std::wstring GetFileNameFromPath(const std::wstring& filePath)
+{
+    std::wstring _fileName1;
+    std::wstring _fileName2;
+	size_t pos = filePath.find_last_of(L'\\');
+	if (pos != std::wstring::npos) {
+        _fileName1 = filePath.substr(pos + 1);
+	}
+	_fileName2 = RemoveFileExtension(_fileName1);
+
+	return _fileName2;
+}

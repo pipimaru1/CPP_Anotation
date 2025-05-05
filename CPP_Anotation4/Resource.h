@@ -15,6 +15,8 @@
 
 //追加 200台から
 #define IDM_SELECT_FOLDER		200
+#define IDM_SELECT_SAVEFILES	201
+
 
 //2200まではクラシフィケーション用
 #define IDM_PMENU_CLSNAME00		2000 //動的ポップアップメニューのID 

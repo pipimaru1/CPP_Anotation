@@ -14,6 +14,10 @@ void NormalizeRect(RectF& r);
 
 // フォルダのパスを取得する関数
 std::wstring GetFolderPath(HWND hWnd);
+std::wstring GetFileName(HWND hWnd);
+std::wstring ChangeFileExtension(const std::wstring& filePath, const std::wstring& newExt);
+std::wstring GetFileNameFromPath(const std::wstring& filePath);
+
 
 ///////////////////////////////////////////////////////////////////////
 // Annotationをファイル保存するための文字列生成関数
