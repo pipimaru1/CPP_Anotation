@@ -13,21 +13,22 @@
 
 #define MAX_LOADSTRING 100
 
+
+struct GdiplusRAII {
+    ULONG_PTR token{ 0 };
+    GdiplusRAII() {
+        Gdiplus::GdiplusStartupInput in;
+        Gdiplus::GdiplusStartup(&token, &in, nullptr);
+    }
+    ~GdiplusRAII() {
+        Gdiplus::GdiplusShutdown(token);   // ここが最後に呼ばれる
+    }
+};
+
+GdiplusRAII gdi;
+
 // グローバル変数のインスタンスを作成
 GlobalParams GP;
-
-//struct GdiplusRAII {
-//    ULONG_PTR token{ 0 };
-//    GdiplusRAII() {
-//        Gdiplus::GdiplusStartupInput in;
-//        Gdiplus::GdiplusStartup(&token, &in, nullptr);
-//    }
-//    ~GdiplusRAII() {
-//        Gdiplus::GdiplusShutdown(token);   // ここが最後に呼ばれる
-//    }
-//};
-//
-//GdiplusRAII gdi;
 
 // グローバル変数:
 HINSTANCE hInst;                                // 現在のインターフェイス
@@ -51,8 +52,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // TODO: ここにコードを挿入してください。
-    GdiplusStartupInput gdiplusStartupInput;
-    GdiplusStartup(&g_GdiToken, &gdiplusStartupInput, NULL);
+    //GdiplusStartupInput gdiplusStartupInput;
+    //GdiplusStartup(&g_GdiToken, &gdiplusStartupInput, NULL);
+    //GdiplusRAII gdi;
 
     // GDIPlusのスタートの後に フォントを生成
     GP.InitFont();
@@ -81,11 +83,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             DispatchMessage(&msg);
         }
     }
-
-	//GDIをシャットダウンする前に画像オブジェクトをクリアする
-    GP.imgObjs.clear();
+    
     // 最後に終了処理
     GP.DestroyFont();
+    
+    //GDIをシャットダウンする前に画像オブジェクトをクリアする
+	//あえて呼びだしている。デストラクタが呼ばれるので書かなくてもいいが、書かない場合はGPとGDI両方クリアする。
+    
+    GP.imgObjs.clear();
     GdiplusShutdown(g_GdiToken);
 
     return (int)msg.wParam;
@@ -143,7 +148,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 // 画像データを保持しておき、必要なときに描画するようにする
 // ヒント 画像データを保持するためImgObjectクラスに画像データを保持するメンバ変数を追加する
 // 画像フォルダ設定時に画像データを読み込むようにする
-// 済　やってしまった・・・
+// コーディング済　
 
 /////////////////////////////////////////////////////////////////////////
 // 上級課題
