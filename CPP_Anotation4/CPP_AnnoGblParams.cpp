@@ -21,7 +21,11 @@ GlobalParams::GlobalParams()
 	// 画像ファイル関連
 	imgObjs.clear(); // 画像ファイルのパスと矩形の配列
 	imgIdx = 0;
+
+	//マウス
 	isDragging = false;
+	isMouseMoving = false;
+	g_prevPt = { -1, -1 };
 
 	// 矩形配列
 	imgFolderPath.clear();
@@ -123,8 +127,6 @@ Annotation::Annotation()
 	color = Gdiplus::Color(255, 255, 255);
 	penWidth = 2;
 	dashStyle = Gdiplus::DashStyleSolid;
-
-
 }
 
 ///////////////////////////////////////////////////
@@ -135,4 +137,16 @@ ImgObject::ImgObject()
 	// 矩形の配列の初期化
 	objs.clear();
 	objIdx = 0;
+	// GDI+のイメージオブジェクトの初期化
+	image = nullptr;
+}
+
+ImgObject::~ImgObject()
+{
+	// GDI+のイメージオブジェクトの解放
+	if (image) //nullでなければ
+	{
+		delete image;
+		image = nullptr; // 念のためnullにする
+	}
 }

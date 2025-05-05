@@ -22,6 +22,7 @@ bool IsImageFile(const std::wstring& fileName)
 int GetImgsPaths(const std::wstring& folderPath, std::vector <ImgObject>& _imgObjs)
 {
     _imgObjs.clear();
+    _imgObjs.reserve(100);
 
     std::wstring searchPath = folderPath;
     if (!searchPath.empty() && searchPath.back() != L'\\')
@@ -37,14 +38,32 @@ int GetImgsPaths(const std::wstring& folderPath, std::vector <ImgObject>& _imgOb
     do {
         if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
             std::wstring fileName = findData.cFileName;
-            if (IsImageFile(fileName)) {
-				ImgObject _imgobj;
+            if (IsImageFile(fileName)) 
+            {
+                //ImgObject _imgobj;
+				//_imgObjs.reserve(_imgObjs.size() + 1); // —\‚ßƒƒ‚ƒŠ‚ğŠm•Û
+				_imgObjs.emplace_back();//—v‘f‚ğ’Ç‰Á
+				ImgObject& _imgobj = _imgObjs.back(); // ’Ç‰Á‚µ‚½—v‘f‚ğQÆ
+                
                 _imgobj.path = folderPath;
 
                 if (!_imgobj.path.empty() && _imgobj.path.back() != L'\\')
                     _imgobj.path += L'\\';
                 _imgobj.path += fileName;
-                _imgObjs.push_back(_imgobj);
+                //_imgObjs.push_back(_imgobj);
+
+				// ‰æ‘œ‚Ì“Ç‚İ‚İ
+				_imgobj.image = new Gdiplus::Image(_imgobj.path.c_str());   
+                if (_imgobj.image == nullptr) {
+                    // ‰æ‘œ‚Ì“Ç‚İ‚İ¸”s
+                    _imgobj.image = new Gdiplus::Image(L"NO Image");
+                }
+
+                // ‹éŒ`‚Ì‰Šú‰»
+				_imgobj.objs.clear();
+				_imgobj.objIdx = 0;
+
+                //_imgObjs.push_back(_imgobj);
             }
         }
     } while (FindNextFileW(hFind, &findData));

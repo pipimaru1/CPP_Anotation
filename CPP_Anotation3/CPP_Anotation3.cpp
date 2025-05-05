@@ -224,6 +224,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     break;
     case WM_PAINT:
     {
+        ///////////////////
+        //画像の描画
         static Image* image = nullptr;
 		if (GP.imgPaths.size() > 0)
 		{
@@ -256,13 +258,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
         if (image)
         {
-
             //スケーリングしながら描画
             graphics.DrawImage(image, 0, 0, GP.width, GP.height);
             graphics.Flush();
-
         }
 		
+        ///////////////////
         // 矩形を描画
 		for (const auto& _obj : GP.objs) 
         {
@@ -294,6 +295,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		}
 		
+        /////////////////////////
         // ドラッグ中の矩形を描画
 		if (GP.isDragging) 
         {
@@ -376,6 +378,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // 再描画
 			InvalidateRect(hWnd, NULL, TRUE);
 		}
+
 	}
 	break;
 

@@ -117,7 +117,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     return TRUE;
 }
-
+/////////////////////////////////////////////////////////////////////////
+// 上級課題
+// WM_PIANTでファイルの画像を毎回読み込んで描画するのは処理が重いので、
+// 画像データを保持しておき、必要なときに描画するようにする
+// ヒント 画像データを保持するためImgObjectクラスに画像データを保持するメンバ変数を追加する
 
 /////////////////////////////////////////////////////////////////////////
 // 上級課題
@@ -224,108 +228,150 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     break;
     case WM_PAINT:
     {
-        static Image* image = nullptr;
-		if (GP.imgObjs.size() > 0)
-		{
-			// 画像のパスを取得
-            image = new Image(GP.imgObjs[GP.imgIdx].path.c_str()); // 絶対パスを指定
-        }
-        else
-		{
-			// 画像が見つからない場合は、NO Image
-			image = new Image(L"NO Image");
-		}
-
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hWnd, &ps);
-
-        // メモリDC作成
-        HDC memDC = CreateCompatibleDC(hdc);
-        HBITMAP memBitmap = CreateCompatibleBitmap(hdc, GP.width, GP.height);
-        HBITMAP oldBitmap = (HBITMAP)SelectObject(memDC, memBitmap);
-
-        // GDI+ の Graphics を memDC に結びつける
-        Graphics graphics(memDC);
-        graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
-        graphics.SetSmoothingMode(SmoothingModeAntiAlias); // 任意
-
-        // 背景塗りつぶし（必要に応じて）
-        graphics.Clear(Color(0, 0, 0)); // 黒背景
-
-        // 補間品質
-        graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
-        if (image)
+        if (!GP.isMouseMoving)
         {
+/*            static Gdiplus::Image* image = nullptr;
+            if (GP.imgObjs.size() > 0)
+            {
+                // 画像のパスを取得
+                image = new Image(GP.imgObjs[GP.imgIdx].path.c_str()); // 絶対パスを指定
+            }
+            else
+            {
+                // 画像が見つからない場合は、NO Image
+                image = new Image(L"NO Image");
+            }
+*/
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hWnd, &ps);
 
-            //スケーリングしながら描画
-            graphics.DrawImage(image, 0, 0, GP.width, GP.height);
-            graphics.Flush();
+            // メモリDC作成
+            HDC memDC = CreateCompatibleDC(hdc);
+            HBITMAP memBitmap = CreateCompatibleBitmap(hdc, GP.width, GP.height);
+            HBITMAP oldBitmap = (HBITMAP)SelectObject(memDC, memBitmap);
 
+            // GDI+ の Graphics を memDC に結びつける
+            Graphics graphics(memDC);
+            graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+            graphics.SetSmoothingMode(SmoothingModeAntiAlias); // 任意
+
+            // 背景塗りつぶし（必要に応じて）
+            graphics.Clear(Color(0, 0, 0)); // 黒背景
+
+            // 補間品質
+            graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+            //if (image)
+            //{
+            //    //スケーリングしながら描画
+            //    graphics.DrawImage(image, 0, 0, GP.width, GP.height);
+            //    graphics.Flush();
+
+            //}
+            if (GP.imgObjs[GP.imgIdx].image)
+            {
+                //スケーリングしながら描画
+                graphics.DrawImage(GP.imgObjs[GP.imgIdx].image, 0, 0, GP.width, GP.height);
+                graphics.Flush();
+
+            }
+
+
+            // 矩形を描画
+            for (int i = 0; i < GP.imgObjs[GP.imgIdx].objs.size(); i++)
+            {
+                Annotation& _obj = GP.imgObjs[GP.imgIdx].objs[i];
+
+                Pen pen(_obj.color, _obj.penWidth);
+                pen.SetDashStyle(_obj.dashStyle);
+
+                float x0 = _obj.rect.X * GP.width;
+                float y0 = _obj.rect.Y * GP.height;
+                float w = _obj.rect.Width * GP.width;
+                float h = _obj.rect.Height * GP.height;
+
+                graphics.DrawRectangle(&pen, x0, y0, w, h);
+
+                // テキストと同色のブラシを作る
+                Gdiplus::SolidBrush textBrush(_obj.color);
+
+                const std::wstring text = _obj.ClassName;
+
+                // 文字列の大体の高さを取得
+                RectF   textBounds;
+                graphics.MeasureString(text.c_str(), -1, GP.font, PointF(0, 0), &textBounds);
+                float textHeight = textBounds.Height;
+
+                // テキストを矩形の左上外側にオフセット
+                PointF  textPos(x0, y0 - textHeight - 2.0f);
+                // 文字列描画
+                graphics.DrawString(text.c_str(), -1, GP.font, textPos, &textBrush);
+
+            }
+
+            // ドラッグ中の矩形を描画
+            if (GP.isDragging)
+            {
+                Pen pen(Color(255, 0, 0), 2);
+                float x = GP.anno_tmp.rect.X;
+                float y = GP.anno_tmp.rect.Y;
+                float w = GP.anno_tmp.rect.Width;
+                float h = GP.anno_tmp.rect.Height;
+
+                if (w < 0) { x += w; w = -w; }
+                if (h < 0) { y += h; h = -h; }
+
+                graphics.DrawRectangle(&pen,
+                    x * GP.width,
+                    y * GP.height,
+                    w * GP.width,
+                    h * GP.height);
+            }
+            // 最後に画面に転送
+            BitBlt(hdc, 0, 0, GP.width, GP.height, memDC, 0, 0, SRCCOPY);
+
+            // クリーンアップ
+            SelectObject(memDC, oldBitmap);
+            DeleteObject(memBitmap);
+            DeleteDC(memDC);
+            EndPaint(hWnd, &ps);
+
+            ///メモリの開放
+            //delete image;
+            //image = nullptr; // 念のためnullにする
         }
-		
-        // 矩形を描画
-		for (int i = 0; i < GP.imgObjs[GP.imgIdx].objs.size(); i++)
-		{
-            Annotation& _obj = GP.imgObjs[GP.imgIdx].objs[i];
 
-            Pen pen(_obj.color, _obj.penWidth);
-			pen.SetDashStyle(_obj.dashStyle);
-
-            float x0 = _obj.rect.X * GP.width;
-            float y0 = _obj.rect.Y * GP.height;
-            float w = _obj.rect.Width * GP.width;
-            float h = _obj.rect.Height * GP.height;
-
-            graphics.DrawRectangle(&pen, x0, y0, w, h);
-
-            // テキストと同色のブラシを作る
-            Gdiplus::SolidBrush textBrush(_obj.color);
-
-            const std::wstring text = _obj.ClassName;
-
-            // 文字列の大体の高さを取得
-            RectF   textBounds;
-            graphics.MeasureString(text.c_str(), -1, GP.font, PointF(0, 0), &textBounds);
-            float textHeight = textBounds.Height;
-
-            // テキストを矩形の左上外側にオフセット
-            PointF  textPos(x0, y0 - textHeight - 2.0f);
-            // 文字列描画
-            graphics.DrawString(text.c_str(), -1, GP.font, textPos, &textBrush);
-
-		}
-		
-        // ドラッグ中の矩形を描画
-		if (GP.isDragging) 
+//        if (GP.isMouseMoving) // マウス移動中
         {
-            Pen pen(Color(255, 0, 0), 2);
-            float x = GP.anno_tmp.rect.X;
-            float y = GP.anno_tmp.rect.Y;
-            float w = GP.anno_tmp.rect.Width;
-            float h = GP.anno_tmp.rect.Height;
+            GP.isMouseMoving = false; // フラグをリセット
+            ///////////////////////
+            //正確な矩形を描くための目印になる水平線・垂直線をマウスカーソルに合わせて描画
+            // マウスカーソルの位置を取得        
+            POINT pt;
+            GetCursorPos(&pt);
+            ScreenToClient(hWnd, &pt);
 
-            if (w < 0) { x += w; w = -w; }
-            if (h < 0) { y += h; h = -h; }
+            //ウィンドウのクライアント領域のサイズを取得
+            RECT rect;
+            GetClientRect(hWnd, &rect);
 
-            graphics.DrawRectangle(&pen,
-                x * GP.width,
-                y * GP.height,
-                w * GP.width,
-                h * GP.height);
+            //線の色はXORの色
+            HDC hdc = GetDC(hWnd);
+            SetROP2(hdc, R2_XORPEN);
+            HPEN hPen = CreatePen(PS_SOLID, 1, RGB(255, 255, 255));
+            SelectObject(hdc, hPen);
+
+            // 水平線を描画
+            MoveToEx(hdc, 0, pt.y, NULL);
+            LineTo(hdc, rect.right - rect.left, pt.y);
+            //垂直線を描画
+            MoveToEx(hdc, pt.x, 0, NULL);
+            LineTo(hdc, pt.x, rect.bottom - rect.top);
+
+            DeleteObject(hPen);
+            ReleaseDC(hWnd, hdc);
+            break;
         }
 
-        // 最後に画面に転送
-        BitBlt(hdc, 0, 0, GP.width, GP.height, memDC, 0, 0, SRCCOPY);
-
-        // クリーンアップ
-        SelectObject(memDC, oldBitmap);
-        DeleteObject(memBitmap);
-        DeleteDC(memDC);
-        EndPaint(hWnd, &ps);
-
-        ///メモリの開放
-		delete image; 
-		image = nullptr; // 念のためnullにする
 
         break;
     }
@@ -377,7 +423,47 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // 再描画
 			InvalidateRect(hWnd, NULL, TRUE);
 		}
-	}
+        else
+        {   
+			//GP.isMouseMoving = true; // マウス移動中フラグを立てる
+            InvalidateRect(hWnd, NULL, TRUE);
+
+            //// マウス座標をクライアント座標で取得
+            //POINT pt;
+            //GetCursorPos(&pt);
+
+            //// クライアント領域サイズ
+            //RECT rc;
+            //GetClientRect(hWnd, &rc);
+            //int w = rc.right, h = rc.bottom;
+
+            //HDC hdc = GetDC(hWnd);
+            //// XOR モードに設定
+            //SetROP2(hdc, R2_NOTXORPEN);
+            //// 白ペンを作る（描画色は何でもOK）
+            //HPEN hPen = CreatePen(PS_SOLID, 1, RGB(255, 255, 255));
+            //HPEN hOld = (HPEN)SelectObject(hdc, hPen);
+
+            //// 以前描いた線を消す
+            //if (GP.g_prevPt.x >= 0) {
+            //    MoveToEx(hdc, 0, GP.g_prevPt.y, NULL); LineTo(hdc, w, GP.g_prevPt.y);
+            //    MoveToEx(hdc, GP.g_prevPt.x, 0, NULL); LineTo(hdc, GP.g_prevPt.x, h);
+            //}
+            //// 新しい線を描く
+            //MoveToEx(hdc, 0, pt.y, NULL); LineTo(hdc, w, pt.y);
+            //MoveToEx(hdc, pt.x, 0, NULL); LineTo(hdc, pt.x, h);
+
+            //// 後片付け
+            //SelectObject(hdc, hOld);
+            //DeleteObject(hPen);
+            //ReleaseDC(hWnd, hdc);
+
+            //// 座標を保存
+            //GP.g_prevPt = pt;
+        }
+
+
+    }
 	break;
 
 	// マウスの左ボタンが離されたときの処理

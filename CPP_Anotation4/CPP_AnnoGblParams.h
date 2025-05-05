@@ -24,12 +24,15 @@ struct Annotation
 // 1つの画像のパスと矩形の配列を持つクラス
 struct ImgObject
 {
-    std::wstring path;         // 画像のパス
-    std::vector<Annotation> objs; // 矩形の配列
-    size_t      objIdx;           // 現在の矩形インデックス
+    std::wstring path;          // 画像のパス
+    std::vector<Annotation> objs;   // 矩形の配列
+    size_t      objIdx;             // 現在の矩形インデックス
+	Gdiplus::Image* image;          // GDI+のイメージオブジェクト
+    //std::unique_ptr<Gdiplus::Image> image;  // 生ポインタは禁止！
 
     // コンストラクタ
     ImgObject();
+    ~ImgObject();
 };
 
 
@@ -48,13 +51,15 @@ struct GlobalParams
     size_t                      imgIdx; // 現在の画像インデックス
 	std::wstring                imgFolderPath; // 現在の画像フォルダ
 
-    // 矩形の配列
-	//std::vector<Annotation>     objs; // 矩形の配列
-    //size_t      objIdx;     // 現在の矩形インデックス
+   
 
     // マウスドラッグ中
     Annotation  anno_tmp;    // 矩形の座標
     bool        isDragging; // マウスドラッグ中かどうか	
+
+	//マウス移動中
+	bool        isMouseMoving; // マウス移動中かどうか
+    POINT       g_prevPt;
 
     // 対象とする画像拡張子パターン
     std::vector<std::wstring>   IMAGE_EXTENSIONS;
