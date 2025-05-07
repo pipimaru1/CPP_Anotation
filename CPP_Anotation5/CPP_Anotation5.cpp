@@ -4,7 +4,7 @@
 #include "framework.h"
 #include "CPP_AnnoGblParams.h"
 #include "CPP_AnnoFuctions.h"
-#include "CPP_Anotation4.h"
+#include "CPP_Anotation5.h"
 
 // 必要なライブラリ
 #pragma comment(lib, "gdiplus.lib")
@@ -199,6 +199,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // 選択されたメニューの解析:
         switch (wmId)
         {
+        case IDM_LOAD_ANNOTATIONS:
+		{
+			// ファイルオープンダイアログを表示
+			std::wstring _folderpath = GetFolderPath(hWnd);
+			// フォルダ選択ダイアログを表示
+            if (!_folderpath.empty()) 
+            {
+                // フォルダが選択された場合、アノテーションデータを読み込み
+                LoadAnno_OmgObjects(GP.imgObjs, _folderpath, L".txt", 1);
+                // 画像ファイルのパスと矩形の配列をクリア
+            }
+		}
+		break;
         case IDM_SAVE_ANNOTATIONS:
 		{
 			// ファイル保存ダイアログを表示
@@ -215,7 +228,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     _fileName1= GetFileNameFromPath(GP.imgObjs[i].path);
 					_fileName2 = _folderpath + L"\\" + _fileName1 + L".txt";
 
-                    bool _ret = SaveAnnoObjectsToFile(_fileName2, GP.imgObjs[i].objs);
+                    bool _ret = SaveAnnoObjectsToFile(_fileName2, GP.imgObjs[i].objs, 1);
 					if (!_ret)
 					{
 						// 保存失敗
@@ -294,47 +307,49 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             //    graphics.Flush();
 
             //}
-            if (GP.imgObjs[GP.imgIdx].image)
+            if (GP.imgObjs.size() > 0)
             {
-                //スケーリングしながら描画
-                graphics.DrawImage(GP.imgObjs[GP.imgIdx].image.get(), 0, 0, GP.width, GP.height);
-                graphics.Flush();
+                if (GP.imgObjs[GP.imgIdx].image)
+                {
+                    //スケーリングしながら描画
+                    graphics.DrawImage(GP.imgObjs[GP.imgIdx].image.get(), 0, 0, GP.width, GP.height);
+                    graphics.Flush();
 
+                }
+
+
+                // 矩形を描画
+                for (int i = 0; i < GP.imgObjs[GP.imgIdx].objs.size(); i++)
+                {
+                    Annotation& _obj = GP.imgObjs[GP.imgIdx].objs[i];
+
+                    Pen pen(_obj.color, _obj.penWidth);
+                    pen.SetDashStyle(_obj.dashStyle);
+
+                    float x0 = _obj.rect.X * GP.width;
+                    float y0 = _obj.rect.Y * GP.height;
+                    float w = _obj.rect.Width * GP.width;
+                    float h = _obj.rect.Height * GP.height;
+
+                    graphics.DrawRectangle(&pen, x0, y0, w, h);
+
+                    // テキストと同色のブラシを作る
+                    Gdiplus::SolidBrush textBrush(_obj.color);
+
+                    const std::wstring text = _obj.ClassName;
+
+                    // 文字列の大体の高さを取得
+                    RectF   textBounds;
+                    graphics.MeasureString(text.c_str(), -1, GP.font, PointF(0, 0), &textBounds);
+                    float textHeight = textBounds.Height;
+
+                    // テキストを矩形の左上外側にオフセット
+                    PointF  textPos(x0, y0 - textHeight - 2.0f);
+                    // 文字列描画
+                    graphics.DrawString(text.c_str(), -1, GP.font, textPos, &textBrush);
+
+                }
             }
-
-
-            // 矩形を描画
-            for (int i = 0; i < GP.imgObjs[GP.imgIdx].objs.size(); i++)
-            {
-                Annotation& _obj = GP.imgObjs[GP.imgIdx].objs[i];
-
-                Pen pen(_obj.color, _obj.penWidth);
-                pen.SetDashStyle(_obj.dashStyle);
-
-                float x0 = _obj.rect.X * GP.width;
-                float y0 = _obj.rect.Y * GP.height;
-                float w = _obj.rect.Width * GP.width;
-                float h = _obj.rect.Height * GP.height;
-
-                graphics.DrawRectangle(&pen, x0, y0, w, h);
-
-                // テキストと同色のブラシを作る
-                Gdiplus::SolidBrush textBrush(_obj.color);
-
-                const std::wstring text = _obj.ClassName;
-
-                // 文字列の大体の高さを取得
-                RectF   textBounds;
-                graphics.MeasureString(text.c_str(), -1, GP.font, PointF(0, 0), &textBounds);
-                float textHeight = textBounds.Height;
-
-                // テキストを矩形の左上外側にオフセット
-                PointF  textPos(x0, y0 - textHeight - 2.0f);
-                // 文字列描画
-                graphics.DrawString(text.c_str(), -1, GP.font, textPos, &textBrush);
-
-            }
-
             // ドラッグ中の矩形を描画
             if (GP.isDragging)
             {
@@ -546,15 +561,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 					// 選択されたクラシフィケーションのインデックスを取得 その他属性の設定
                     GP.anno_tmp.ClassName = GP.ClsNames[GP.selectedClsIdx];
-					GP.anno_tmp.CalassNum = GP.selectedClsIdx;
+					GP.anno_tmp.ClassNum = GP.selectedClsIdx;
 					GP.anno_tmp.color = GP.ClsColors[GP.selectedClsIdx];
 					GP.anno_tmp.dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
 					GP.anno_tmp.penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
 
                     // オブジェクト情報を登録
-                    //GP.objs.push_back(GP.anno_tmp);
-					GP.imgObjs[GP.imgIdx].objs.push_back(GP.anno_tmp);
-                    //InvalidateRect(hWnd, NULL, TRUE);
+                    if(GP.imgObjs.size() >0 )
+    					GP.imgObjs[GP.imgIdx].objs.push_back(GP.anno_tmp);
                 }
             }
 

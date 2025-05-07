@@ -1,6 +1,6 @@
 ﻿//{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ で生成されたインクルード ファイルです。
-// 次で使用: CPP_Anotation4.rc
+// 次で使用: CPP_Anotation5.rc
 
 #define IDS_APP_TITLE			103
 
@@ -16,6 +16,7 @@
 //追加 200台から
 #define IDM_SELECT_FOLDER		200
 #define IDM_SAVE_ANNOTATIONS	201
+#define IDM_LOAD_ANNOTATIONS	202	
 
 
 //2200まではクラシフィケーション用
