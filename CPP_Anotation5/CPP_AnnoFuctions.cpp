@@ -91,8 +91,10 @@ int GetImageData(const std::wstring& folderPath, std::vector<ImgObject>& _imgObj
             if (!IsImageFile(fn)) continue;
 
             // ① 要素を追加して参照を取得
-            ImgObject& img = _imgObjs.emplace_back();
-
+			//ImgObject& img = _imgObjs.emplace_back(); //releaseだとエラーになる
+            // Replace the problematic line with the following code:
+            _imgObjs.emplace_back(); // Add a new element
+            ImgObject& img = _imgObjs.back(); // Get a reference to the newly added element
             // ② パス設定
             img.path = base + fn;
 
