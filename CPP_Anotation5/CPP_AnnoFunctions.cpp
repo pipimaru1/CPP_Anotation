@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "framework.h"
 #include "CPP_AnnoGblParams.h"
-#include "CPP_AnnoFuctions.h"
+#include "CPP_AnnoFunctions.h"
 #include "CPP_Anotation5.h"
 
 
@@ -70,7 +70,7 @@ int GetImgsPaths(const std::wstring& folderPath, std::vector <ImgObject>& _imgOb
 }
 ///////////////////////////////////////////////////////////////////////
 // フォルダの画像ファイルから画像データを取得する関数
-int GetImageData(const std::wstring& folderPath, std::vector<ImgObject>& _imgObjs)
+int LoadImageFiles(const std::wstring& folderPath, std::vector<ImgObject>& _imgObjs)
 {
     _imgObjs.clear();
     _imgObjs.reserve(100);
@@ -115,6 +115,54 @@ int GetImageData(const std::wstring& folderPath, std::vector<ImgObject>& _imgObj
 
     FindClose(hFind);
     return static_cast<int>(_imgObjs.size());
+}
+///////////////////////////////////////////////////////////////////////
+// フォルダの画像ファイルから画像データを取得する関数
+int LoadImageFilesMP(const std::wstring& folderPath, std::vector<ImgObject>& _imgObjs)
+{
+    _imgObjs.clear();
+
+    // 1) フォルダ中のファイル名を列挙してパスだけを貯める
+    std::wstring base = folderPath;
+    if (!base.empty() && base.back() != L'\\') base += L'\\';
+    std::wstring searchPath = base + L"*.*";
+
+    WIN32_FIND_DATAW findData;
+    HANDLE hFind = FindFirstFileW(searchPath.c_str(), &findData);
+    if (hFind == INVALID_HANDLE_VALUE) return 0;
+
+    std::vector<std::wstring> fileList;
+    do {
+        if ((findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
+            std::wstring fn = findData.cFileName;
+            if (!IsImageFile(fn)) continue;
+            fileList.push_back(base + fn);
+        }
+    } while (FindNextFileW(hFind, &findData));
+    FindClose(hFind);
+
+    const int N = static_cast<int>(fileList.size());
+    if (N == 0) return 0;
+
+    // 2) 結果コンテナをあらかじめ確保しておく
+    _imgObjs.resize(N);
+
+    // 3) 画像ロードを並列化
+#pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i < N; ++i) {
+        ImgObject& img = _imgObjs[i];
+        img.path = fileList[i];
+
+        // unique_ptr で管理
+        auto image = std::make_unique<Gdiplus::Image>(img.path.c_str());
+        if (image->GetLastStatus() != Gdiplus::Ok) {
+            // ロード失敗時は代替イメージ
+            image = std::make_unique<Gdiplus::Image>(L"NO Image");
+        }
+        img.image = std::move(image);
+    }
+
+    return N;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -403,12 +451,12 @@ int mode //0:default, 1:yolo
 }
 
 ///////////////////////////////////////////////////////////////////////
-// 関数 LoadAnno_OmgObjects(
+// 関数 LoadLabelFiles(
 // std::vector<ImgObject>& imgObjs, //データを格納するImgObjectクラスの参照
 // const std::wstring& folderpath, //アノテーションファイルのあるフォルダパス
 // const std::wstring& ext //アノテーションファイルの拡張子
 // )
-int LoadAnno_OmgObjects(
+int LoadLabelFiles(
 	std::vector<ImgObject>& imgObjs, //データを格納するImgObjectクラスの参照
 	const std::wstring& folderpath, //アノテーションファイルのあるフォルダパス
 	const std::wstring& ext, //アノテーションファイルの拡張子
@@ -492,3 +540,81 @@ int LoadAnno_OmgObjects(
     return loadCount;
 }
 
+
+#include <fstream>
+#include <vector>
+#include <string>
+#include <omp.h>    // ← 追加
+
+int LoadLabelFilesMP(
+    std::vector<ImgObject>& imgObjs,
+    const std::wstring& folderpath,
+    const std::wstring& ext,
+    int mode
+)
+{
+    int loadCount = 0;
+    const int N = static_cast<int>(imgObjs.size());
+
+    // OpenMP 並列化：各 i は独立処理なので競合なし
+#pragma omp parallel for schedule(dynamic) reduction(+:loadCount)
+    for (int i = 0; i < N; ++i)
+    {
+        // ファイル名取得（スレッドごとにローカルな変数）
+        std::wstring _fileName = GetFileNameFromPath(folderpath, imgObjs[i].path, ext);
+        if (_fileName.empty()) continue;
+
+        // ファイルを開いてパース
+        std::wifstream file(_fileName);
+        if (!file.is_open()) continue;
+
+        // 既存データをクリア
+        imgObjs[i].objs.clear();
+
+        if (mode == 0)
+        {
+            Annotation obj;
+            while (file >> obj.ClassNum
+                >> obj.rect.X >> obj.rect.Y
+                >> obj.rect.Width >> obj.rect.Height)
+            {
+                NormalizeRect(obj.rect);
+
+                if (obj.ClassNum < GP.ClsNames.size())     obj.ClassName = GP.ClsNames[obj.ClassNum];
+                if (obj.ClassNum < GP.ClsColors.size())    obj.color = GP.ClsColors[obj.ClassNum];
+                if (obj.ClassNum < GP.ClsDashStyles.size())obj.dashStyle = GP.ClsDashStyles[obj.ClassNum];
+                if (obj.ClassNum < GP.ClsPenWidths.size()) obj.penWidth = GP.ClsPenWidths[obj.ClassNum];
+
+                imgObjs[i].objs.push_back(obj);
+            }
+        }
+        else if (mode == 1)
+        {
+            float tmp_x, tmp_y, tmp_w, tmp_h;
+            Annotation obj;
+            while (file >> obj.ClassNum >> tmp_x >> tmp_y >> tmp_w >> tmp_h)
+            {
+                // YOLO->BBox
+                obj.rect.X = tmp_x - tmp_w / 2;
+                obj.rect.Y = tmp_y - tmp_h / 2;
+                obj.rect.Width = tmp_w;
+                obj.rect.Height = tmp_h;
+                NormalizeRect(obj.rect);
+
+                if (obj.ClassNum < GP.ClsNames.size())     obj.ClassName = GP.ClsNames[obj.ClassNum];
+                if (obj.ClassNum < GP.ClsColors.size())    obj.color = GP.ClsColors[obj.ClassNum];
+                if (obj.ClassNum < GP.ClsDashStyles.size())obj.dashStyle = GP.ClsDashStyles[obj.ClassNum];
+                if (obj.ClassNum < GP.ClsPenWidths.size()) obj.penWidth = GP.ClsPenWidths[obj.ClassNum];
+
+                imgObjs[i].objs.push_back(obj);
+            }
+        }
+        // mode がそれ以外なら何もしない
+        file.close();
+
+        // この画像は成功読み込みとみなしてカウント
+        loadCount++;
+    }
+
+    return loadCount;
+}

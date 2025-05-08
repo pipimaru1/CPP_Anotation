@@ -14,7 +14,7 @@
 #define IDC_CPPANOTATION		109
 
 //追加 200台から
-#define IDM_SELECT_FOLDER		200
+#define IDM_LOAD_IMAGES		200
 
 
 #define IDC_MYICON				2

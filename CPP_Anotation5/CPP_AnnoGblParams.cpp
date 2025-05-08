@@ -3,7 +3,8 @@
 #include "CPP_AnnoGblParams.h"
 #include "CPP_Anotation5.h"
 
-
+//#define CLASS_AWZ
+#define CLASS_TIMESTUDY
 ///////////////////////////////////////////////////
 //コンストラクタ
 GlobalParams::GlobalParams()
@@ -31,6 +32,7 @@ GlobalParams::GlobalParams()
 	imgFolderPath.clear();
 	//objIdx = 0;
 
+#ifdef CLASS_DEV
 	// クラシフィケーションの初期化 ここを変更することで、クラス名や色を変更できる
 	ClsNames = { 
 		L"person",
@@ -77,6 +79,79 @@ GlobalParams::GlobalParams()
 	ClsPenWidths ={
 		2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 	};
+#elif defined CLASS_AWZ
+	// クラシフィケーションの初期化 ここを変更することで、クラス名や色を変更できる
+	ClsNames = {
+		L"person",
+		L"forklift",
+		L"tractor",
+		L"driver",
+		L"truck",
+		L"excavator",
+		L"wheelloder",
+		L"grader",
+		L"bulldozer",
+		L"pallet",
+		L"cargo",
+		L"car"
+	};
+	ClsColors = {
+		Gdiplus::Color(255, 255, 0),
+		Gdiplus::Color(255, 0, 0),
+		Gdiplus::Color(0, 255, 0),
+		Gdiplus::Color(0, 0, 255),
+		Gdiplus::Color(255, 0, 255),
+		Gdiplus::Color(0, 255, 255),
+		Gdiplus::Color(128, 128, 128),
+		Gdiplus::Color(128, 0, 128),
+		Gdiplus::Color(128, 128, 0),
+		Gdiplus::Color(0, 128, 128),
+		Gdiplus::Color(192, 192, 192),
+		Gdiplus::Color(255, 165, 0)
+	};
+	ClsDashStyles = {
+		Gdiplus::DashStyleDash,
+		Gdiplus::DashStyleDash,
+		Gdiplus::DashStyleDash,
+		Gdiplus::DashStyleDash,
+		Gdiplus::DashStyleDash,
+		Gdiplus::DashStyleDash,
+		Gdiplus::DashStyleDash,
+		Gdiplus::DashStyleDash,
+		Gdiplus::DashStyleDash,
+		Gdiplus::DashStyleDash,
+		Gdiplus::DashStyleDash,
+		Gdiplus::DashStyleDash
+	};
+	ClsPenWidths = {
+		2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2
+	};
+#elif defined CLASS_TIMESTUDY
+	ClsNames = {
+		L"Work",
+		L"SubWork",
+		L"Bring_Handling_Parts",
+		L"Move",
+		L"Stand",
+		L"Others"
+	};
+	ClsColors = {
+		Gdiplus::Color(255, 255, 0),
+		Gdiplus::Color(255, 0, 0),
+		Gdiplus::Color(0, 255, 0),
+		Gdiplus::Color(0, 0, 255),
+		Gdiplus::Color(255, 0, 255),
+		Gdiplus::Color(0, 255, 255) 
+	};
+	ClsDashStyles = {
+	Gdiplus::DashStyleDash,
+	Gdiplus::DashStyleDash,
+	Gdiplus::DashStyleDash,
+	Gdiplus::DashStyleDash,
+	Gdiplus::DashStyleDash,
+	Gdiplus::DashStyleDash
+	};
+#endif
 
 	// 選択されたクラシフィケーションのインデックスの初期化
 	// なぜ初期値が-1なのか考えよう

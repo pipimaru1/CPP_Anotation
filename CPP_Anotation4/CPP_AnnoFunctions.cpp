@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "framework.h"
 #include "CPP_AnnoGblParams.h"
-#include "CPP_AnnoFuctions.h"
+#include "CPP_AnnoFunctions.h"
 #include "CPP_Anotation4.h"
 
 
@@ -70,7 +70,7 @@ int GetImgsPaths(const std::wstring& folderPath, std::vector <ImgObject>& _imgOb
 }
 ///////////////////////////////////////////////////////////////////////
 // フォルダの画像ファイルから画像データを取得する関数
-int GetImageData(const std::wstring& folderPath, std::vector<ImgObject>& _imgObjs)
+int LoadImageFiles(const std::wstring& folderPath, std::vector<ImgObject>& _imgObjs)
 {
     _imgObjs.clear();
     _imgObjs.reserve(100);

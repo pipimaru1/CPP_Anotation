@@ -3,7 +3,7 @@
 #include "pch.h"
 #include "framework.h"
 #include "CPP_AnnoGblParams.h"
-#include "CPP_AnnoFuctions.h"
+#include "CPP_AnnoFunctions.h"
 #include "CPP_Anotation2.h"
 
 // 必要なライブラリ
@@ -180,7 +180,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // 選択されたメニューの解析:
         switch (wmId)
         {
-        case IDM_SELECT_FOLDER:
+        case IDM_LOAD_IMAGES:
         {
             GP.imgFolderPath = GetFolderPath(hWnd); // フォルダ選択ダイアログを表示
             if (!GP.imgFolderPath.empty()) {

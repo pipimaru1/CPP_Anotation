@@ -127,6 +127,9 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -144,8 +147,8 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CPP_AnnoFuctions.cpp" />
-    <ClCompile Include="CPP_AnnoFuctions.h" />
+    <ClCompile Include="CPP_AnnoFunctions.cpp" />
+    <ClCompile Include="CPP_AnnoFunctions.h" />
     <ClCompile Include="CPP_Anotation5.cpp" />
     <ClCompile Include="CPP_AnnoGblParams.cpp" />
     <ClCompile Include="pch.cpp">

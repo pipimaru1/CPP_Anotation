@@ -6,8 +6,12 @@
 
 // 画像ファイルのパスの配列を取得する関数
 int GetImgsPaths(const std::wstring& folderPath, std::vector <ImgObject>& _imgObjs);
-int GetImageData(const std::wstring& folderPath, std::vector <ImgObject>& _imgObjs);
 
+//画像ファイルをメモリにロード
+int LoadImageFiles(const std::wstring& folderPath, std::vector <ImgObject>& _imgObjs);
+
+//画像ファイルをメモリにロード 並列高速化
+int LoadImageFilesMP(const std::wstring& folderPath, std::vector<ImgObject>& _imgObjs);
 
 // 矩形の座標を正規化する関数
 void NormalizeRect(RectF& r);
@@ -20,13 +24,20 @@ std::wstring GetFileNameFromPath(const std::wstring& filePath);
 
 ///////////////////////////////////////////////////////////////////////
 // 関数 アノテーションデータの読み込み
-int LoadAnno_OmgObjects(
+int LoadLabelFiles(
 	std::vector<ImgObject>& imgObjs, //データを格納するImgObjectクラスの参照
 	const std::wstring& folderpath, //アノテーションファイルのあるフォルダパス
 	const std::wstring& ext, //アノテーションファイルの拡張子
 	int mode //0:default, 1:yolo
 );
-
+///////////////////////////////////////////////////////////////////////
+// 関数 アノテーションデータの読み込み 並列高速化
+int LoadLabelFilesMP(
+	std::vector<ImgObject>& imgObjs,
+	const std::wstring& folderpath,
+	const std::wstring& ext,
+	int mode
+);
 
 ///////////////////////////////////////////////////////////////////////
 // Annotationをファイル保存するための文字列生成関数

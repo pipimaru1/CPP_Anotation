@@ -3,7 +3,7 @@
 #include "pch.h"
 #include "framework.h"
 #include "CPP_AnnoGblParams.h"
-#include "CPP_AnnoFuctions.h"
+#include "CPP_AnnoFunctions.h"
 #include "CPP_Anotation4.h"
 
 // 必要なライブラリ
@@ -179,7 +179,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		GP.imgObjs.clear(); // 画像ファイルのパスと矩形の配列
 		GP.imgFolderPath = INIT_IMGFOLDER; // フォルダパスを指定
 
-        GetImageData(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
+        LoadImageFiles(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
 
         break;
 
@@ -226,14 +226,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
         break;
 
-        case IDM_SELECT_FOLDER:
+        case IDM_LOAD_IMAGES:
         {
             GP.imgFolderPath = GetFolderPath(hWnd); // フォルダ選択ダイアログを表示
             if (!GP.imgFolderPath.empty()) {
 				// 画像ファイルのパスと矩形の配列をクリア
                 GP.imgObjs.clear();
                 // フォルダが選択された場合、画像ファイルを取得
-                GetImageData(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
+                LoadImageFiles(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
                 GP.imgIdx = 0; // インデックスをリセット
             }
             // 再描画

@@ -144,8 +144,8 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CPP_AnnoFuctions.cpp" />
-    <ClCompile Include="CPP_AnnoFuctions.h" />
+    <ClCompile Include="CPP_AnnoFunctions.cpp" />
+    <ClCompile Include="CPP_AnnoFunctions.h" />
     <ClCompile Include="CPP_Anotation3.cpp" />
     <ClCompile Include="CPP_AnnoGblParams.cpp" />
     <ClCompile Include="pch.cpp">

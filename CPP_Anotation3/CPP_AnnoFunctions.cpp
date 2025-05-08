@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "framework.h"
 #include "CPP_AnnoGblParams.h"
-#include "CPP_AnnoFuctions.h"
-#include "CPP_Anotation2.h"
+#include "CPP_AnnoFunctions.h"
+#include "CPP_Anotation3.h"
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -19,9 +19,9 @@ bool IsImageFile(const std::wstring& fileName)
 
 ///////////////////////////////////////////////////////////////////////
 // フォルダの画像ファイルを取得する関数
-int GetImgsPaths(const std::wstring& folderPath, std::vector<std::wstring>* imagePaths)
+int GetImgsPaths(const std::wstring& folderPath, std::vector<std::wstring>& imagePaths)
 {
-    imagePaths->clear();
+    imagePaths.clear();
 
     std::wstring searchPath = folderPath;
     if (!searchPath.empty() && searchPath.back() != L'\\')
@@ -42,13 +42,13 @@ int GetImgsPaths(const std::wstring& folderPath, std::vector<std::wstring>* imag
                 if (!fullPath.empty() && fullPath.back() != L'\\')
                     fullPath += L'\\';
                 fullPath += fileName;
-                imagePaths->push_back(fullPath);
+                imagePaths.push_back(fullPath);
             }
         }
     } while (FindNextFileW(hFind, &findData));
 
     FindClose(hFind);
-    return static_cast<int>(imagePaths->size());
+    return static_cast<int>(imagePaths.size());
 
 }
 

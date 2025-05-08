@@ -44,10 +44,10 @@
     <ClCompile Include="CPP_AnnoGblParams.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="CPP_AnnoFuctions.h">
+    <ClCompile Include="CPP_AnnoFunctions.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="CPP_AnnoFuctions.cpp">
+    <ClCompile Include="CPP_AnnoFunctions.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
