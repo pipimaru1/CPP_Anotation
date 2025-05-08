@@ -1,4 +1,8 @@
 #pragma once
+
+// 辺と頂点の定義
+//enum DragMode { None, Move, Left, Right, Top, Bottom, TL, TR, BL, BR };
+
 ///////////////////////////////////////////////////////
 // アノテーションクラス
 struct LabelObj
@@ -69,12 +73,17 @@ struct GlobalParams
 
     // マウスドラッグ中
     LabelObj  anno_tmp;    // 矩形の座標
-    bool      isDragging; // マウスドラッグ中かどうか	
+    bool      makeBox; // マウスドラッグ中かどうか	
 
 	//マウス移動中
 	bool        isMouseMoving; // マウス移動中かどうか
     POINT       g_prevPt;
     int         Overlap; // マウスオーバーの裕度
+
+    //矩形ドラッグ
+    //DragMode        dragMode = None;
+	int activeIdx = -1; // ドラッグ中の矩形のインデックス
+    Gdiplus::PointF prevMouse;   // 前回のマウス座標
 
     // 対象とする画像拡張子パターン
     std::vector<std::wstring>   IMAGE_EXTENSIONS;

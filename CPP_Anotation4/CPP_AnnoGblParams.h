@@ -63,7 +63,7 @@ struct GlobalParams
 
     // マウスドラッグ中
     LabelObj  anno_tmp;    // 矩形の座標
-    bool        isDragging; // マウスドラッグ中かどうか	
+    bool        makeBox; // マウスドラッグ中かどうか	
 
 	//マウス移動中
 	bool        isMouseMoving; // マウス移動中かどうか

@@ -23,7 +23,7 @@ GlobalParams::GlobalParams()
 	imgIdx = 0;
 
 	//É}ÉEÉX
-	isDragging = false;
+	makeBox = false;
 	isMouseMoving = false;
 	g_prevPt = { -1, -1 };
 

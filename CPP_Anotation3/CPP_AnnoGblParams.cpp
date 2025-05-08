@@ -21,7 +21,7 @@ GlobalParams::GlobalParams()
 	// 画像ファイル関連
 	imgPaths.clear();
 	imgIdx = 0;
-	isDragging = false;
+	makeBox = false;
 
 	// 矩形配列
 	imgFolderPath.clear();

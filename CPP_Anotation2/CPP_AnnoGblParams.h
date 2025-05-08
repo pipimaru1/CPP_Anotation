@@ -20,7 +20,7 @@ struct GlobalParams
     std::vector<Gdiplus::RectF> rects; // 矩形の配列
     // マウスドラッグ中
     Gdiplus::RectF rect_tmp; // 矩形の座標
-    bool isDragging = false; // マウスドラッグ中かどうか	
+    bool makeBox = false; // マウスドラッグ中かどうか	
     size_t rectIndex = 0; // 現在の矩形インデックス
 
     // 対象とする画像拡張子パターン

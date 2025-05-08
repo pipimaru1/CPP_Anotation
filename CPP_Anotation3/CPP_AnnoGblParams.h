@@ -39,7 +39,7 @@ struct GlobalParams
      
     // マウスドラッグ中
     LabelObj                  obj_tmp; // 矩形の座標
-    bool    isDragging ; // マウスドラッグ中かどうか	
+    bool    makeBox ; // マウスドラッグ中かどうか	
     size_t  rectIndex; // 現在の矩形インデックス
 
     // 対象とする画像拡張子パターン

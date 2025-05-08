@@ -365,7 +365,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
             }
             // ドラッグ中の矩形を描画
-            if (GP.isDragging)
+            if (GP.makeBox)
             {
                 Pen pen(Color(255, 0, 0), 2);
                 float x = GP.anno_tmp.rect.X;
@@ -449,20 +449,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	// マウスの左ボタンが押されたときの処理
 	case WM_LBUTTONDOWN:
 	{
-		// マウスの位置を取得
-		POINT pt;
-		GetCursorPos(&pt);
-		ScreenToClient(hWnd, &pt);
-		// 矩形の開始位置を設定
-        GP.anno_tmp.rect.X = float(pt.x) / float(GP.width);
-        GP.anno_tmp.rect.Y = float(pt.y) / float(GP.height);
-		GP.anno_tmp.rect.Width = 0;
-		GP.anno_tmp.rect.Height = 0;
+        // マウスの位置を取得
+        POINT pt;
+        GetCursorPos(&pt);
+        ScreenToClient(hWnd, &pt);
+        //矩形にマウスオーバーしていない時は矩形を作成する。
+        if( GP.imgObjs[GP.imgIdx].mOverIdx == -1 )
+        {
+            // 矩形の開始位置を設定
+            GP.anno_tmp.rect.X = float(pt.x) / float(GP.width);
+            GP.anno_tmp.rect.Y = float(pt.y) / float(GP.height);
+            GP.anno_tmp.rect.Width = 0;
+            GP.anno_tmp.rect.Height = 0;
 
-		GP.isDragging = true; // ドラッグ中フラグを立てる
-		//GP.rects.push_back(rect); // 矩形を追加
-		SetCapture(hWnd); // マウスキャプチャを取得
-	}
+            GP.makeBox = true; // ドラッグ中フラグを立てる
+            //GP.rects.push_back(rect); // 矩形を追加
+        }
+        else
+        { 
+            POINT pt;
+            GetCursorPos(&pt);
+            ScreenToClient(hWnd, &pt);
+
+            // マウスキャプチャ開始
+            SetCapture(hWnd);
+            // 前回マウス位置にセット
+            GP.prevMouse = Gdiplus::PointF((FLOAT)pt.x, (FLOAT)pt.y);
+            // ヒットテストして、アクティブ矩形とドラッグモードを決定
+            GP.activeIdx = GP.imgObjs[GP.imgIdx].mOverIdx;
+
+        }
+
+    
+        
+        SetCapture(hWnd); // マウスキャプチャを取得 ウィンドウの外に出てもマウスイベントを受け取る
+    }
 	break;
 	// マウスの移動中の処理
 	case WM_MOUSEMOVE:
@@ -472,7 +493,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         GetCursorPos(&pt);
         ScreenToClient(hWnd, &pt);
         
-        if (GP.isDragging) 
+        if (GP.makeBox) 
         {
 		    GP.anno_tmp.rect.Width = float(pt.x) / float(GP.width) - GP.anno_tmp.rect.X;
             GP.anno_tmp.rect.Height = float(pt.y) / float(GP.height) - GP.anno_tmp.rect.Y;
@@ -493,7 +514,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	// マウスの左ボタンが離されたときの処理
 	case WM_LBUTTONUP:
 	{
-		if (GP.isDragging) {
+		if (GP.makeBox) {
 			// マウスの位置を取得
 			POINT pt;
 			GetCursorPos(&pt);
@@ -563,7 +584,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             GP.anno_tmp.rect.Y = 0;
             GP.anno_tmp.rect.Width = 0;
             GP.anno_tmp.rect.Height = 0;
-            GP.isDragging = false; // ドラッグ中フラグを下ろす
+            GP.makeBox = false; // ドラッグ中フラグを下ろす
 
         }
 	}

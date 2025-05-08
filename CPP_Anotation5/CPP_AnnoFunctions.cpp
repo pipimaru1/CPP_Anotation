@@ -625,6 +625,11 @@ int IsMouseOnRectEdge(
     int overlap
 )
 {
+	bool Left = false;
+	bool Right = false;
+	bool Top = false;
+	bool Bottom = false;
+
     // 矩形の座標
     float x0 = obj.rect.X * GP.width;
     float y0 = obj.rect.Y * GP.height;
@@ -635,17 +640,75 @@ int IsMouseOnRectEdge(
     int _ret = 0;
     if(pt.y >= y0 - overlap && pt.y <= y0 + overlap &&
         pt.x >= x0 - overlap && pt.x <= x0 + w + overlap)
-        return 1; // 上辺
+		Top = true; // 上辺
 
     if(pt.y >= y0 + h - overlap && pt.y <= y0 + h + overlap &&
         pt.x >= x0 - overlap && pt.x <= x0 + w + overlap)
-        return 2; // 下辺
+		Bottom = true; // 下辺
 
     if(pt.x >= x0 - overlap && pt.x <= x0 + overlap &&
         pt.y >= y0 - overlap && pt.y <= y0 + h + overlap)
-        return 3; // 左辺
+		Left = true; // 左辺
 
     if(pt.x >= x0 + w - overlap && pt.x <= x0 + w + overlap &&
+        pt.y >= y0 - overlap && pt.y <= y0 + h + overlap)
+		Right = true; // 右辺
+
+	if (Top && Left)
+		return 1; // 上辺左端
+	if (Top && Right)
+		return 2; // 上辺右端
+	if (Bottom && Left)
+		return 3; // 下辺左端
+	if (Bottom && Right)
+		return 4; // 下辺右端
+	if (Top)
+		return 5; // 上辺
+	if (Bottom)
+		return 6; // 下辺
+	if (Left)
+		return 7; // 左辺
+	if (Right)
+		return 8; // 右辺
+
+    // 矩形の中にカーソルがある場合
+	//if (pt.x >= x0 && pt.x <= x0 + w &&
+	//	pt.y >= y0 && pt.y <= y0 + h)
+	//	return 9; // 中
+
+    // 矩形の外にカーソルがある場合 
+
+    return 0; // 外
+}
+///////////////////////////////////////////////////////////////////////
+//矩形の線上にマウスカーソルがあるかどうかを判定する関数
+int IsMouseOnRectEdge_old(
+    const POINT& pt,
+    const LabelObj& obj,
+    int overlap
+)
+{
+    // 矩形の座標
+    float x0 = obj.rect.X * GP.width;
+    float y0 = obj.rect.Y * GP.height;
+    float w = obj.rect.Width * GP.width;
+    float h = obj.rect.Height * GP.height;
+
+    // 各辺の幅を帯状に見立てて判定
+    int _ret = 0;
+    if (pt.y >= y0 - overlap && pt.y <= y0 + overlap &&
+        pt.x >= x0 - overlap && pt.x <= x0 + w + overlap)
+        return 1; // 上辺
+
+    if (pt.y >= y0 + h - overlap && pt.y <= y0 + h + overlap &&
+        pt.x >= x0 - overlap && pt.x <= x0 + w + overlap)
+        return 2; // 下辺
+
+    if (pt.x >= x0 - overlap && pt.x <= x0 + overlap &&
+        pt.y >= y0 - overlap && pt.y <= y0 + h + overlap)
+        return 3; // 左辺
+
+    if (pt.x >= x0 + w - overlap && pt.x <= x0 + w + overlap &&
         pt.y >= y0 - overlap && pt.y <= y0 + h + overlap)
         return 4; // 右辺
 
@@ -657,16 +720,16 @@ int IsMouseOnRectEdge(
     // 矩形の外にカーソルがある場合 
     return 0; // 外
 }
+
 ///////////////////////////////////////////////////////////////////////
 //マウスカーソルと重なる矩形のインデックスを取得する関数
 //最初の一つだけを返す
-//重なった矩形のオブジェクトには_mOverに1～4の値が入る
+//重なった矩形のオブジェクトには_mOverに1～8の値が入る
 int GetIdxMouseOnRectEdge(
     const POINT& pt,
     std::vector<LabelObj>& objs,
     int overlap
-)
-{
+){
     int _ret=-1;
     //まず全て解除
     for (int i = 0; i < objs.size(); i++)
@@ -688,6 +751,6 @@ int GetIdxMouseOnRectEdge(
             objs[i].mOver = 0; // 選択状態を解除
         }
     }
-
     return _ret; // 矩形がない場合は-1を返す
 }
+

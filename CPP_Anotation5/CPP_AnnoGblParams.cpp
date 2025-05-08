@@ -24,7 +24,7 @@ GlobalParams::GlobalParams()
 	imgIdx = 0;
 
 	//マウス
-	isDragging = false;
+	makeBox = false;
 	isMouseMoving = false;
 	g_prevPt = { -1, -1 };
     Overlap = 5; // マウスオーバーの裕度
