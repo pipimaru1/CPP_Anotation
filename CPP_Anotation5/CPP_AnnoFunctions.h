@@ -56,3 +56,17 @@ bool SaveLabelsToFile(
 	const std::vector<LabelObj>& objs,
 	int mode //0:default, 1:yolo
 );
+///////////////////////////////////////////////////////////////////////
+//矩形の線上にマウスカーソルがあるかどうかを判定する関数
+int IsMouseOnRectEdge(
+	const POINT& pt,
+	const LabelObj& obj,
+	int overlap
+);
+///////////////////////////////////////////////////////////////////////
+//マウスカーソルと重なる矩形のインデックスを取得する関数
+int GetIdxMouseOnRectEdge(
+	const POINT& pt,
+	std::vector<LabelObj>& objs,
+	int overlap
+);

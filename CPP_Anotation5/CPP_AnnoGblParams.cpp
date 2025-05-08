@@ -27,6 +27,7 @@ GlobalParams::GlobalParams()
 	isDragging = false;
 	isMouseMoving = false;
 	g_prevPt = { -1, -1 };
+    Overlap = 5; // マウスオーバーの裕度
 
 	// 矩形配列
 	imgFolderPath.clear();

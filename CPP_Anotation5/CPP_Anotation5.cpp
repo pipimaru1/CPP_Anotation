@@ -288,22 +288,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
     }
     break;
+
+    //////////////////////////////////////////////////////////////////////////////////
+    // 描画処理
+    //////////////////////////////////////////////////////////////////////////////////
     case WM_PAINT:
     {
+        // マウス移動中でない場合は、描画処理を行う
         if (!GP.isMouseMoving)
         {
-/*            static Gdiplus::Image* image = nullptr;
-            if (GP.imgObjs.size() > 0)
-            {
-                // 画像のパスを取得
-                image = new Image(GP.imgObjs[GP.imgIdx].path.c_str()); // 絶対パスを指定
-            }
-            else
-            {
-                // 画像が見つからない場合は、NO Image
-                image = new Image(L"NO Image");
-            }
-*/
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
 
@@ -322,13 +315,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             // 補間品質
             graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
-            //if (image)
-            //{
-            //    //スケーリングしながら描画
-            //    graphics.DrawImage(image, 0, 0, GP.width, GP.height);
-            //    graphics.Flush();
-
-            //}
             if (GP.imgObjs.size() > 0)
             {
                 if (GP.imgObjs[GP.imgIdx].image)
@@ -344,8 +330,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 for (int i = 0; i < GP.imgObjs[GP.imgIdx].objs.size(); i++)
                 {
                     LabelObj& _obj = GP.imgObjs[GP.imgIdx].objs[i];
+                    
+                    // マウスオーバーのとき
+                    int _penWidth = _obj.penWidth;
+                    if (_obj.mOver > 0)
+                        _penWidth += 2; // マウスオーバー時はペン幅を太くする
 
-                    Pen pen(_obj.color, _obj.penWidth);
+                    Pen pen(_obj.color, _penWidth);
+
                     pen.SetDashStyle(_obj.dashStyle);
 
                     float x0 = _obj.rect.X * GP.width;
@@ -403,15 +395,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             //delete image;
             //image = nullptr; // 念のためnullにする
         }
-
-//        if (GP.isMouseMoving) // マウス移動中
+        //if (GP.isMouseMoving) // マウス移動中
         {
             GP.isMouseMoving = false; // フラグをリセット
             ///////////////////////
             //正確な矩形を描くための目印になる水平線・垂直線をマウスカーソルに合わせて描画
             // マウスカーソルの位置を取得        
             POINT pt;
+            // マウス座標をクライアント座標で取得
             GetCursorPos(&pt);
+            // クライアント座標に変換
             ScreenToClient(hWnd, &pt);
 
             //ウィンドウのクライアント領域のサイズを取得
@@ -433,10 +426,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             DeleteObject(hPen);
             ReleaseDC(hWnd, hdc);
-            break;
+            //break;
         }
-
-
         break;
     }
     break;
@@ -476,12 +467,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	// マウスの移動中の処理
 	case WM_MOUSEMOVE:
 	{
-		if (GP.isDragging) {
-			// マウスの位置を取得
-			POINT pt;
-			GetCursorPos(&pt);
-			ScreenToClient(hWnd, &pt);
-            GP.anno_tmp.rect.Width = float(pt.x) / float(GP.width) - GP.anno_tmp.rect.X;
+        // マウスの位置を取得
+        POINT pt;
+        GetCursorPos(&pt);
+        ScreenToClient(hWnd, &pt);
+        
+        if (GP.isDragging) 
+        {
+		    GP.anno_tmp.rect.Width = float(pt.x) / float(GP.width) - GP.anno_tmp.rect.X;
             GP.anno_tmp.rect.Height = float(pt.y) / float(GP.height) - GP.anno_tmp.rect.Y;
 
             // 再描画
@@ -490,43 +483,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         else
         {   
 			//GP.isMouseMoving = true; // マウス移動中フラグを立てる
+            GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, GP.Overlap); // マウスカーソルの位置を取得
+
             InvalidateRect(hWnd, NULL, TRUE);
-
-            //// マウス座標をクライアント座標で取得
-            //POINT pt;
-            //GetCursorPos(&pt);
-
-            //// クライアント領域サイズ
-            //RECT rc;
-            //GetClientRect(hWnd, &rc);
-            //int w = rc.right, h = rc.bottom;
-
-            //HDC hdc = GetDC(hWnd);
-            //// XOR モードに設定
-            //SetROP2(hdc, R2_NOTXORPEN);
-            //// 白ペンを作る（描画色は何でもOK）
-            //HPEN hPen = CreatePen(PS_SOLID, 1, RGB(255, 255, 255));
-            //HPEN hOld = (HPEN)SelectObject(hdc, hPen);
-
-            //// 以前描いた線を消す
-            //if (GP.g_prevPt.x >= 0) {
-            //    MoveToEx(hdc, 0, GP.g_prevPt.y, NULL); LineTo(hdc, w, GP.g_prevPt.y);
-            //    MoveToEx(hdc, GP.g_prevPt.x, 0, NULL); LineTo(hdc, GP.g_prevPt.x, h);
-            //}
-            //// 新しい線を描く
-            //MoveToEx(hdc, 0, pt.y, NULL); LineTo(hdc, w, pt.y);
-            //MoveToEx(hdc, pt.x, 0, NULL); LineTo(hdc, pt.x, h);
-
-            //// 後片付け
-            //SelectObject(hdc, hOld);
-            //DeleteObject(hPen);
-            //ReleaseDC(hWnd, hdc);
-
-            //// 座標を保存
-            //GP.g_prevPt = pt;
         }
-
-
     }
 	break;
 

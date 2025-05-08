@@ -617,3 +617,77 @@ int LoadLabelFilesMP(
 
     return loadCount;
 }
+///////////////////////////////////////////////////////////////////////
+//矩形の線上にマウスカーソルがあるかどうかを判定する関数
+int IsMouseOnRectEdge(
+    const POINT& pt, 
+    const LabelObj& obj,
+    int overlap
+)
+{
+    // 矩形の座標
+    float x0 = obj.rect.X * GP.width;
+    float y0 = obj.rect.Y * GP.height;
+    float w = obj.rect.Width * GP.width;
+    float h = obj.rect.Height * GP.height;
+
+    // 各辺の幅を帯状に見立てて判定
+    int _ret = 0;
+    if(pt.y >= y0 - overlap && pt.y <= y0 + overlap &&
+        pt.x >= x0 - overlap && pt.x <= x0 + w + overlap)
+        return 1; // 上辺
+
+    if(pt.y >= y0 + h - overlap && pt.y <= y0 + h + overlap &&
+        pt.x >= x0 - overlap && pt.x <= x0 + w + overlap)
+        return 2; // 下辺
+
+    if(pt.x >= x0 - overlap && pt.x <= x0 + overlap &&
+        pt.y >= y0 - overlap && pt.y <= y0 + h + overlap)
+        return 3; // 左辺
+
+    if(pt.x >= x0 + w - overlap && pt.x <= x0 + w + overlap &&
+        pt.y >= y0 - overlap && pt.y <= y0 + h + overlap)
+        return 4; // 右辺
+
+    // 矩形の中にカーソルがある場合
+    //if (pt.x >= x0 && pt.x <= x0 + w &&
+    //    pt.y >= y0 && pt.y <= y0 + h)
+    //    return 5; // 中
+
+    // 矩形の外にカーソルがある場合 
+    return 0; // 外
+}
+///////////////////////////////////////////////////////////////////////
+//マウスカーソルと重なる矩形のインデックスを取得する関数
+//最初の一つだけを返す
+//重なった矩形のオブジェクトには_mOverに1～4の値が入る
+int GetIdxMouseOnRectEdge(
+    const POINT& pt,
+    std::vector<LabelObj>& objs,
+    int overlap
+)
+{
+    int _ret=-1;
+    //まず全て解除
+    for (int i = 0; i < objs.size(); i++)
+    {
+        objs[i].mOver = 0; // 選択状態を解除
+    }
+
+    for (int i = 0; i < objs.size(); i++)
+    {
+        int _mOver = IsMouseOnRectEdge(pt, objs[i], overlap);
+        if (_mOver > 0)
+        {
+            objs[i].mOver = _mOver; // 選択状態にする
+            _ret = i; // 最初の一つだけを返す
+            break;
+        }
+        else
+        {
+            objs[i].mOver = 0; // 選択状態を解除
+        }
+    }
+
+    return _ret; // 矩形がない場合は-1を返す
+}

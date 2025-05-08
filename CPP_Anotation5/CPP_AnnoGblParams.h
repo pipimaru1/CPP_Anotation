@@ -15,6 +15,8 @@ struct LabelObj
 	int 		        penWidth; // ペンの幅
 	Gdiplus::DashStyle  dashStyle; // ダッシュスタイル
 
+    int mOver; //マウスがオーバーラップしているときの辺を表す
+
 	// コンストラクタ
     LabelObj();
 };
@@ -24,11 +26,12 @@ struct LabelObj
 // 1つの画像のパスと矩形の配列を持つクラス
 struct ImgObject
 {
-    std::wstring path;          // 画像のパス
-    std::vector<LabelObj> objs;   // 矩形の配列
-    size_t      objIdx{0};             // 現在の矩形インデックス
-
+    std::wstring path;              // 画像のパス
+    std::vector<LabelObj> objs;     // 矩形の配列
+    size_t      objIdx{0};           // 現在の矩形インデックス
     std::unique_ptr<Gdiplus::Image> image;  // 生ポインタは禁止！
+
+    int mOverIdx = 0;// マウスオーバーのインデックス
 
     // コンストラクタはデフォルトでOK
     ImgObject();
@@ -56,6 +59,7 @@ struct GlobalParams
     int width;
     int height;
 
+
     //イメージファイル関連
 	std::vector<ImgObject>      imgObjs; // 画像ファイルのパスと矩形の配列
     size_t                      imgIdx; // 現在の画像インデックス
@@ -70,6 +74,7 @@ struct GlobalParams
 	//マウス移動中
 	bool        isMouseMoving; // マウス移動中かどうか
     POINT       g_prevPt;
+    int         Overlap; // マウスオーバーの裕度
 
     // 対象とする画像拡張子パターン
     std::vector<std::wstring>   IMAGE_EXTENSIONS;
