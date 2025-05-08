@@ -15,7 +15,7 @@
 
 //追加 200台から
 #define IDM_LOAD_IMAGES		200
-#define IDM_SAVE_ANNOTATIONS	201
+#define IDM_SAVE_LABELS	201
 
 
 //2200まではクラシフィケーション用

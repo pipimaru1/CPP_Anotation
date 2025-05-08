@@ -1,7 +1,7 @@
 #pragma once
 ///////////////////////////////////////////////////////
 // アノテーションクラス
-struct Annotation
+struct LabelObj
 {
     //座標情報
 	Gdiplus::RectF  rect; // 矩形の座標
@@ -16,7 +16,7 @@ struct Annotation
 	Gdiplus::DashStyle dashStyle; // ダッシュスタイル
 
 	// コンストラクタ
-    Annotation();
+    LabelObj();
 };
 
 ///////////////////////////////////////////////////////
@@ -35,10 +35,10 @@ struct GlobalParams
 	std::wstring                imgFolderPath; // 現在の画像フォルダ
 
     // 矩形の配列
-	std::vector<Annotation>     objs; // 矩形の配列
+	std::vector<LabelObj>     objs; // 矩形の配列
      
     // マウスドラッグ中
-    Annotation                  obj_tmp; // 矩形の座標
+    LabelObj                  obj_tmp; // 矩形の座標
     bool    isDragging ; // マウスドラッグ中かどうか	
     size_t  rectIndex; // 現在の矩形インデックス
 

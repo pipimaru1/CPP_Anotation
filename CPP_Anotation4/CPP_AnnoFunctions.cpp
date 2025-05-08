@@ -91,20 +91,22 @@ int LoadImageFiles(const std::wstring& folderPath, std::vector<ImgObject>& _imgO
             if (!IsImageFile(fn)) continue;
 
             // ① 要素を追加して参照を取得
-            ImgObject& img = _imgObjs.emplace_back();
+            //ImgObject& img = _imgObjs.emplace_back();
+            _imgObjs.emplace_back();//要素を追加
+            ImgObject& _imgobj = _imgObjs.back(); // 追加した要素を参照
 
             // ② パス設定
-            img.path = base + fn;
+            _imgobj.path = base + fn;
 
             // ③ 画像読み込み（unique_ptr で安全管理）
 			// メモリリーク防止のため、unique_ptr を使用
-            img.image = std::make_unique<Gdiplus::Image>(img.path.c_str());
+            _imgobj.image = std::make_unique<Gdiplus::Image>(_imgobj.path.c_str());
 
             // 失敗判定はポインタの null ではなく GDI+ ステータスで行う
-            if (img.image->GetLastStatus() != Gdiplus::Ok) 
+            if (_imgobj.image->GetLastStatus() != Gdiplus::Ok)
             {
 				// 画像読み込み失敗時は NO Image を表示
-                img.image = std::make_unique<Gdiplus::Image>(L"NO Image");
+                _imgobj.image = std::make_unique<Gdiplus::Image>(L"NO Image");
             }
 
             // ④ objs はデフォルトで空なので clear 不要、objIdx も既に 0
@@ -163,13 +165,13 @@ std::wstring GetFolderPath(HWND hWnd)
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Annotationをファイル保存するための文字列生成関数
-// 入力値はAnnotation
+// LabelObjをファイル保存するための文字列生成関数
+// 入力値はLabelObj
 // 出力値は文字列 std::wstring
 // UTF-8で保存する
 // YOLO形式で保存する
 // wchar_t → UTF-8 の変換（C++17 の場合）
-std::string AnnoObject2Str(const Annotation& obj)
+std::string LabelsToString(const LabelObj& obj)
 {
     std::ostringstream oss;
     // 数値とスペースだけなので、普通の narrow string で OK
@@ -182,10 +184,10 @@ std::string AnnoObject2Str(const Annotation& obj)
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Annotationの文字列をファイル保存する関数
-// 入力値はファイル名とconst std::vector<Annotation>&
+// LabelObjの文字列をファイル保存する関数
+// 入力値はファイル名とconst std::vector<LabelObj>&
 // 出力値は成功したらtrue、失敗したらfalse
-bool SaveAnnoObjectsToFile(const std::wstring& fileName, const std::vector<Annotation>& objs)
+bool SaveLabelsToFile(const std::wstring& fileName, const std::vector<LabelObj>& objs)
 {
 	// UTF-8で保存するための設定
 	std::ofstream file(fileName, std::ios::binary);
@@ -195,7 +197,7 @@ bool SaveAnnoObjectsToFile(const std::wstring& fileName, const std::vector<Annot
 		return false; // ファイルオープン失敗
 	}
 	for (const auto& obj : objs) {
-		file << AnnoObject2Str(obj) << std::endl;
+		file << LabelsToString(obj) << std::endl;
 	}
 	file.close();
 	return true;

@@ -108,7 +108,7 @@ GlobalParams::~GlobalParams()
 
 
 ///////////////////////////////////////////////////
-Annotation::Annotation()
+LabelObj::LabelObj()
 {
 	// ‹éŒ`‚Ì‰Šú‰»
 	rect.X = 0;

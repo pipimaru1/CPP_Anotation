@@ -20,15 +20,15 @@ std::wstring GetFileNameFromPath(const std::wstring& filePath);
 
 
 ///////////////////////////////////////////////////////////////////////
-// Annotationをファイル保存するための文字列生成関数
-// 入力値はAnnotation
+// LabelObjをファイル保存するための文字列生成関数
+// 入力値はLabelObj
 // 出力値は文字列 std::wstring
 // UTF-8で保存する
 // YOLO形式で保存する
-std::string AnnoObject2Str(const Annotation& obj);
+std::string LabelsToString(const LabelObj& obj);
 
 ///////////////////////////////////////////////////////////////////////
-// Annotationの文字列をファイル保存する関数
-// 入力値はファイル名とconst std::vector<Annotation>&
+// LabelObjの文字列をファイル保存する関数
+// 入力値はファイル名とconst std::vector<LabelObj>&
 // 出力値は成功したらtrue、失敗したらfalse
-bool SaveAnnoObjectsToFile(const std::wstring& fileName, const std::vector<Annotation>& objs);
+bool SaveLabelsToFile(const std::wstring& fileName, const std::vector<LabelObj>& objs);

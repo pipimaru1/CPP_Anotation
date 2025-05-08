@@ -199,7 +199,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // 選択されたメニューの解析:
         switch (wmId)
         {
-        case IDM_SAVE_ANNOTATIONS:
+        case IDM_SAVE_LABELS:
 		{
 			// ファイル保存ダイアログを表示
 			std::wstring _folderpath = GetFolderPath(hWnd);
@@ -215,7 +215,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     _fileName1= GetFileNameFromPath(GP.imgObjs[i].path);
 					_fileName2 = _folderpath + L"\\" + _fileName1 + L".txt";
 
-                    bool _ret = SaveAnnoObjectsToFile(_fileName2, GP.imgObjs[i].objs);
+                    bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[i].objs);
 					if (!_ret)
 					{
 						// 保存失敗
@@ -306,7 +306,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // 矩形を描画
             for (int i = 0; i < GP.imgObjs[GP.imgIdx].objs.size(); i++)
             {
-                Annotation& _obj = GP.imgObjs[GP.imgIdx].objs[i];
+                LabelObj& _obj = GP.imgObjs[GP.imgIdx].objs[i];
 
                 Pen pen(_obj.color, _obj.penWidth);
                 pen.SetDashStyle(_obj.dashStyle);

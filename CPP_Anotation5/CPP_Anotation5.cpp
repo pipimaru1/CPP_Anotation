@@ -163,6 +163,15 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 // '\'で記述する場合は'\\'に置き換える必要があります。
 const wchar_t* INIT_IMGFOLDER = L"../images/";  // JPEGまたはPNG
 
+//タイトルバーに画像のパスを表示
+void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labelfolder)
+{
+    std::wstring title = L"Annotation Tool - " + _imgfolder + L" - " + _labelfolder;
+    SetWindowText(hWnd, title.c_str());
+    return;
+}
+
+
 /////////////////////////////////////////////////////////////////////////
 //  関数: WndProc(HWND, UINT, WPARAM, LPARAM)
 //  目的: メイン ウィンドウのメッセージを処理します。
@@ -180,6 +189,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		GP.imgFolderPath = INIT_IMGFOLDER; // フォルダパスを指定
 
         LoadImageFiles(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
+        SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath); // タイトルバーに画像のパスを表示
 
         break;
 
@@ -199,27 +209,37 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // 選択されたメニューの解析:
         switch (wmId)
         {
-        case IDM_LOAD_ANNOTATIONS:
+        case IDM_LOAD_LABELS:
 		{
 			// ファイルオープンダイアログを表示
 			std::wstring _folderpath = GetFolderPath(hWnd);
-			// フォルダ選択ダイアログを表示
+			
+            // フォルダ選択ダイアログを表示
             if (!_folderpath.empty()) 
             {
+                GP.labelFolderPath = _folderpath; // フォルダパスを指定
+
                 // フォルダが選択された場合、アノテーションデータを読み込み
-                //LoadLabelFiles(GP.imgObjs, _folderpath, L".txt", 1);
-                LoadLabelFilesMP(GP.imgObjs, _folderpath, L".txt", 1);
+                //LoadLabelFiles(GP.imgObjs, GP.labelFolderPath, L".txt", 1);
+                LoadLabelFilesMP(GP.imgObjs, GP.labelFolderPath, L".txt", 1);
+
+                //タイトルバーに編集中の画像とラベルのパスを表示
+                SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath); // タイトルバーに画像のパスを表示
             }
 		}
 		break;
-        case IDM_SAVE_ANNOTATIONS:
+        case IDM_SAVE_LABELS:
 		{
 			// ファイル保存ダイアログを表示
 			std::wstring _folderpath = GetFolderPath(hWnd);
 			// フォルダ選択ダイアログを表示
 			if (!_folderpath.empty()) {
-				// フォルダが選択された場合、アノテーションデータを保存
-				for (size_t i = 0; i < GP.imgObjs.size(); i++)
+                GP.labelFolderPath = _folderpath; // フォルダパスを指定
+                //タイトルバーに編集中の画像とラベルのパスを表示
+                SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath); // タイトルバーに画像のパスを表示
+
+                // フォルダが選択された場合、アノテーションデータを保存
+                for (size_t i = 0; i < GP.imgObjs.size(); i++)
 				{
 					// ファイル名
                     std::wstring _fileName1;
@@ -228,7 +248,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     _fileName1= GetFileNameFromPath(GP.imgObjs[i].path);
 					_fileName2 = _folderpath + L"\\" + _fileName1 + L".txt";
 
-                    bool _ret = SaveAnnoObjectsToFile(_fileName2, GP.imgObjs[i].objs, 1);
+                    bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[i].objs, 1);
 					if (!_ret)
 					{
 						// 保存失敗
@@ -246,8 +266,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				// 画像ファイルのパスと矩形の配列をクリア
                 GP.imgObjs.clear();
                 // フォルダが選択された場合、画像ファイルを取得
-                //LoadImageFiles(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
                 LoadImageFilesMP(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
+                SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath); // タイトルバーに画像のパスを表示
+
                 GP.imgIdx = 0; // インデックスをリセット
             }
             // 再描画
@@ -322,7 +343,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 // 矩形を描画
                 for (int i = 0; i < GP.imgObjs[GP.imgIdx].objs.size(); i++)
                 {
-                    Annotation& _obj = GP.imgObjs[GP.imgIdx].objs[i];
+                    LabelObj& _obj = GP.imgObjs[GP.imgIdx].objs[i];
 
                     Pen pen(_obj.color, _obj.penWidth);
                     pen.SetDashStyle(_obj.dashStyle);

@@ -32,6 +32,9 @@ GlobalParams::GlobalParams()
 	imgFolderPath.clear();
 	//objIdx = 0;
 
+    labelFolderPath = L""; // 現在のラベルフォルダ
+    imgFolderPath = L""; // 現在の画像フォルダ
+
 #ifdef CLASS_DEV
 	// クラシフィケーションの初期化 ここを変更することで、クラス名や色を変更できる
 	ClsNames = { 
@@ -151,6 +154,10 @@ GlobalParams::GlobalParams()
 	Gdiplus::DashStyleDash,
 	Gdiplus::DashStyleDash
 	};
+
+	ClsPenWidths = {
+		2, 2, 2, 2, 2, 2
+	};
 #endif
 
 	// 選択されたクラシフィケーションのインデックスの初期化
@@ -183,7 +190,7 @@ GlobalParams::~GlobalParams()
 
 
 ///////////////////////////////////////////////////
-Annotation::Annotation()
+LabelObj::LabelObj()
 {
 	// 矩形の初期化
 	rect.X = 0;

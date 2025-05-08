@@ -40,7 +40,6 @@ int GetImgsPaths(const std::wstring& folderPath, std::vector <ImgObject>& _imgOb
             std::wstring fileName = findData.cFileName;
             if (IsImageFile(fileName)) 
             {
-
 				_imgObjs.emplace_back();//要素を追加
 				ImgObject& _imgobj = _imgObjs.back(); // 追加した要素を参照
                 
@@ -225,14 +224,14 @@ std::wstring GetFolderPath(HWND hWnd)
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Annotationをファイル保存するための文字列生成関数
-// 入力値はAnnotation
+// LabelObjをファイル保存するための文字列生成関数
+// 入力値はLabelObj
 // 出力値は文字列 std::wstring
 // UTF-8で保存する
 // YOLO形式で保存する
 // wchar_t → UTF-8 の変換（C++17 の場合）
-std::string AnnoObject2Str(
-    const Annotation& obj, 
+std::string LabelsToString(
+    const LabelObj& obj, 
 	int mode = 0 // 0:default, 1:yolo
 )
 {
@@ -263,12 +262,12 @@ std::string AnnoObject2Str(
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Annotationの文字列をファイル保存する関数
-// 入力値はファイル名とconst std::vector<Annotation>&
+// LabelObjの文字列をファイル保存する関数
+// 入力値はファイル名とconst std::vector<LabelObj>&
 // 出力値は成功したらtrue、失敗したらfalse
-bool SaveAnnoObjectsToFile(
+bool SaveLabelsToFile(
     const std::wstring& fileName, 
-    const std::vector<Annotation>& objs, 
+    const std::vector<LabelObj>& objs, 
 	int mode = 0 // 0:default, 1:yolo
 )
 {
@@ -280,7 +279,7 @@ bool SaveAnnoObjectsToFile(
 		return false; // ファイルオープン失敗
 	}
 	for (const auto& obj : objs) {
-		file << AnnoObject2Str(obj, mode) << std::endl;
+		file << LabelsToString(obj, mode) << std::endl;
 	}
 	file.close();
 	return true;
@@ -421,7 +420,7 @@ int mode //0:default, 1:yolo
 	imgObj.objs.clear(); // 既存のデータをクリア
     if (mode == 0)
     {
-        Annotation obj;
+        LabelObj obj;
         while (file >> obj.ClassNum >> obj.rect.X >> obj.rect.Y >> obj.rect.Width >> obj.rect.Height)
         {
 
@@ -431,7 +430,7 @@ int mode //0:default, 1:yolo
 	else if (mode == 1)
 	{
 		float tmp_x, tmp_y, tmp_w, tmp_h;
-        Annotation obj;
+        LabelObj obj;
 		// YOLO形式のデータを読み込む
 		// YOLO形式は、クラス番号、x_center、y_center、width、heightの順
 		// x_center、y_center、width、heightは画像サイズで割った値
@@ -442,7 +441,7 @@ int mode //0:default, 1:yolo
 			obj.rect.Y = tmp_y - tmp_h / 2;
 			obj.rect.Width = tmp_w;
             obj.rect.Height = tmp_h;
-			// YOLO形式のデータをAnnotation形式に変換
+			// YOLO形式のデータをLabelObj形式に変換
 			imgObj.objs.push_back(obj);
 		}
 	}
@@ -483,7 +482,7 @@ int LoadLabelFiles(
         
         if (mode == 0)
         {
-            Annotation obj;
+            LabelObj obj;
             while (file >> obj.ClassNum >> obj.rect.X >> obj.rect.Y >> obj.rect.Width >> obj.rect.Height)
             {
 				NormalizeRect(obj.rect); // 矩形の座標を正規化
@@ -506,7 +505,7 @@ int LoadLabelFiles(
         else if (mode == 1)
         {
 			float tmp_x, tmp_y, tmp_w, tmp_h;
-			Annotation obj;
+			LabelObj obj;
 			// YOLO形式のデータを読み込む
 			// YOLO形式は、クラス番号、x_center、y_center、width、heightの順
 			// x_center、y_center、width、heightは画像サイズで割った値
@@ -573,7 +572,7 @@ int LoadLabelFilesMP(
 
         if (mode == 0)
         {
-            Annotation obj;
+            LabelObj obj;
             while (file >> obj.ClassNum
                 >> obj.rect.X >> obj.rect.Y
                 >> obj.rect.Width >> obj.rect.Height)
@@ -591,7 +590,7 @@ int LoadLabelFilesMP(
         else if (mode == 1)
         {
             float tmp_x, tmp_y, tmp_w, tmp_h;
-            Annotation obj;
+            LabelObj obj;
             while (file >> obj.ClassNum >> tmp_x >> tmp_y >> tmp_w >> tmp_h)
             {
                 // YOLO->BBox
