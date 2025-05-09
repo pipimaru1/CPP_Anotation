@@ -9,10 +9,7 @@
 // 必要なライブラリ
 #pragma comment(lib, "gdiplus.lib")
 #pragma comment(lib, "Shlwapi.lib")
-
-
 #define MAX_LOADSTRING 100
-
 
 struct GdiplusRAII {
     ULONG_PTR token{ 0 };
@@ -25,6 +22,7 @@ struct GdiplusRAII {
     }
 };
 
+//GDIPlusのスタート
 GdiplusRAII gdi;
 
 // グローバル変数のインスタンスを作成
@@ -52,9 +50,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // TODO: ここにコードを挿入してください。
-    //GdiplusStartupInput gdiplusStartupInput;
-    //GdiplusStartup(&g_GdiToken, &gdiplusStartupInput, NULL);
-    //GdiplusRAII gdi;
 
     // GDIPlusのスタートの後に フォントを生成
     GP.InitFont();
@@ -86,7 +81,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     
     // 最後に終了処理
     GP.DestroyFont();
-    
     //GDIをシャットダウンする前に画像オブジェクトをクリアする
 	//あえて呼びだしている。デストラクタが呼ばれるので書かなくてもいいが、書かない場合はGPとGDI両方クリアする。
     
@@ -162,7 +156,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 // フィルパスのフォルダは'/'で区切る必要があります。
 // '\'で記述する場合は'\\'に置き換える必要があります。
 const wchar_t* INIT_IMGFOLDER = L"../images/";  // JPEGまたはPNG
-
+///////////////////////////////////////////////////////////////////////
 //タイトルバーに画像のパスを表示
 void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labelfolder)
 {
@@ -170,7 +164,32 @@ void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labe
     SetWindowText(hWnd, title.c_str());
     return;
 }
-
+///////////////////////////////////////////////////////////////////////
+//ラベルの矩形を描画する関数
+void WM_PAINT_DrawLabels(
+    Gdiplus::Graphics& graphics,
+    const std::vector<LabelObj>& objs,
+    int clientWidth,
+    int clientHeight,
+    Gdiplus::Font* font
+);
+///////////////////////////////////////////////////////////////////////
+//ドラッグ中の矩形を描画する関数
+void WM_PAINT_DrawTmpBox(
+    Gdiplus::Graphics& graphics,
+    const Gdiplus::RectF& normRect,
+    int clientWidth,
+    int clientHeight
+);
+///////////////////////////////////////////////////////////////////////
+// WndProc の上部やユーティリティファイルに宣言
+void DrawCrosshairLines(HWND hWnd);
+///////////////////////////////////////////////////////////////////////
+//ラベルのクラス名をポップアップメニューで表示する関数
+void ShowClassPopupMenu(HWND hWnd);
+///////////////////////////////////////////////////////////////////////
+//ラベルのクラス名をポップアップメニューで表示する関数 編集用
+void ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX);
 
 /////////////////////////////////////////////////////////////////////////
 //  関数: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -323,66 +342,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     //スケーリングしながら描画
                     graphics.DrawImage(GP.imgObjs[GP.imgIdx].image.get(), 0, 0, GP.width, GP.height);
                     graphics.Flush();
-
                 }
                 // 矩形を描画
-                for (int i = 0; i < GP.imgObjs[GP.imgIdx].objs.size(); i++)
-                {
-                    LabelObj& _obj = GP.imgObjs[GP.imgIdx].objs[i];
-                    
-                    // マウスオーバーのとき
-                    int _penWidth = _obj.penWidth;
-
-                    if (_obj.mOver)
-                        _penWidth += 2; // マウスオーバー時はペン幅を太くする
-
-                    Pen pen(_obj.color, _penWidth);
-
-                    pen.SetDashStyle(_obj.dashStyle);
-
-                    float x0 = _obj.rect.X * GP.width;
-                    float y0 = _obj.rect.Y * GP.height;
-                    float w = _obj.rect.Width * GP.width;
-                    float h = _obj.rect.Height * GP.height;
-
-                    graphics.DrawRectangle(&pen, x0, y0, w, h);
-
-                    // テキストと同色のブラシを作る
-                    Gdiplus::SolidBrush textBrush(_obj.color);
-
-                    const std::wstring text = _obj.ClassName;
-
-                    // 文字列の大体の高さを取得
-                    RectF   textBounds;
-                    graphics.MeasureString(text.c_str(), -1, GP.font, PointF(0, 0), &textBounds);
-                    float textHeight = textBounds.Height;
-
-                    // テキストを矩形の左上外側にオフセット
-                    PointF  textPos(x0, y0 - textHeight - 2.0f);
-                    // 文字列描画
-                    graphics.DrawString(text.c_str(), -1, GP.font, textPos, &textBrush);
-
-                }
+                WM_PAINT_DrawLabels(graphics, GP.imgObjs[GP.imgIdx].objs, GP.width, GP.height, GP.font);
             }
             // ドラッグ中の矩形を描画
-            //if (GP.makeBox)
             if(GP.dgMode==DragMode::MakeBox)
-            {
-                Pen pen(Color(255, 0, 0), 2);
-                float x = GP.anno_tmp.rect.X;
-                float y = GP.anno_tmp.rect.Y;
-                float w = GP.anno_tmp.rect.Width;
-                float h = GP.anno_tmp.rect.Height;
-
-                if (w < 0) { x += w; w = -w; }
-                if (h < 0) { y += h; h = -h; }
-
-                graphics.DrawRectangle(&pen,
-                    x * GP.width,
-                    y * GP.height,
-                    w * GP.width,
-                    h * GP.height);
-            }
+                WM_PAINT_DrawTmpBox(graphics, GP.anno_tmp.rect, GP.width, GP.height);
+           
             // 最後に画面に転送
             BitBlt(hdc, 0, 0, GP.width, GP.height, memDC, 0, 0, SRCCOPY);
 
@@ -393,38 +360,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             EndPaint(hWnd, &ps);
         }
 		//すべての操作 
-        {
-            GP.isMouseMoving = false; // フラグをリセット
-            ///////////////////////
-            //正確な矩形を描くための目印になる水平線・垂直線をマウスカーソルに合わせて描画
-            // マウスカーソルの位置を取得        
-            POINT pt;
-            // マウス座標をクライアント座標で取得
-            GetCursorPos(&pt);
-            // クライアント座標に変換
-            ScreenToClient(hWnd, &pt);
-
-            //ウィンドウのクライアント領域のサイズを取得
-            RECT rect;
-            GetClientRect(hWnd, &rect);
-
-            //十字線の描画
-            //線の色はXORの色
-            HDC hdc = GetDC(hWnd);
-            SetROP2(hdc, R2_XORPEN);
-            HPEN hPen = CreatePen(PS_SOLID, 1, RGB(255, 255, 255));
-            SelectObject(hdc, hPen);
-
-            // 水平線を描画
-            MoveToEx(hdc, 0, pt.y, NULL);
-            LineTo(hdc, rect.right - rect.left, pt.y);
-            //垂直線を描画
-            MoveToEx(hdc, pt.x, 0, NULL);
-            LineTo(hdc, pt.x, rect.bottom - rect.top);
-
-            DeleteObject(hPen);
-            ReleaseDC(hWnd, hdc);
-        }
+        GP.isMouseMoving = false; // フラグをリセット
+        // 十字目盛りを描画
+        DrawCrosshairLines(hWnd);
     }
     break;
 
@@ -457,10 +395,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             GP.anno_tmp.rect.Y = float(pt.y) / float(GP.height);
             GP.anno_tmp.rect.Width = 0;
             GP.anno_tmp.rect.Height = 0;
-
-            //GP.makeBox = true; // ドラッグ中フラグを立てる
             GP.dgMode = DragMode::MakeBox;
-            //GP.rects.push_back(rect); // 矩形を追加
         }
         //矩形にマウスオーバーしている
         else
@@ -491,54 +426,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             GP.anno_tmp.rect.Height = float(pt.y) / float(GP.height) - GP.anno_tmp.rect.Y;
             NormalizeRect(GP.anno_tmp.rect); // 矩形の座標を正規化
 
-            HMENU hPopup = CreatePopupMenu();
-            if (hPopup)
-            {
-                //マウスカーソルの位置を取得
-                POINT pt2;
-                GetCursorPos(&pt2);
-
-                //ホップアップメニューの作成
-                for (size_t i = 0; i < GP.ClsNames.size(); ++i)
-                {
-                    AppendMenuW(hPopup, MF_STRING, IDM_PMENU_CLSNAME00 + (UINT)i,
-                        GP.ClsNames[i].c_str());
-                }
-                AppendMenuW(hPopup, MF_STRING,
-                    IDM_PMENU_CLSNAME00 + (UINT)GP.ClsNames.size(),
-                    L"CANCEL");
-
-                //念のためウィンドウを手前に
-                SetForegroundWindow(hWnd);
-
-                // ポップアップメニューの表示
-                UINT cmd = TrackPopupMenuEx(
-                    hPopup,
-                    TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_RETURNCMD,
-                    pt2.x, pt2.y,
-                    hWnd,
-                    NULL
-                );
-                // ポップアップメニューの破棄
-                DestroyMenu(hPopup);
-
-                // 戻り値 cmd で即時処理
-                if (cmd >= IDM_PMENU_CLSNAME00 && cmd < (IDM_PMENU_CLSNAME00 + GP.ClsNames.size()))
-                {
-                    GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
-
-                    // 選択されたクラシフィケーションのインデックスを取得 その他属性の設定
-                    GP.anno_tmp.ClassName = GP.ClsNames[GP.selectedClsIdx];
-                    GP.anno_tmp.ClassNum = GP.selectedClsIdx;
-                    GP.anno_tmp.color = GP.ClsColors[GP.selectedClsIdx];
-                    GP.anno_tmp.dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
-                    GP.anno_tmp.penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
-
-                    // オブジェクト情報を登録
-                    if (GP.imgObjs.size() > 0)
-                        GP.imgObjs[GP.imgIdx].objs.push_back(GP.anno_tmp);
-                }
-            }
+			//クラス名をポップアップメニューで表示
+            ShowClassPopupMenu(hWnd);
         }
         else if (GP.dgMode == DragMode::ReBox) // 矩形の編集モード
         {
@@ -565,6 +454,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         GP.dgMode = DragMode::None;
 	}
 	break;
+	case WM_RBUTTONDOWN:
+	{
+		// マウスの位置を取得
+		POINT pt;
+		GetCursorPos(&pt);
+		ScreenToClient(hWnd, &pt);
+		// ヒット中の矩形のインデックスを保存
+		GP.activeIdx = GP.imgObjs[GP.imgIdx].mOverIdx;
+		if (GP.activeIdx != -1)
+		{
+			// クラス名をポップアップメニューで表示
+			ShowClassPopupMenu_for_Edit(hWnd, GP.activeIdx);
+		}
+	}
     // マウスの移動中の処理
     case WM_MOUSEMOVE:
     {
@@ -711,26 +614,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     break;
 
     //キー入力を処理する
-	case WM_KEYDOWN:
-		// swtch文で入力されたキーを判定、処理を分ける
-		// swtch文が二重になっている(Windowsプログラミングでは定石)
-		switch (wParam)
-		{
-		case 'A': // 前の画像
+    case WM_KEYDOWN:
+    {		// swtch文で入力されたキーを判定、処理を分ける
+        // swtch文が二重になっている(Windowsプログラミングでは定石)
+        // Shift が押されているかどうかを調べる
+        bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+
+        // Shift＋矢印なら大きく移動、小なら通常移動
+        int step = shift ? 10 : 1;
+
+        switch (wParam)
+        {
+        case 'A': // 前の画像
         case VK_LEFT:
             if (GP.imgObjs.size() > 0) {
-				GP.imgIdx = (GP.imgIdx + GP.imgObjs.size() - 1) % GP.imgObjs.size();
-			}
-			break;
-		case 'D': // 次の画像
-		case VK_RIGHT:
-			if (GP.imgObjs.size() > 0) {
-				GP.imgIdx = (GP.imgIdx + 1) % GP.imgObjs.size();
-			}
-			break;
-		}
-		InvalidateRect(hWnd, NULL, TRUE); // 再描画
-		break;
+                GP.imgIdx = (GP.imgIdx + GP.imgObjs.size() - step) % GP.imgObjs.size();
+            }
+            break;
+        case 'D': // 次の画像
+        case VK_RIGHT:
+            if (GP.imgObjs.size() > 0) {
+                GP.imgIdx = (GP.imgIdx + step) % GP.imgObjs.size();
+            }
+            break;
+        }
+        InvalidateRect(hWnd, NULL, TRUE); // 再描画
+    }
+    break;
 
     case WM_DESTROY:
         PostQuitMessage(0);
@@ -764,3 +674,232 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 
+
+///////////////////////////////////////////////////////////////////////
+// LabelObjを描画する関数
+void WM_PAINT_DrawLabels(
+    Gdiplus::Graphics& graphics,
+    const std::vector<LabelObj>& objs,
+    int clientWidth,
+    int clientHeight,
+    Gdiplus::Font* font
+)
+{
+    for (const auto& obj : objs)
+    {
+        // ペン幅はマウスオーバーで太く
+        int penWidth = obj.penWidth + (obj.mOver ? 2 : 0);
+        Gdiplus::Pen pen(obj.color, static_cast<REAL>(penWidth));
+        pen.SetDashStyle(obj.dashStyle);
+
+        // 矩形の座標をピクセル変換
+        float x0 = obj.rect.X * clientWidth;
+        float y0 = obj.rect.Y * clientHeight;
+        float w = obj.rect.Width * clientWidth;
+        float h = obj.rect.Height * clientHeight;
+
+        // 矩形描画
+        graphics.DrawRectangle(&pen, x0, y0, w, h);
+
+        // ラベル文字描画
+        Gdiplus::SolidBrush textBrush(obj.color);
+        const std::wstring& text = obj.ClassName;
+
+        // 文字高さを測定
+        Gdiplus::RectF textBounds;
+        graphics.MeasureString(
+            text.c_str(), -1,
+            font,
+            Gdiplus::PointF(0, 0),
+            &textBounds
+        );
+        float textHeight = textBounds.Height;
+
+        // 矩形の上部外側にオフセット
+        Gdiplus::PointF textPos(x0, y0 - textHeight - 2.0f);
+        graphics.DrawString(
+            text.c_str(), -1,
+            font,
+            textPos,
+            &textBrush
+        );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// 一時的な矩形を描画する関数
+void WM_PAINT_DrawTmpBox(
+    Gdiplus::Graphics& graphics,
+    const Gdiplus::RectF& normRect,
+    int clientWidth,
+    int clientHeight
+)
+{
+    // ペンは赤・太さ2px
+    Gdiplus::Pen pen(Gdiplus::Color(255, 0, 0), 2.0f);
+
+    // 正規化矩形をローカル変数にコピー
+    float x = normRect.X;
+    float y = normRect.Y;
+    float w = normRect.Width;
+    float h = normRect.Height;
+
+    // 幅・高さが負の場合は方向を反転
+    if (w < 0) { x += w; w = -w; }
+    if (h < 0) { y += h; h = -h; }
+
+    // ピクセル座標に変換して描画
+    graphics.DrawRectangle(
+        &pen,
+        x * clientWidth,
+        y * clientHeight,
+        w * clientWidth,
+        h * clientHeight
+    );
+}
+///////////////////////////////////////////////////////////////////////
+// マウスカーソルの位置に十字線を描画する関数
+void DrawCrosshairLines(HWND hWnd)
+{
+    // マウス位置をクライアント座標で取得
+    POINT pt;
+    GetCursorPos(&pt);
+    ScreenToClient(hWnd, &pt);
+
+    // クライアント領域サイズを取得
+    RECT rect;
+    GetClientRect(hWnd, &rect);
+
+    // GDI で十字線を XOR 描画
+    HDC hdc = GetDC(hWnd);
+    SetROP2(hdc, R2_XORPEN);
+    HPEN hPen = CreatePen(PS_SOLID, 1, RGB(255, 255, 255));
+    HGDIOBJ oldPen = SelectObject(hdc, hPen);
+
+    // 水平線
+    MoveToEx(hdc, 0, pt.y, NULL);
+    LineTo(hdc, rect.right, pt.y);
+    // 垂直線
+    MoveToEx(hdc, pt.x, 0, NULL);
+    LineTo(hdc, pt.x, rect.bottom);
+
+    // 後始末
+    SelectObject(hdc, oldPen);
+    DeleteObject(hPen);
+    ReleaseDC(hWnd, hdc);
+}
+///////////////////////////////////////////////////////////////////////
+// ラベルのクラス名をポップアップメニューで表示する関数
+// 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
+void ShowClassPopupMenu(HWND hWnd)
+{
+    // ポップアップメニューの作成
+    HMENU hPopup = CreatePopupMenu();
+    if (!hPopup) return;
+
+    // カーソル位置を取得（画面→クライアント座標は不要）
+    POINT pt;
+    GetCursorPos(&pt);
+
+    // メニュー項目を追加
+    for (size_t i = 0; i < GP.ClsNames.size(); ++i)
+    {
+        AppendMenuW(hPopup, MF_STRING,
+            IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
+            GP.ClsNames[i].c_str());
+    }
+    AppendMenuW(hPopup, MF_STRING,
+        IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()),
+        L"CANCEL");
+
+    // ウィンドウを前面にしてから表示
+    SetForegroundWindow(hWnd);
+    UINT cmd = TrackPopupMenuEx(
+        hPopup,
+        TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_RETURNCMD,
+        pt.x, pt.y,
+        hWnd,
+        NULL
+    );
+    DestroyMenu(hPopup);
+
+    // 選択結果を反映
+    if (cmd >= IDM_PMENU_CLSNAME00 &&
+        cmd < IDM_PMENU_CLSNAME00 + GP.ClsNames.size())
+    {
+        GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
+
+        // anno_tmp に選択内容を設定
+        GP.anno_tmp.ClassName = GP.ClsNames[GP.selectedClsIdx];
+        GP.anno_tmp.ClassNum = GP.selectedClsIdx;
+        GP.anno_tmp.color = GP.ClsColors[GP.selectedClsIdx];
+        GP.anno_tmp.dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
+        GP.anno_tmp.penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
+
+        // オブジェクトを登録
+        if (!GP.imgObjs.empty())
+            GP.imgObjs[GP.imgIdx].objs.push_back(GP.anno_tmp);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// ラベルのクラス名をポップアップメニューで表示する関数
+// 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
+void ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX )
+{
+    // ポップアップメニューの作成
+    HMENU hPopup = CreatePopupMenu();
+    if (!hPopup) return;
+
+    // カーソル位置を取得（画面→クライアント座標は不要）
+    POINT pt;
+    GetCursorPos(&pt);
+
+    // メニュー項目を追加
+    for (size_t i = 0; i < GP.ClsNames.size(); ++i)
+    {
+        AppendMenuW(hPopup, MF_STRING,
+            IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
+            GP.ClsNames[i].c_str());
+    }
+    AppendMenuW(hPopup, MF_STRING,
+        IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()),
+        L"DELETE");
+
+    AppendMenuW(hPopup, MF_STRING,
+        IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1,
+        L"CANCEL");
+
+    // ウィンドウを前面にしてから表示
+    SetForegroundWindow(hWnd);
+    UINT cmd = TrackPopupMenuEx(
+        hPopup,
+        TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_RETURNCMD,
+        pt.x, pt.y,
+        hWnd,
+        NULL
+    );
+    DestroyMenu(hPopup);
+
+    // 選択結果を反映
+    if (cmd >= IDM_PMENU_CLSNAME00 &&
+        cmd < IDM_PMENU_CLSNAME00 + GP.ClsNames.size())
+    {
+        GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
+
+        // activeObjectIDXで示すオブジェクトに選択内容を上書き
+        GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].ClassName = GP.ClsNames[GP.selectedClsIdx];
+        GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].ClassNum = GP.selectedClsIdx;
+        GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].color = GP.ClsColors[GP.selectedClsIdx];
+        GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
+        GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
+    }
+    else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size())) // DELETE
+    {
+        // オブジェクトを削除
+        GP.imgObjs[GP.imgIdx].objs.erase(GP.imgObjs[GP.imgIdx].objs.begin() + activeObjectIDX);
+    }
+    else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1) // CANCEL
+        return;
+    return;
+}

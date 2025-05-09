@@ -56,6 +56,8 @@ bool SaveLabelsToFile(
 	const std::vector<LabelObj>& objs,
 	int mode //0:default, 1:yolo
 );
+
+
 ///////////////////////////////////////////////////////////////////////
 //矩形の線上にマウスカーソルがあるかどうかを判定する関数
 EditMode IsMouseOnRectEdge(

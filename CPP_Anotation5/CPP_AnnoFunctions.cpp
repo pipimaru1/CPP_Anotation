@@ -617,6 +617,7 @@ int LoadLabelFilesMP(
 
     return loadCount;
 }
+
 ///////////////////////////////////////////////////////////////////////
 //矩形の線上にマウスカーソルがあるかどうかを判定する関数
 EditMode IsMouseOnRectEdge(
