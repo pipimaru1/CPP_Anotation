@@ -253,28 +253,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			std::wstring _folderpath = GetFolderPath(hWnd);
 			// フォルダ選択ダイアログを表示
 			if (!_folderpath.empty()) {
-                GP.labelFolderPath = _folderpath; // フォルダパスを指定
-                //タイトルバーに編集中の画像とラベルのパスを表示
-                SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath); // タイトルバーに画像のパスを表示
+				int _saveok = MessageBoxW(hWnd, L"保存しますか？", L"確認", MB_OKCANCEL);
+                if (_saveok == IDOK)
+                {
+                    GP.labelFolderPath = _folderpath; // フォルダパスを指定
+                    //タイトルバーに編集中の画像とラベルのパスを表示
+                    SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath); // タイトルバーに画像のパスを表示
 
-                // フォルダが選択された場合、アノテーションデータを保存
-                for (size_t i = 0; i < GP.imgObjs.size(); i++)
-				{
-					// ファイル名
-                    std::wstring _fileName1;
-                    std::wstring _fileName2;
+                    // フォルダが選択された場合、アノテーションデータを保存
+                    for (size_t i = 0; i < GP.imgObjs.size(); i++)
+                    {
+                        // ファイル名
+                        std::wstring _fileName1;
+                        std::wstring _fileName2;
 
-                    _fileName1= GetFileNameFromPath(GP.imgObjs[i].path);
-					_fileName2 = _folderpath + L"\\" + _fileName1 + L".txt";
+                        _fileName1 = GetFileNameFromPath(GP.imgObjs[i].path);
+                        _fileName2 = _folderpath + L"\\" + _fileName1 + L".txt";
 
-                    bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[i].objs, 1);
-					if (!_ret)
-					{
-						// 保存失敗
-						MessageBox(hWnd, L"保存失敗", L"失敗", MB_OK);
-					}
+                        bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[i].objs, 1);
+                        if (!_ret)
+                        {
+                            // 保存失敗
+                            MessageBox(hWnd, L"保存失敗", L"失敗", MB_OK);
+                        }
+                    }
 				}
-			}
+            }
 		}
         break;
 
@@ -617,11 +621,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_KEYDOWN:
     {		// swtch文で入力されたキーを判定、処理を分ける
         // swtch文が二重になっている(Windowsプログラミングでは定石)
+
         // Shift が押されているかどうかを調べる
         bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+        int step = 1;
+		// Ctrl が押されているかどうかを調べる
+		bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
 
         // Shift＋矢印なら大きく移動、小なら通常移動
-        int step = shift ? 10 : 1;
+        step = shift ? 10 : 1;
+		// Ctrl＋矢印なら大きく移動、小なら通常移動
+		step = ctrl ? 100 : 1;
 
         switch (wParam)
         {
