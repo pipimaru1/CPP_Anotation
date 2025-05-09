@@ -317,15 +317,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
             if (GP.imgObjs.size() > 0)
             {
-                if (GP.imgObjs[GP.imgIdx].image)
+                //画像の描画
+                if (GP.imgObjs[GP.imgIdx].image) //配列が空でなければ
                 {
                     //スケーリングしながら描画
                     graphics.DrawImage(GP.imgObjs[GP.imgIdx].image.get(), 0, 0, GP.width, GP.height);
                     graphics.Flush();
 
                 }
-
-
                 // 矩形を描画
                 for (int i = 0; i < GP.imgObjs[GP.imgIdx].objs.size(); i++)
                 {
@@ -333,7 +332,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     
                     // マウスオーバーのとき
                     int _penWidth = _obj.penWidth;
-                    if (_obj.mOver > 0)
+
+                    if (_obj.mOver)
                         _penWidth += 2; // マウスオーバー時はペン幅を太くする
 
                     Pen pen(_obj.color, _penWidth);
@@ -365,7 +365,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
             }
             // ドラッグ中の矩形を描画
-            if (GP.makeBox)
+            //if (GP.makeBox)
+            if(GP.dgMode==DragMode::MakeBox)
             {
                 Pen pen(Color(255, 0, 0), 2);
                 float x = GP.anno_tmp.rect.X;
@@ -390,12 +391,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             DeleteObject(memBitmap);
             DeleteDC(memDC);
             EndPaint(hWnd, &ps);
-
-            ///メモリの開放
-            //delete image;
-            //image = nullptr; // 念のためnullにする
         }
-        //if (GP.isMouseMoving) // マウス移動中
+		//すべての操作 
         {
             GP.isMouseMoving = false; // フラグをリセット
             ///////////////////////
@@ -411,6 +408,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             RECT rect;
             GetClientRect(hWnd, &rect);
 
+            //十字線の描画
             //線の色はXORの色
             HDC hdc = GetDC(hWnd);
             SetROP2(hdc, R2_XORPEN);
@@ -426,9 +424,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             DeleteObject(hPen);
             ReleaseDC(hWnd, hdc);
-            //break;
         }
-        break;
     }
     break;
 
@@ -462,63 +458,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             GP.anno_tmp.rect.Width = 0;
             GP.anno_tmp.rect.Height = 0;
 
-            GP.makeBox = true; // ドラッグ中フラグを立てる
+            //GP.makeBox = true; // ドラッグ中フラグを立てる
+            GP.dgMode = DragMode::MakeBox;
             //GP.rects.push_back(rect); // 矩形を追加
         }
+        //矩形にマウスオーバーしている
         else
         { 
-            POINT pt;
-            GetCursorPos(&pt);
-            ScreenToClient(hWnd, &pt);
-
-            // マウスキャプチャ開始
-            SetCapture(hWnd);
-            // 前回マウス位置にセット
+            // マウス位置を保存
             GP.prevMouse = Gdiplus::PointF((FLOAT)pt.x, (FLOAT)pt.y);
-            // ヒットテストして、アクティブ矩形とドラッグモードを決定
+			// ヒット中の矩形のインデックスを保存
             GP.activeIdx = GP.imgObjs[GP.imgIdx].mOverIdx;
-
-        }
-
-    
-        
+			GP.dgMode = DragMode::ReBox; // ドラッグ中フラグを立てる
+        }       
         SetCapture(hWnd); // マウスキャプチャを取得 ウィンドウの外に出てもマウスイベントを受け取る
     }
 	break;
-	// マウスの移動中の処理
-	case WM_MOUSEMOVE:
-	{
-        // マウスの位置を取得
-        POINT pt;
-        GetCursorPos(&pt);
-        ScreenToClient(hWnd, &pt);
-        
-        if (GP.makeBox) 
-        {
-		    GP.anno_tmp.rect.Width = float(pt.x) / float(GP.width) - GP.anno_tmp.rect.X;
-            GP.anno_tmp.rect.Height = float(pt.y) / float(GP.height) - GP.anno_tmp.rect.Y;
-
-            // 再描画
-			InvalidateRect(hWnd, NULL, TRUE);
-		}
-        else
-        {   
-			//GP.isMouseMoving = true; // マウス移動中フラグを立てる
-            GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, GP.Overlap); // マウスカーソルの位置を取得
-
-            InvalidateRect(hWnd, NULL, TRUE);
-        }
-    }
-	break;
-
 	// マウスの左ボタンが離されたときの処理
 	case WM_LBUTTONUP:
 	{
-		if (GP.makeBox) {
-			// マウスの位置を取得
-			POINT pt;
-			GetCursorPos(&pt);
-			ScreenToClient(hWnd, &pt);
+		//if (GP.makeBox)
+        if (GP.dgMode == DragMode::MakeBox)
+        {
+            // マウスの位置を取得
+            POINT pt;
+            GetCursorPos(&pt);
+            ScreenToClient(hWnd, &pt);
             ReleaseCapture(); // マウスキャプチャを解放
 
             // 矩形の幅と高さを計算
@@ -562,34 +527,188 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 {
                     GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
 
-					// 選択されたクラシフィケーションのインデックスを取得 その他属性の設定
+                    // 選択されたクラシフィケーションのインデックスを取得 その他属性の設定
                     GP.anno_tmp.ClassName = GP.ClsNames[GP.selectedClsIdx];
-					GP.anno_tmp.ClassNum = GP.selectedClsIdx;
-					GP.anno_tmp.color = GP.ClsColors[GP.selectedClsIdx];
-					GP.anno_tmp.dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
-					GP.anno_tmp.penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
+                    GP.anno_tmp.ClassNum = GP.selectedClsIdx;
+                    GP.anno_tmp.color = GP.ClsColors[GP.selectedClsIdx];
+                    GP.anno_tmp.dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
+                    GP.anno_tmp.penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
 
                     // オブジェクト情報を登録
-                    if(GP.imgObjs.size() >0 )
-    					GP.imgObjs[GP.imgIdx].objs.push_back(GP.anno_tmp);
+                    if (GP.imgObjs.size() > 0)
+                        GP.imgObjs[GP.imgIdx].objs.push_back(GP.anno_tmp);
                 }
             }
-
-            // 再描画
-			InvalidateRect(hWnd, NULL, TRUE);
-
-            // 後始末
-            // テンポラリ矩形の座標をリセット
-            GP.anno_tmp.rect.X = 0;
-            GP.anno_tmp.rect.Y = 0;
-            GP.anno_tmp.rect.Width = 0;
-            GP.anno_tmp.rect.Height = 0;
-            GP.makeBox = false; // ドラッグ中フラグを下ろす
-
         }
+        else if (GP.dgMode == DragMode::ReBox) // 矩形の編集モード
+        {
+            // マウスキャプチャを解放
+            ReleaseCapture();
+            GP.dgMode = DragMode::None; // ドラッグ中フラグを下ろす
+            GP.edMode = EditMode::None; // 編集モードをリセット
+        }
+        else
+        {
+            GP.dgMode = DragMode::None; // ドラッグ中フラグを下ろす
+            GP.edMode = EditMode::None; // 編集モードをリセット
+        }
+        // 再描画
+		InvalidateRect(hWnd, NULL, TRUE);
+
+        // 後始末
+        // テンポラリ矩形の座標をリセット
+        GP.anno_tmp.rect.X = 0;
+        GP.anno_tmp.rect.Y = 0;
+        GP.anno_tmp.rect.Width = 0;
+        GP.anno_tmp.rect.Height = 0;
+        //GP.makeBox = false; // ドラッグ中フラグを下ろす
+        GP.dgMode = DragMode::None;
 	}
 	break;
+    // マウスの移動中の処理
+    case WM_MOUSEMOVE:
+    {
+        // マウスの位置を取得
+        POINT pt;
+        GetCursorPos(&pt);
+        ScreenToClient(hWnd, &pt);
 
+
+        //if (GP.makeBox)
+        if (GP.dgMode == DragMode::MakeBox)
+        {
+            GP.anno_tmp.rect.Width = float(pt.x) / float(GP.width) - GP.anno_tmp.rect.X;
+            GP.anno_tmp.rect.Height = float(pt.y) / float(GP.height) - GP.anno_tmp.rect.Y;
+
+            // 再描画
+            InvalidateRect(hWnd, NULL, TRUE);
+        }
+        else if (GP.dgMode == DragMode::ReBox) // 矩形の編集モード
+        {
+            // マウス移動分を計算
+            float dx = float(pt.x) - GP.prevMouse.X;
+            float dy = float(pt.y) - GP.prevMouse.Y;
+            auto& r = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect;
+            switch (GP.edMode)
+            {
+            case EditMode::Top:
+                // 上辺を dy だけ動かす → 矩形の高さは −dy だけ変わる
+                r.Y += dy / GP.height;
+                r.Height -= dy / GP.height;
+                break;
+            case EditMode::Bottom:
+                // 下辺を dy だけ動かす → 矩形の高さは +dy だけ変わる
+                r.Height += dy / GP.height;
+                break;
+            case EditMode::Left:
+                // 左辺を dx だけ動かす → 矩形の幅は −dx だけ変わる
+                r.X += dx / GP.width;
+                r.Width -= dx / GP.width;
+                break;
+            case EditMode::Right:
+                // 右辺を dx だけ動かす → 矩形の幅は +dx だけ変わる
+                r.Width += dx / GP.width;
+                break;
+            case EditMode::LeftTop:
+                // 左上を dx,dy だけ動かす → 矩形の幅は −dx だけ変わる
+                // 矩形の高さは −dy だけ変わる
+                r.X += dx / GP.width;
+                r.Y += dy / GP.height;
+                r.Width -= dx / GP.width;
+                r.Height -= dy / GP.height;
+                break;
+            case EditMode::RightTop:
+                // 右上を dx,dy だけ動かす → 矩形の幅は +dx だけ変わる
+                // 矩形の高さは −dy だけ変わる
+                r.Y += dy / GP.height;
+                r.Width += dx / GP.width;
+                r.Height -= dy / GP.height;
+                break;
+            case EditMode::LeftBottom:
+                // 左下を dx,dy だけ動かす → 矩形の幅は −dx だけ変わる
+                // 矩形の高さは +dy だけ変わる
+                r.X += dx / GP.width;
+                r.Height += dy / GP.height;
+                r.Width -= dx / GP.width;
+                break;
+            case EditMode::RightBottom:
+                // 右下を dx,dy だけ動かす → 矩形の幅は +dx だけ変わる
+                // 矩形の高さは +dy だけ変わる
+                r.Width += dx / GP.width;
+                r.Height += dy / GP.height;
+                break;
+            default:
+                break;
+            }
+            // マウス位置を保存
+            GP.prevMouse = Gdiplus::PointF((FLOAT)pt.x, (FLOAT)pt.y);
+            // 再描画
+            InvalidateRect(hWnd, NULL, TRUE);
+        }
+        else if (GP.dgMode == DragMode::dummy) // 矩形の編集モード
+        {
+            GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, GP.edMode, GP.Overlap); // マウスカーソルの位置を取得
+
+            switch (GP.edMode)
+            {
+            case EditMode::Top:
+                // 上辺をドラッグ。 直接、マウスの値を辺の位置に設定
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y = float(pt.y) / float(GP.height);
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Height = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y - GP.prevMouse.Y;
+                break;
+            case EditMode::Bottom:
+                // 下辺をドラッグ。 直接、マウスの値を辺の位置に設定
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Height = float(pt.y) / float(GP.height) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y;
+                break;
+            case EditMode::Left:
+                // 左辺をドラッグ。 直接、マウスの値を辺の位置に設定
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X = float(pt.x) / float(GP.width);
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Width = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X - GP.prevMouse.X;
+                break;
+            case EditMode::Right:
+                // 右辺をドラッグ。 直接、マウスの値を辺の位置に設定
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Width = float(pt.x) / float(GP.width) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X;
+                break;
+            case EditMode::LeftTop:
+                // 左上をドラッグ。 直接、マウスの値を辺の位置に設定   
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X = float(pt.x) / float(GP.width);
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y = float(pt.y) / float(GP.height);
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Width = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X - GP.prevMouse.X;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Height = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y - GP.prevMouse.Y;
+                break;
+            case EditMode::RightTop:
+                // 右上をドラッグ。 直接、マウスの値を辺の位置に設定
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y = float(pt.y) / float(GP.height);
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Width = float(pt.x) / float(GP.width) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Height = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y - GP.prevMouse.Y;
+                break;
+            case EditMode::LeftBottom:
+                // 左下をドラッグ。 直接、マウスの値を辺の位置に設定
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X = float(pt.x) / float(GP.width);
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Height = float(pt.y) / float(GP.height) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Width = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X - GP.prevMouse.X;
+                break;
+            case EditMode::RightBottom:
+                // 右下をドラッグ。 直接、マウスの値を辺の位置に設定
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Width = float(pt.x) / float(GP.width) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Height = float(pt.y) / float(GP.height) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y;
+                break;
+            case EditMode::None:
+                // 何もしない    
+                break;
+            }
+            // マウスの位置を保存
+            GP.prevMouse = Gdiplus::PointF((FLOAT)pt.x, (FLOAT)pt.y);
+            // 再描画
+            InvalidateRect(hWnd, NULL, TRUE);
+        }
+        else
+        {
+            GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, GP.edMode, GP.Overlap); // マウスカーソルの位置を取得
+            InvalidateRect(hWnd, NULL, TRUE);
+        }
+    }
+    break;
 
     //キー入力を処理する
 	case WM_KEYDOWN:

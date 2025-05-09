@@ -113,7 +113,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 // フィルパスのフォルダは'/'で区切る必要があります。
 // '\'で記述する場合は'\\'に置き換える必要があります。
-const wchar_t* g_imagePath = L"../images/Image01.jpg";  // JPEGまたはPNG
+const wchar_t* g_imagePath = L"../images/FILE0000.jpg";  // JPEGまたはPNG
 
 
 /////////////////////////////////////////////////////////////////////////

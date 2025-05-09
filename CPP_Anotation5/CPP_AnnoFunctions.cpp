@@ -619,7 +619,7 @@ int LoadLabelFilesMP(
 }
 ///////////////////////////////////////////////////////////////////////
 //矩形の線上にマウスカーソルがあるかどうかを判定する関数
-int IsMouseOnRectEdge(
+EditMode IsMouseOnRectEdge(
     const POINT& pt, 
     const LabelObj& obj,
     int overlap
@@ -637,7 +637,7 @@ int IsMouseOnRectEdge(
     float h = obj.rect.Height * GP.height;
 
     // 各辺の幅を帯状に見立てて判定
-    int _ret = 0;
+	EditMode  _ret = EditMode::None;
     if(pt.y >= y0 - overlap && pt.y <= y0 + overlap &&
         pt.x >= x0 - overlap && pt.x <= x0 + w + overlap)
 		Top = true; // 上辺
@@ -654,22 +654,23 @@ int IsMouseOnRectEdge(
         pt.y >= y0 - overlap && pt.y <= y0 + h + overlap)
 		Right = true; // 右辺
 
-	if (Top && Left)
-		return 1; // 上辺左端
-	if (Top && Right)
-		return 2; // 上辺右端
+    if (Top && Left)
+        return EditMode::LeftTop; // 上辺左端
 	if (Bottom && Left)
-		return 3; // 下辺左端
+		return EditMode::LeftBottom; // 下辺左端
+	if (Top && Right)
+		return EditMode::RightTop; // 上辺右端
 	if (Bottom && Right)
-		return 4; // 下辺右端
+		return EditMode::RightBottom; // 下辺右端
 	if (Top)
-		return 5; // 上辺
+		return EditMode::Top; // 上辺
 	if (Bottom)
-		return 6; // 下辺
+		return EditMode::Bottom; // 下辺
 	if (Left)
-		return 7; // 左辺
+		return EditMode::Left; // 左辺
 	if (Right)
-		return 8; // 右辺
+		return EditMode::Right; // 右辺
+    
 
     // 矩形の中にカーソルがある場合
 	//if (pt.x >= x0 && pt.x <= x0 + w &&
@@ -678,7 +679,7 @@ int IsMouseOnRectEdge(
 
     // 矩形の外にカーソルがある場合 
 
-    return 0; // 外
+	return EditMode::None; // 外 
 }
 ///////////////////////////////////////////////////////////////////////
 //矩形の線上にマウスカーソルがあるかどうかを判定する関数
@@ -728,29 +729,31 @@ int IsMouseOnRectEdge_old(
 int GetIdxMouseOnRectEdge(
     const POINT& pt,
     std::vector<LabelObj>& objs,
+	EditMode& editMode,
     int overlap
 ){
-    int _ret=-1;
-    //まず全て解除
+    int _idx=-1;
+
+    //全部
     for (int i = 0; i < objs.size(); i++)
-    {
-        objs[i].mOver = 0; // 選択状態を解除
-    }
+        objs[i].mOver = false;
 
     for (int i = 0; i < objs.size(); i++)
     {
-        int _mOver = IsMouseOnRectEdge(pt, objs[i], overlap);
-        if (_mOver > 0)
+        //辺の位置が返ってくる。
+		EditMode _em = IsMouseOnRectEdge(pt, objs[i], overlap);
+        if (_em !=  EditMode::None )
         {
-            objs[i].mOver = _mOver; // 選択状態にする
-            _ret = i; // 最初の一つだけを返す
+            objs[i].mOver = true;
+            editMode = _em; // 選択状態にする
+            _idx = i; // 最初の一つだけを返す
             break;
         }
         else
         {
-            objs[i].mOver = 0; // 選択状態を解除
+            editMode = EditMode::None; // 選択状態を解除
         }
     }
-    return _ret; // 矩形がない場合は-1を返す
+    return _idx; // 矩形がない場合は-1を返す
 }
 

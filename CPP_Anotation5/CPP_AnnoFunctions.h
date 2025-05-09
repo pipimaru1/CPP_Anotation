@@ -58,15 +58,19 @@ bool SaveLabelsToFile(
 );
 ///////////////////////////////////////////////////////////////////////
 //矩形の線上にマウスカーソルがあるかどうかを判定する関数
-int IsMouseOnRectEdge(
+EditMode IsMouseOnRectEdge(
 	const POINT& pt,
 	const LabelObj& obj,
 	int overlap
 );
 ///////////////////////////////////////////////////////////////////////
 //マウスカーソルと重なる矩形のインデックスを取得する関数
+// 戻り値はマウスカーソルと重なる矩形のインデックス
+// 重なる矩形がない場合は-1を返す
+// マウスカーソルが矩形の辺上にある場合は、辺のインデックスをeditModeに格納する
 int GetIdxMouseOnRectEdge(
 	const POINT& pt,
-	std::vector<LabelObj>& objs,
+	std::vector<LabelObj>& objs,//対象の矩形の配列
+	EditMode& editMode,			//辺や頂点
 	int overlap
 );

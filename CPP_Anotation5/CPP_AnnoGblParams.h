@@ -1,7 +1,7 @@
 #pragma once
 
-// 辺と頂点の定義
-//enum DragMode { None, Move, Left, Right, Top, Bottom, TL, TR, BL, BR };
+enum class DragMode { None, MakeBox, ReBox, dummy};
+enum class EditMode { None, Left, Right, Top, Bottom, LeftTop, RightTop, LeftBottom, RightBottom };
 
 ///////////////////////////////////////////////////////
 // アノテーションクラス
@@ -19,7 +19,7 @@ struct LabelObj
 	int 		        penWidth; // ペンの幅
 	Gdiplus::DashStyle  dashStyle; // ダッシュスタイル
 
-    int mOver; //マウスがオーバーラップしているときの辺を表す
+    bool mOver; //マウスがオーバーラップしているときの辺を表す
 
 	// コンストラクタ
     LabelObj();
@@ -35,7 +35,7 @@ struct ImgObject
     size_t      objIdx{0};           // 現在の矩形インデックス
     std::unique_ptr<Gdiplus::Image> image;  // 生ポインタは禁止！
 
-    int mOverIdx = 0;// マウスオーバーのインデックス
+    int mOverIdx = -1;// マウスオーバーのインデックス
 
     // コンストラクタはデフォルトでOK
     ImgObject();
@@ -52,7 +52,6 @@ struct ImgObject
 
 };
 
-
 ///////////////////////////////////////////////////////
 // グローバル変数の定義
 // 課題ではヘッダファイルに記載だが、教材のためにここに記載します。
@@ -63,17 +62,16 @@ struct GlobalParams
     int width;
     int height;
 
-
     //イメージファイル関連
 	std::vector<ImgObject>      imgObjs; // 画像ファイルのパスと矩形の配列
     size_t                      imgIdx; // 現在の画像インデックス
 	std::wstring                imgFolderPath; // 現在の画像フォルダ
     std::wstring                labelFolderPath; // 現在のラベルフォルダ
 
-
     // マウスドラッグ中
     LabelObj  anno_tmp;    // 矩形の座標
-    bool      makeBox; // マウスドラッグ中かどうか	
+    //bool      makeBox; // マウスドラッグ中かどうか	
+	DragMode dgMode = DragMode::None; // ドラッグモード
 
 	//マウス移動中
 	bool        isMouseMoving; // マウス移動中かどうか
@@ -81,8 +79,9 @@ struct GlobalParams
     int         Overlap; // マウスオーバーの裕度
 
     //矩形ドラッグ
-    //DragMode        dragMode = None;
-	int activeIdx = -1; // ドラッグ中の矩形のインデックス
+    //DragMode        dgMode = None;
+	int activeIdx   = -1; // ドラッグ中の矩形のインデックス
+	EditMode edMode = EditMode::None;// マウスオーバー中の矩形の辺を表す
     Gdiplus::PointF prevMouse;   // 前回のマウス座標
 
     // 対象とする画像拡張子パターン

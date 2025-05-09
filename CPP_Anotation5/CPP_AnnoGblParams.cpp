@@ -24,7 +24,8 @@ GlobalParams::GlobalParams()
 	imgIdx = 0;
 
 	//マウス
-	makeBox = false;
+	//makeBox = false;
+	dgMode = DragMode::None; // ドラッグモード
 	isMouseMoving = false;
 	g_prevPt = { -1, -1 };
     Overlap = 5; // マウスオーバーの裕度
@@ -201,7 +202,7 @@ LabelObj::LabelObj()
 	// クラシフィケーションの初期化
 	ClassName.clear();
 	ClassNum = 0;
-
+	mOver = false;
 
 	// 描画情報の初期化
 	color = Gdiplus::Color(255, 255, 255);
