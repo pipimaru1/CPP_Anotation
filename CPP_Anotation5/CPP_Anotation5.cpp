@@ -137,13 +137,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     return TRUE;
 }
 /////////////////////////////////////////////////////////////////////////
-// 上級課題
-// WM_PIANTでファイルの画像を毎回読み込んで描画するのは処理が重いので、
-// 画像データを保持しておき、必要なときに描画するようにする
-// ヒント 画像データを保持するためImgObjectクラスに画像データを保持するメンバ変数を追加する
-// 画像フォルダ設定時に画像データを読み込むようにする
-// コーディング済　
-
+// 課題
+// クラシフィケーションをファイルから読み込む機能を追加してください。
+// 画像やラベルのフォルダバスを保存する機能を追加してください。
+ 
 /////////////////////////////////////////////////////////////////////////
 // 上級課題
 // アノテーションデータをSQLのテーブルに保存していく
@@ -158,9 +155,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 const wchar_t* INIT_IMGFOLDER = L"../images/";  // JPEGまたはPNG
 ///////////////////////////////////////////////////////////////////////
 //タイトルバーに画像のパスを表示
-void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labelfolder)
+void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labelfolder, int _Idx, int _Total)
 {
-    std::wstring title = L"Annotation Tool - " + _imgfolder + L" - " + _labelfolder;
+	std::wstring title = 
+        L"Annotation Tool - " + _imgfolder + L" - " + _labelfolder + 
+        L" [ " + std::to_wstring(_Idx) + L" / " + std::to_wstring(_Total) + L"]";
     SetWindowText(hWnd, title.c_str());
     return;
 }
@@ -208,7 +207,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		GP.imgFolderPath = INIT_IMGFOLDER; // フォルダパスを指定
 
         LoadImageFiles(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
-        SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath); // タイトルバーに画像のパスを表示
+        SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, 0, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
 
         break;
 
@@ -243,7 +242,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 LoadLabelFilesMP(GP.imgObjs, GP.labelFolderPath, L".txt", 1);
 
                 //タイトルバーに編集中の画像とラベルのパスを表示
-                SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath); // タイトルバーに画像のパスを表示
+                SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
             }
 		}
 		break;
@@ -258,7 +257,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 {
                     GP.labelFolderPath = _folderpath; // フォルダパスを指定
                     //タイトルバーに編集中の画像とラベルのパスを表示
-                    SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath); // タイトルバーに画像のパスを表示
+                    SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.activeIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
 
                     // フォルダが選択された場合、アノテーションデータを保存
                     for (size_t i = 0; i < GP.imgObjs.size(); i++)
@@ -290,7 +289,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 GP.imgObjs.clear();
                 // フォルダが選択された場合、画像ファイルを取得
                 LoadImageFilesMP(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
-                SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath); // タイトルバーに画像のパスを表示
+                SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size() ); // タイトルバーに画像のパスを表示
 
                 GP.imgIdx = 0; // インデックスをリセット
             }
@@ -639,12 +638,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case VK_LEFT:
             if (GP.imgObjs.size() > 0) {
                 GP.imgIdx = (GP.imgIdx + GP.imgObjs.size() - step) % GP.imgObjs.size();
+                SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
+
             }
             break;
         case 'D': // 次の画像
         case VK_RIGHT:
             if (GP.imgObjs.size() > 0) {
                 GP.imgIdx = (GP.imgIdx + step) % GP.imgObjs.size();
+                SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
             }
             break;
         }

@@ -269,8 +269,7 @@ bool SaveLabelsToFile(
     const std::wstring& fileName, 
     const std::vector<LabelObj>& objs, 
 	int mode = 0 // 0:default, 1:yolo
-)
-{
+){
 	// UTF-8で保存するための設定
 	std::ofstream file(fileName, std::ios::binary);
 
@@ -400,8 +399,7 @@ ImgObject& imgObj, //データを格納するImgObjectクラスの参照
 const std::wstring& folderpath, //アノテーションファイルのあるフォルダパス
 const std::wstring& ext, //アノテーションファイルの拡張子
 int mode //0:default, 1:yolo
-)
-{
+){
 	//アノテーションファイルのフルパスを取得
 	std::wstring _fileName = GetFileNameFromPath(folderpath, imgObj.path, ext);
 	if (_fileName.empty()) 
@@ -460,8 +458,7 @@ int LoadLabelFiles(
 	const std::wstring& folderpath, //アノテーションファイルのあるフォルダパス
 	const std::wstring& ext, //アノテーションファイルの拡張子
     int mode //0:default, 1:yolo
-)
-{
+){
 	int loadCount = 0; // 読み込んだアノテーションの数
 	for (int i = 0; i < imgObjs.size(); i++)
 	{
@@ -550,8 +547,7 @@ int LoadLabelFilesMP(
     const std::wstring& folderpath,
     const std::wstring& ext,
     int mode
-)
-{
+){
     int loadCount = 0;
     const int N = static_cast<int>(imgObjs.size());
 
@@ -624,8 +620,7 @@ EditMode IsMouseOnRectEdge(
     const POINT& pt, 
     const LabelObj& obj,
     int overlap
-)
-{
+){
 	bool Left = false;
 	bool Right = false;
 	bool Top = false;
@@ -671,14 +666,6 @@ EditMode IsMouseOnRectEdge(
 		return EditMode::Left; // 左辺
 	if (Right)
 		return EditMode::Right; // 右辺
-    
-
-    // 矩形の中にカーソルがある場合
-	//if (pt.x >= x0 && pt.x <= x0 + w &&
-	//	pt.y >= y0 && pt.y <= y0 + h)
-	//	return 9; // 中
-
-    // 矩形の外にカーソルがある場合 
 
 	return EditMode::None; // 外 
 }
@@ -688,8 +675,7 @@ int IsMouseOnRectEdge_old(
     const POINT& pt,
     const LabelObj& obj,
     int overlap
-)
-{
+){
     // 矩形の座標
     float x0 = obj.rect.X * GP.width;
     float y0 = obj.rect.Y * GP.height;
@@ -714,12 +700,6 @@ int IsMouseOnRectEdge_old(
         pt.y >= y0 - overlap && pt.y <= y0 + h + overlap)
         return 4; // 右辺
 
-    // 矩形の中にカーソルがある場合
-    //if (pt.x >= x0 && pt.x <= x0 + w &&
-    //    pt.y >= y0 && pt.y <= y0 + h)
-    //    return 5; // 中
-
-    // 矩形の外にカーソルがある場合 
     return 0; // 外
 }
 
