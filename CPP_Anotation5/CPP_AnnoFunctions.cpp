@@ -58,8 +58,6 @@ int GetImgsPaths(const std::wstring& folderPath, std::vector <ImgObject>& _imgOb
                 // 矩形の初期化
 				_imgobj.objs.clear();
 				_imgobj.objIdx = 0;
-
-                //_imgObjs.push_back(_imgobj);
             }
         }
     } while (FindNextFileW(hFind, &findData));
@@ -141,26 +139,28 @@ int LoadImageFilesMP(const std::wstring& folderPath, std::vector<ImgObject>& _im
     FindClose(hFind);
 
     const int N = static_cast<int>(fileList.size());
-    if (N == 0) return 0;
+    if (N != 0)
+    {
+        // 2) 結果コンテナをあらかじめ確保しておく
+        _imgObjs.resize(N);
 
-    // 2) 結果コンテナをあらかじめ確保しておく
-    _imgObjs.resize(N);
-
-    // 3) 画像ロードを並列化
+        // 3) 画像ロードを並列化
 #pragma omp parallel for schedule(dynamic)
-    for (int i = 0; i < N; ++i) {
-        ImgObject& img = _imgObjs[i];
-        img.path = fileList[i];
+        for (int i = 0; i < N; ++i) {
+            ImgObject& img = _imgObjs[i];
+            img.path = fileList[i];
 
-        // unique_ptr で管理
-        auto image = std::make_unique<Gdiplus::Image>(img.path.c_str());
-        if (image->GetLastStatus() != Gdiplus::Ok) {
-            // ロード失敗時は代替イメージ
-            image = std::make_unique<Gdiplus::Image>(L"NO Image");
+            // unique_ptr で管理
+            auto image = std::make_unique<Gdiplus::Image>(img.path.c_str());
+            if (image->GetLastStatus() != Gdiplus::Ok) {
+                // ロード失敗時は代替イメージ
+                image = std::make_unique<Gdiplus::Image>(L"NO Image");
+            }
+            img.image = std::move(image);
         }
-        img.image = std::move(image);
     }
-
+    else
+        return 0;
     return N;
 }
 

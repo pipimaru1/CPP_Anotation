@@ -30,9 +30,9 @@ struct LabelObj
 // 1つの画像のパスと矩形の配列を持つクラス
 struct ImgObject
 {
-    std::wstring path;              // 画像のパス
-    std::vector<LabelObj> objs;     // 矩形の配列
-    size_t      objIdx{0};           // 現在の矩形インデックス
+    std::wstring            path;     // 画像のパス
+    std::vector<LabelObj>   objs;     // 矩形の配列
+    size_t                  objIdx{0};// 現在の矩形インデックス
     std::unique_ptr<Gdiplus::Image> image;  // 生ポインタは禁止！
 
     int mOverIdx = -1;// マウスオーバーのインデックス
@@ -69,8 +69,7 @@ struct GlobalParams
     std::wstring                labelFolderPath; // 現在のラベルフォルダ
 
     // マウスドラッグ中
-    LabelObj  anno_tmp;    // 矩形の座標
-    //bool      makeBox; // マウスドラッグ中かどうか	
+    LabelObj  tmpLabel;    // 矩形の座標
 	DragMode dgMode = DragMode::None; // ドラッグモード
 
 	//マウス移動中
@@ -79,7 +78,6 @@ struct GlobalParams
     int         Overlap; // マウスオーバーの裕度
 
     //矩形ドラッグ
-    //DragMode        dgMode = None;
 	int activeIdx   = -1; // ドラッグ中の矩形のインデックス
 	EditMode edMode = EditMode::None;// マウスオーバー中の矩形の辺を表す
     Gdiplus::PointF prevMouse;   // 前回のマウス座標
@@ -96,7 +94,6 @@ struct GlobalParams
     // フォント関連はポインタに
     Gdiplus::FontFamily* fontFamily;
     Gdiplus::Font* font;
-    //Gdiplus::SolidBrush  fontBrush;
 
 	int selectedClsIdx; // 選択されたクラシフィケーションのインデックス
 

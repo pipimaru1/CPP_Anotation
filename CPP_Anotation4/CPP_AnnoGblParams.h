@@ -62,7 +62,7 @@ struct GlobalParams
 	std::wstring                imgFolderPath; // 現在の画像フォルダ
 
     // マウスドラッグ中
-    LabelObj  anno_tmp;    // 矩形の座標
+    LabelObj  tmpLabel;    // 矩形の座標
     bool        makeBox; // マウスドラッグ中かどうか	
 
 	//マウス移動中

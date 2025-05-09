@@ -362,7 +362,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             // ドラッグ中の矩形を描画
             if(GP.dgMode==DragMode::MakeBox)
-                WM_PAINT_DrawTmpBox(graphics, GP.anno_tmp.rect, GP.width, GP.height);
+                WM_PAINT_DrawTmpBox(graphics, GP.tmpLabel.rect, GP.width, GP.height);
            
             // 最後に画面に転送
             BitBlt(hdc, 0, 0, GP.width, GP.height, memDC, 0, 0, SRCCOPY);
@@ -405,10 +405,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if( GP.imgObjs[GP.imgIdx].mOverIdx == -1 )
         {
             // 矩形の開始位置を設定
-            GP.anno_tmp.rect.X = float(pt.x) / float(GP.width);
-            GP.anno_tmp.rect.Y = float(pt.y) / float(GP.height);
-            GP.anno_tmp.rect.Width = 0;
-            GP.anno_tmp.rect.Height = 0;
+            GP.tmpLabel.rect.X = float(pt.x) / float(GP.width);
+            GP.tmpLabel.rect.Y = float(pt.y) / float(GP.height);
+            GP.tmpLabel.rect.Width = 0;
+            GP.tmpLabel.rect.Height = 0;
             GP.dgMode = DragMode::MakeBox;
         }
         //矩形にマウスオーバーしている
@@ -436,9 +436,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             ReleaseCapture(); // マウスキャプチャを解放
 
             // 矩形の幅と高さを計算
-            GP.anno_tmp.rect.Width = float(pt.x) / float(GP.width) - GP.anno_tmp.rect.X;
-            GP.anno_tmp.rect.Height = float(pt.y) / float(GP.height) - GP.anno_tmp.rect.Y;
-            NormalizeRect(GP.anno_tmp.rect); // 矩形の座標を正規化
+            GP.tmpLabel.rect.Width = float(pt.x) / float(GP.width) - GP.tmpLabel.rect.X;
+            GP.tmpLabel.rect.Height = float(pt.y) / float(GP.height) - GP.tmpLabel.rect.Y;
+            NormalizeRect(GP.tmpLabel.rect); // 矩形の座標を正規化
 
 			//クラス名をポップアップメニューで表示
             ShowClassPopupMenu(hWnd);
@@ -460,10 +460,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         // 後始末
         // テンポラリ矩形の座標をリセット
-        GP.anno_tmp.rect.X = 0;
-        GP.anno_tmp.rect.Y = 0;
-        GP.anno_tmp.rect.Width = 0;
-        GP.anno_tmp.rect.Height = 0;
+        GP.tmpLabel.rect.X = 0;
+        GP.tmpLabel.rect.Y = 0;
+        GP.tmpLabel.rect.Width = 0;
+        GP.tmpLabel.rect.Height = 0;
         //GP.makeBox = false; // ドラッグ中フラグを下ろす
         GP.dgMode = DragMode::None;
 	}
@@ -494,8 +494,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         //if (GP.makeBox)
         if (GP.dgMode == DragMode::MakeBox)
         {
-            GP.anno_tmp.rect.Width = float(pt.x) / float(GP.width) - GP.anno_tmp.rect.X;
-            GP.anno_tmp.rect.Height = float(pt.y) / float(GP.height) - GP.anno_tmp.rect.Y;
+            GP.tmpLabel.rect.Width = float(pt.x) / float(GP.width) - GP.tmpLabel.rect.X;
+            GP.tmpLabel.rect.Height = float(pt.y) / float(GP.height) - GP.tmpLabel.rect.Y;
 
             // 再描画
             InvalidateRect(hWnd, NULL, TRUE);
@@ -852,16 +852,16 @@ void ShowClassPopupMenu(HWND hWnd)
     {
         GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
 
-        // anno_tmp に選択内容を設定
-        GP.anno_tmp.ClassName = GP.ClsNames[GP.selectedClsIdx];
-        GP.anno_tmp.ClassNum = GP.selectedClsIdx;
-        GP.anno_tmp.color = GP.ClsColors[GP.selectedClsIdx];
-        GP.anno_tmp.dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
-        GP.anno_tmp.penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
+        // tmpLabel に選択内容を設定
+        GP.tmpLabel.ClassName = GP.ClsNames[GP.selectedClsIdx];
+        GP.tmpLabel.ClassNum = GP.selectedClsIdx;
+        GP.tmpLabel.color = GP.ClsColors[GP.selectedClsIdx];
+        GP.tmpLabel.dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
+        GP.tmpLabel.penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
 
         // オブジェクトを登録
         if (!GP.imgObjs.empty())
-            GP.imgObjs[GP.imgIdx].objs.push_back(GP.anno_tmp);
+            GP.imgObjs[GP.imgIdx].objs.push_back(GP.tmpLabel);
     }
 }
 

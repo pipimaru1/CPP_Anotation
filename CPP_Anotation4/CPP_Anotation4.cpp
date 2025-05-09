@@ -332,10 +332,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             if (GP.makeBox)
             {
                 Pen pen(Color(255, 0, 0), 2);
-                float x = GP.anno_tmp.rect.X;
-                float y = GP.anno_tmp.rect.Y;
-                float w = GP.anno_tmp.rect.Width;
-                float h = GP.anno_tmp.rect.Height;
+                float x = GP.tmpLabel.rect.X;
+                float y = GP.tmpLabel.rect.Y;
+                float w = GP.tmpLabel.rect.Width;
+                float h = GP.tmpLabel.rect.Height;
 
                 if (w < 0) { x += w; w = -w; }
                 if (h < 0) { y += h; h = -h; }
@@ -419,10 +419,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		GetCursorPos(&pt);
 		ScreenToClient(hWnd, &pt);
 		// 矩形の開始位置を設定
-        GP.anno_tmp.rect.X = float(pt.x) / float(GP.width);
-        GP.anno_tmp.rect.Y = float(pt.y) / float(GP.height);
-		GP.anno_tmp.rect.Width = 0;
-		GP.anno_tmp.rect.Height = 0;
+        GP.tmpLabel.rect.X = float(pt.x) / float(GP.width);
+        GP.tmpLabel.rect.Y = float(pt.y) / float(GP.height);
+		GP.tmpLabel.rect.Width = 0;
+		GP.tmpLabel.rect.Height = 0;
 
 		GP.makeBox = true; // ドラッグ中フラグを立てる
 		//GP.rects.push_back(rect); // 矩形を追加
@@ -437,8 +437,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			POINT pt;
 			GetCursorPos(&pt);
 			ScreenToClient(hWnd, &pt);
-            GP.anno_tmp.rect.Width = float(pt.x) / float(GP.width) - GP.anno_tmp.rect.X;
-            GP.anno_tmp.rect.Height = float(pt.y) / float(GP.height) - GP.anno_tmp.rect.Y;
+            GP.tmpLabel.rect.Width = float(pt.x) / float(GP.width) - GP.tmpLabel.rect.X;
+            GP.tmpLabel.rect.Height = float(pt.y) / float(GP.height) - GP.tmpLabel.rect.Y;
 
             // 再描画
 			InvalidateRect(hWnd, NULL, TRUE);
@@ -497,9 +497,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             ReleaseCapture(); // マウスキャプチャを解放
 
             // 矩形の幅と高さを計算
-            GP.anno_tmp.rect.Width = float(pt.x) / float(GP.width) - GP.anno_tmp.rect.X;
-            GP.anno_tmp.rect.Height = float(pt.y) / float(GP.height) - GP.anno_tmp.rect.Y;
-            NormalizeRect(GP.anno_tmp.rect); // 矩形の座標を正規化
+            GP.tmpLabel.rect.Width = float(pt.x) / float(GP.width) - GP.tmpLabel.rect.X;
+            GP.tmpLabel.rect.Height = float(pt.y) / float(GP.height) - GP.tmpLabel.rect.Y;
+            NormalizeRect(GP.tmpLabel.rect); // 矩形の座標を正規化
 
             HMENU hPopup = CreatePopupMenu();
             if (hPopup)
@@ -538,15 +538,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
 
 					// 選択されたクラシフィケーションのインデックスを取得 その他属性の設定
-                    GP.anno_tmp.ClassName = GP.ClsNames[GP.selectedClsIdx];
-					GP.anno_tmp.CalassNum = GP.selectedClsIdx;
-					GP.anno_tmp.color = GP.ClsColors[GP.selectedClsIdx];
-					GP.anno_tmp.dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
-					GP.anno_tmp.penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
+                    GP.tmpLabel.ClassName = GP.ClsNames[GP.selectedClsIdx];
+					GP.tmpLabel.CalassNum = GP.selectedClsIdx;
+					GP.tmpLabel.color = GP.ClsColors[GP.selectedClsIdx];
+					GP.tmpLabel.dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
+					GP.tmpLabel.penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
 
                     // オブジェクト情報を登録
-                    //GP.objs.push_back(GP.anno_tmp);
-					GP.imgObjs[GP.imgIdx].objs.push_back(GP.anno_tmp);
+                    //GP.objs.push_back(GP.tmpLabel);
+					GP.imgObjs[GP.imgIdx].objs.push_back(GP.tmpLabel);
                     //InvalidateRect(hWnd, NULL, TRUE);
                 }
             }
@@ -556,10 +556,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             // 後始末
             // テンポラリ矩形の座標をリセット
-            GP.anno_tmp.rect.X = 0;
-            GP.anno_tmp.rect.Y = 0;
-            GP.anno_tmp.rect.Width = 0;
-            GP.anno_tmp.rect.Height = 0;
+            GP.tmpLabel.rect.X = 0;
+            GP.tmpLabel.rect.Y = 0;
+            GP.tmpLabel.rect.Width = 0;
+            GP.tmpLabel.rect.Height = 0;
             GP.makeBox = false; // ドラッグ中フラグを下ろす
 
         }
