@@ -18,6 +18,10 @@ void NormalizeRect(RectF& r);
 
 // フォルダのパスを取得する関数
 std::wstring GetFolderPath(HWND hWnd);
+std::wstring GetFolderPathEx(HWND hWnd, const std::wstring& _currentFolder, const std::wstring& _title);
+std::wstring GetFolderPathIF(HWND hWnd, const std::wstring& _currentFolder, const std::wstring& _title);
+std::wstring GetFolderPathIFR(HWND hWnd, const std::wstring& dlgTitle, const std::wstring& regValueName = L"");
+
 std::wstring GetFileName(HWND hWnd);
 std::wstring ChangeFileExtension(const std::wstring& filePath, const std::wstring& newExt);
 std::wstring GetFileNameFromPath(const std::wstring& filePath);

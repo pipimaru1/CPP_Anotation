@@ -140,6 +140,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 // 課題
 // クラシフィケーションをファイルから読み込む機能を追加してください。
 // 画像やラベルのフォルダバスを保存する機能を追加してください。
+// ⇒レジストリに保存する機能を追加済 参考にしてください。
+// 画像送りでファイルを更新する機能を追加してください。
  
 /////////////////////////////////////////////////////////////////////////
 // 上級課題
@@ -230,8 +232,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case IDM_LOAD_LABELS:
 		{
 			// ファイルオープンダイアログを表示
-			std::wstring _folderpath = GetFolderPath(hWnd);
-			
+            std::wstring _folderpath;
+            //_folderpath = GetFolderPath(hWnd);
+            //_folderpath = GetFolderPathIF(hWnd, GP.labelFolderPath, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
+            //_folderpath = GetFolderPathEx(hWnd, GP.labelFolderPath, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
+            _folderpath = GetFolderPathIFR(hWnd, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
+
             // フォルダ選択ダイアログを表示
             if (!_folderpath.empty()) 
             {
@@ -249,7 +255,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case IDM_SAVE_LABELS:
 		{
 			// ファイル保存ダイアログを表示
-			std::wstring _folderpath = GetFolderPath(hWnd);
+            std::wstring _folderpath;
+            //_folderpath = GetFolderPath(hWnd);
+            _folderpath = GetFolderPathIF(hWnd, GP.labelFolderPath, L"書込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
+
 			// フォルダ選択ダイアログを表示
 			if (!_folderpath.empty()) {
 				int _saveok = MessageBoxW(hWnd, L"保存しますか？", L"確認", MB_OKCANCEL);
@@ -283,7 +292,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         case IDM_LOAD_IMAGES:
         {
-            GP.imgFolderPath = GetFolderPath(hWnd); // フォルダ選択ダイアログを表示
+            //GP.imgFolderPath = GetFolderPath(hWnd); // フォルダ選択ダイアログを表示
+            GP.imgFolderPath = GetFolderPathIFR(hWnd, L"読込イメージフォルダを選択してください"); // フォルダ選択ダイアログを表示
+
             if (!GP.imgFolderPath.empty()) {
 				// 画像ファイルのパスと矩形の配列をクリア
                 GP.imgObjs.clear();
@@ -628,9 +639,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
 
         // Shift＋矢印なら大きく移動、小なら通常移動
-        step = shift ? 10 : 1;
+        step = shift ? 10 : step;
 		// Ctrl＋矢印なら大きく移動、小なら通常移動
-		step = ctrl ? 100 : 1;
+		step = ctrl ? 100 : step;
 
         switch (wParam)
         {

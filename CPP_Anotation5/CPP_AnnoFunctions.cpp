@@ -222,6 +222,221 @@ std::wstring GetFolderPath(HWND hWnd)
     }
     return folderPath;
 }
+///////////////////////////////////////////////////////////////////////
+// フォルダ選択ダイアログを表示する関数
+// コールバック関数：ダイアログ起動時に初期フォルダを設定
+static int CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpData)
+{
+    if (uMsg == BFFM_INITIALIZED)
+    {
+        // lpData に渡した初期フォルダ文字列を使って選択を設定
+        SendMessage(hwnd, BFFM_SETSELECTIONW, TRUE, lpData);
+    }
+    return 0;
+}
+
+// フォルダ選択ダイアログ（SHBrowseForFolder版）
+// hWnd           : 親ウィンドウハンドル
+// _currentFolder : 初期表示フォルダのパス（空文字なら既定）
+// _title         : ダイアログのタイトル（空文字なら既定メッセージ）
+std::wstring GetFolderPathEx(
+    HWND hWnd,
+    const std::wstring& _currentFolder,
+    const std::wstring& _title)
+{
+    wchar_t szPath[MAX_PATH] = { 0 };
+
+    BROWSEINFO bi = {};
+    bi.hwndOwner = hWnd;
+    bi.pszDisplayName = szPath;                  // 選択結果のバッファ
+    bi.lpszTitle = _title.c_str();          // タイトルを指定
+    bi.ulFlags = BIF_RETURNONLYFSDIRS     // フォルダのみを返す
+        | BIF_USENEWUI            // 新しい UI
+        | BIF_BROWSEINCLUDEFILES; // ファイルもツリーに表示
+    bi.lpfn = BrowseCallbackProc;      // 初期フォルダ設定用コールバック
+    bi.lParam = reinterpret_cast<LPARAM>(
+        _currentFolder.empty()
+        ? nullptr
+        : _currentFolder.c_str());
+
+    PIDLIST_ABSOLUTE pidl = SHBrowseForFolder(&bi);
+    if (pidl)
+    {
+        if (SHGetPathFromIDList(pidl, szPath))
+        {
+            CoTaskMemFree(pidl);
+            return std::wstring(szPath);
+        }
+        CoTaskMemFree(pidl);
+    }
+    return L"";  // キャンセル時など
+}
+///////////////////////////////////////////////////////////////////////
+// フォルダ選択ダイアログ（IFileDialog版）
+// hWnd: 親ウィンドウ
+// _currentFolder: 初期表示フォルダのパス（空文字なら既定フォルダ）
+// _title: ダイアログ上部に表示するタイトル（空文字なら既定タイトル）
+std::wstring GetFolderPathIF(
+    HWND hWnd,
+    const std::wstring& _currentFolder,
+    const std::wstring& _title)
+{
+    std::wstring result;
+
+    // COM 初期化
+    HRESULT hr = CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+
+    IFileDialog* pfd = nullptr;
+    hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pfd));
+    if (SUCCEEDED(hr) && pfd)
+    {
+        // フォルダ選択モードにする
+        DWORD dwOptions;
+        pfd->GetOptions(&dwOptions);
+        pfd->SetOptions(dwOptions | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_NOCHANGEDIR);
+
+        // 初期フォルダを設定
+        if (!_currentFolder.empty()){
+            IShellItem* psiInit = nullptr;
+            if (SUCCEEDED(SHCreateItemFromParsingName(_currentFolder.c_str(),
+                nullptr,IID_PPV_ARGS(&psiInit))))
+            {
+                pfd->SetFolder(psiInit);
+                psiInit->Release();
+            }
+        }
+
+        // タイトルを設定
+        if (!_title.empty())
+            pfd->SetTitle(_title.c_str());
+
+        // ダイアログ表示
+        if (SUCCEEDED(pfd->Show(hWnd))){
+            IShellItem* psiResult = nullptr;
+            if (SUCCEEDED(pfd->GetResult(&psiResult))){
+                PWSTR pszPath = nullptr;
+                if (SUCCEEDED(psiResult->GetDisplayName(SIGDN_FILESYSPATH, &pszPath))){
+                    result = pszPath;
+                    CoTaskMemFree(pszPath);
+                }
+                psiResult->Release();
+            }
+        }
+        pfd->Release();
+    }
+    CoUninitialize();
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////
+// フォルダ選択ダイアログ（IFileDialog版）
+// hWnd: 親ウィンドウ
+// _title: ダイアログ上部に表示するタイトル（空文字なら既定タイトル）
+//レジストリに保存する
+
+std::wstring GetFolderPathIFR(
+    HWND hWnd,
+    const std::wstring& dlgTitle,
+    const std::wstring& regValueName // 空なら dlgTitle を値名に
+)
+{
+    std::wstring result;
+    const wchar_t* subKey = L"Software\\YourCompany\\YourApp\\FolderDialog";
+    std::wstring valueName = regValueName.empty() ? dlgTitle : regValueName;
+
+    // 1) レジストリから前回のフォルダを読み出し
+    std::wstring initialFolder;
+    HKEY hKey = nullptr;
+    if (RegCreateKeyExW(HKEY_CURRENT_USER, subKey, 0, nullptr,
+        REG_OPTION_NON_VOLATILE, KEY_READ, nullptr,
+        &hKey, nullptr) == ERROR_SUCCESS)
+    {
+        wchar_t buf[MAX_PATH] = { 0 };
+        DWORD bufSize = sizeof(buf), type = REG_SZ;
+        if (RegQueryValueExW(hKey,
+            valueName.c_str(),
+            nullptr,
+            &type,
+            reinterpret_cast<BYTE*>(buf),
+            &bufSize) == ERROR_SUCCESS)
+        {
+            initialFolder = buf;
+        }
+        RegCloseKey(hKey);
+    }
+
+    // 2) COM 初期化 → IFileDialog 作成
+    HRESULT hr = CoInitializeEx(nullptr,
+        COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+    if (FAILED(hr)) return L"";
+
+    IFileDialog* pfd = nullptr;
+    hr = CoCreateInstance(CLSID_FileOpenDialog,
+        nullptr,
+        CLSCTX_INPROC_SERVER,
+        IID_PPV_ARGS(&pfd));
+    if (SUCCEEDED(hr) && pfd)
+    {
+        // フォルダ選択モードに
+        DWORD opts = 0;
+        pfd->GetOptions(&opts);
+        pfd->SetOptions(opts | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM);
+
+        // 初期フォルダ
+        if (!initialFolder.empty())
+        {
+            IShellItem* psiInit = nullptr;
+            if (SUCCEEDED(SHCreateItemFromParsingName(
+                initialFolder.c_str(),
+                nullptr,
+                IID_PPV_ARGS(&psiInit))))
+            {
+                pfd->SetFolder(psiInit);
+                psiInit->Release();
+            }
+        }
+
+        // タイトル設定
+        if (!dlgTitle.empty())
+            pfd->SetTitle(dlgTitle.c_str());
+
+        // ダイアログ表示
+        if (SUCCEEDED(pfd->Show(hWnd)))
+        {
+            IShellItem* psiRes = nullptr;
+            if (SUCCEEDED(pfd->GetResult(&psiRes)))
+            {
+                PWSTR pszPath = nullptr;
+                if (SUCCEEDED(psiRes->GetDisplayName(SIGDN_FILESYSPATH, &pszPath)))
+                {
+                    result = pszPath;
+                    CoTaskMemFree(pszPath);
+
+                    // 3) 結果をレジストリに保存
+                    HKEY hKey2 = nullptr;
+                    if (RegCreateKeyExW(HKEY_CURRENT_USER, subKey, 0, nullptr,
+                        REG_OPTION_NON_VOLATILE, KEY_WRITE,
+                        nullptr, &hKey2, nullptr) == ERROR_SUCCESS)
+                    {
+                        RegSetValueExW(hKey2,
+                            valueName.c_str(),
+                            0,
+                            REG_SZ,
+                            reinterpret_cast<const BYTE*>(result.c_str()),
+                            static_cast<DWORD>((result.size() + 1) * sizeof(wchar_t)));
+                        RegCloseKey(hKey2);
+                    }
+                }
+                psiRes->Release();
+            }
+        }
+
+        pfd->Release();
+    }
+    CoUninitialize();
+    return result;
+}
+
 
 ///////////////////////////////////////////////////////////////////////
 // LabelObjをファイル保存するための文字列生成関数
@@ -389,12 +604,12 @@ std::wstring GetFileNameFromPath(
 
 
 ///////////////////////////////////////////////////////////////////////
-// 関数 LoadAnno_Object(
+// 関数 LoadLabels_to_Objects(
 // ImgObject& imgObj, //データを格納するImgObjectクラスの参照
 // const std::wstring& folderpath, //アノテーションファイルのあるフォルダパス
 // const std::wstring& ext //アノテーションファイルの拡張子
 // )
-int LoadAnno_Object(
+int LoadLabels_to_Objects(
 ImgObject& imgObj, //データを格納するImgObjectクラスの参照
 const std::wstring& folderpath, //アノテーションファイルのあるフォルダパス
 const std::wstring& ext, //アノテーションファイルの拡張子
