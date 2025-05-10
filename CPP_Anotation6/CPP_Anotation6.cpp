@@ -4,7 +4,7 @@
 #include "framework.h"
 #include "CPP_AnnoGblParams.h"
 #include "CPP_AnnoFunctions.h"
-#include "CPP_Anotation5.h"
+#include "CPP_Anotation6.h"
 
 // 必要なライブラリ
 #pragma comment(lib, "gdiplus.lib")
@@ -138,12 +138,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 }
 /////////////////////////////////////////////////////////////////////////
 // 課題
-// OpenMPを無効・有効にして大量のファイルを読み込むときの速度を比較してください。
 // クラシフィケーションをファイルから読み込む機能を追加してください。
 // 画像やラベルのフォルダバスを保存する機能を追加してください。
 // ⇒レジストリに保存する機能を追加済 参考にしてください。
 // 画像送りでファイルを更新する機能を追加してください。
-
  
 /////////////////////////////////////////////////////////////////////////
 // 上級課題
@@ -294,7 +292,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         case IDM_LOAD_IMAGES:
         {
-            //GP.imgFolderPath = GetFolderPath(hWnd); // フォルダ選択ダイアログを表示
             GP.imgFolderPath = GetFolderPathIFR(hWnd, L"読込イメージフォルダを選択してください"); // フォルダ選択ダイアログを表示
 
             if (!GP.imgFolderPath.empty()) {
@@ -310,6 +307,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             InvalidateRect(hWnd, NULL, TRUE);
         }
         break;
+
+        case IDM_LOAD_CLASSIFICATION:
+		{
+			//クラシフィケーションファイルを読込
+			std::wstring _filepath;
+			_filepath = GetFileName(hWnd, L"クラス分類ファイルを読込", 0);
+			if (!_filepath.empty()) {
+				// クラシフィケーションファイルを読込
+				LoadClassification(_filepath, GP.ClsNames, GP.ClsColors, GP.ClsDashStyles, GP.ClsPenWidths, 0);//0=読み込み、1=書き込み
+			}
+		}
+		break;
 
         case IDM_ABOUT:
             DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
@@ -444,23 +453,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			//クラス名をポップアップメニューで表示
             ShowClassPopupMenu(hWnd);
+
+            ReleaseCapture();
         }
         else if (GP.dgMode == DragMode::ReBox) // 矩形の編集モード
         {
             // マウスキャプチャを解放
             ReleaseCapture();
-            GP.dgMode = DragMode::None; // ドラッグ中フラグを下ろす
-            GP.edMode = EditMode::None; // 編集モードをリセット
         }
         else
         {
-            GP.dgMode = DragMode::None; // ドラッグ中フラグを下ろす
-            GP.edMode = EditMode::None; // 編集モードをリセット
+			ReleaseCapture();
         }
         // 再描画
 		InvalidateRect(hWnd, NULL, TRUE);
 
         // 後始末
+        GP.dgMode = DragMode::None; // ドラッグ中フラグを下ろす
+        GP.edMode = EditMode::None; // 編集モードをリセット
+
         // テンポラリ矩形の座標をリセット
         GP.tmpLabel.rect.X = 0;
         GP.tmpLabel.rect.Y = 0;
@@ -818,6 +829,8 @@ void DrawCrosshairLines(HWND hWnd)
 // 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
 void ShowClassPopupMenu(HWND hWnd)
 {
+    const int _perColumn = 20;
+
     // ポップアップメニューの作成
     HMENU hPopup = CreatePopupMenu();
     if (!hPopup) return;
@@ -829,7 +842,15 @@ void ShowClassPopupMenu(HWND hWnd)
     // メニュー項目を追加
     for (size_t i = 0; i < GP.ClsNames.size(); ++i)
     {
-        AppendMenuW(hPopup, MF_STRING,
+        UINT flags = MF_STRING;
+        // 「i が itemsPerColumn の倍数」のときは
+        // この項目から新しい列を始める
+        if (i > 0 && (i % _perColumn) == 0) {
+            flags |= MF_MENUBREAK;
+        }
+        AppendMenuW(hPopup, 
+            //MF_STRING,
+			flags,
             IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
             GP.ClsNames[i].c_str());
     }
@@ -865,6 +886,11 @@ void ShowClassPopupMenu(HWND hWnd)
         if (!GP.imgObjs.empty())
             GP.imgObjs[GP.imgIdx].objs.push_back(GP.tmpLabel);
     }
+    else if (cmd == 0 || cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size())) // CANCEL
+    {
+        return;
+    }
+    return;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -872,6 +898,8 @@ void ShowClassPopupMenu(HWND hWnd)
 // 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
 void ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX )
 {
+    const int _perColumn = 20;
+
     // ポップアップメニューの作成
     HMENU hPopup = CreatePopupMenu();
     if (!hPopup) return;
@@ -883,7 +911,14 @@ void ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX )
     // メニュー項目を追加
     for (size_t i = 0; i < GP.ClsNames.size(); ++i)
     {
-        AppendMenuW(hPopup, MF_STRING,
+        UINT flags = MF_STRING;
+        // 「i が itemsPerColumn の倍数」のときは
+        // この項目から新しい列を始める
+        if (i > 0 && (i % _perColumn) == 0) {
+            flags |= MF_MENUBREAK;
+        }
+        AppendMenuW(hPopup, 
+            flags,
             IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
             GP.ClsNames[i].c_str());
     }
@@ -926,5 +961,6 @@ void ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX )
     }
     else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1) // CANCEL
         return;
+
     return;
 }

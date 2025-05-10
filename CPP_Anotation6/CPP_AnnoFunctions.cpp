@@ -2,7 +2,9 @@
 #include "framework.h"
 #include "CPP_AnnoGblParams.h"
 #include "CPP_AnnoFunctions.h"
-#include "CPP_Anotation5.h"
+#include "CPP_Anotation6.h"
+
+#pragma comment(lib, "Pathcch.lib")
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -341,7 +343,8 @@ std::wstring GetFolderPathIFR(
 )
 {
     std::wstring result;
-    const wchar_t* subKey = L"Software\\YourCompany\\YourApp\\FolderDialog";
+    //const wchar_t* subKey = L"Software\\YourCompany\\YourApp\\FolderDialog";
+    const wchar_t* subKey = REGSTRY_KEYSTRING_FOLDER;
     std::wstring valueName = regValueName.empty() ? dlgTitle : regValueName;
 
     // 1) レジストリから前回のフォルダを読み出し
@@ -500,10 +503,10 @@ bool SaveLabelsToFile(
 }
 
 ///////////////////////////////////////////////////////////////////////
-// ファイル保存するためのファイル名をダイアログボックスで取得する関数
+// ファイル名をダイアログボックスで取得する関数
 // 入力値はウィンドウハンドル
 // 出力値はファイル名 std::wstring
-std::wstring GetFileName(HWND hWnd)
+std::wstring GetFileName_old(HWND hWnd)
 {
 	std::wstring fileName;
 	IFileDialog* pFileDialog = nullptr;
@@ -535,6 +538,109 @@ std::wstring GetFileName(HWND hWnd)
 	}
 	return fileName;
 }
+
+///////////////////////////////////////////////////////////////////////
+// ファイル名をダイアログボックスで取得する関数
+// 入力値はウィンドウハンドル
+// 出力値はファイル名 std::wstring
+// ファイル選択ダイアログ＋レジストリ保存
+std::wstring GetFileName(HWND hWnd, const std::wstring& title, int _rw)
+{
+    std::wstring fileName;
+
+    // COMダイアログ作成
+    IFileDialog* pFileDialog = nullptr;
+
+    // ダイアログ種別を切り替え
+    const CLSID clsid = (_rw == 1)
+        ? CLSID_FileSaveDialog
+        : CLSID_FileOpenDialog;
+
+
+    HRESULT hr = CoCreateInstance(
+        clsid,
+        nullptr,
+        CLSCTX_INPROC_SERVER,
+        IID_PPV_ARGS(&pFileDialog)
+    );
+    if (FAILED(hr)) return L"";
+
+    // タイトル設定
+    pFileDialog->SetTitle(title.c_str());
+
+    // 前回のフォルダをレジストリから読み出し
+    {
+        HKEY hKey = nullptr;
+        if (RegOpenKeyExW(HKEY_CURRENT_USER, REGSTRY_KEYSTRING_FILE, 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+            wchar_t lastPath[MAX_PATH] = {};
+            DWORD cb = sizeof(lastPath);
+            if (RegQueryValueExW(hKey, title.c_str(), nullptr, nullptr, (BYTE*)lastPath, &cb) == ERROR_SUCCESS) {
+                IShellItem* pFolder = nullptr;
+                if (SUCCEEDED(SHCreateItemFromParsingName(lastPath, nullptr, IID_PPV_ARGS(&pFolder)))) {
+                    pFileDialog->SetFolder(pFolder);
+                    pFolder->Release();
+                }
+            }
+            RegCloseKey(hKey);
+        }
+    }
+
+    // フィルタ設定
+    COMDLG_FILTERSPEC filter[] = {
+        { L"YOLO",      L"*.txt" },
+        { L"All Files", L"*.*"   }
+    };
+    pFileDialog->SetFileTypes(ARRAYSIZE(filter), filter);
+
+    // ダイアログ表示
+    hr = pFileDialog->Show(hWnd);
+    if (SUCCEEDED(hr)) {
+        IShellItem* pItem = nullptr;
+        hr = pFileDialog->GetResult(&pItem);
+        if (SUCCEEDED(hr)) {
+            PWSTR pszFilePath = nullptr;
+            hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+            if (SUCCEEDED(hr) && pszFilePath) {
+                fileName = pszFilePath;
+                CoTaskMemFree(pszFilePath);
+            }
+            pItem->Release();
+        }
+
+        // 選択されたファイルのフォルダ部分を抽出
+        if (!fileName.empty()) {
+            std::wstring folder = fileName;
+            // PathCchRemoveFileSpec で末尾のファイル名を除去
+            PathCchRemoveFileSpec(&folder[0], folder.size());
+            // レジストリに保存（キーが無ければ作成）
+            HKEY hKey = nullptr;
+            if (RegCreateKeyExW(
+                HKEY_CURRENT_USER,
+                REGSTRY_KEYSTRING_FILE,
+                0, nullptr,
+                REG_OPTION_NON_VOLATILE,
+                KEY_WRITE,
+                nullptr,
+                &hKey,
+                nullptr) == ERROR_SUCCESS)
+            {
+                RegSetValueExW(
+                    hKey,
+                    title.c_str(),
+                    0, REG_SZ,
+                    (const BYTE*)folder.c_str(),
+                    static_cast<DWORD>((folder.size() + 1) * sizeof(wchar_t))
+                );
+                RegCloseKey(hKey);
+            }
+        }
+    }
+
+    pFileDialog->Release();
+    return fileName;
+}
+
+
 
 ///////////////////////////////////////////////////////////////////////
 // ファイルパスから拡張子を指定の拡張子に変更する関数
@@ -600,8 +706,6 @@ std::wstring GetFileNameFromPath(
 	}
 	return L""; // ファイルが存在しない場合、空文字を返す
 }
-
-
 
 ///////////////////////////////////////////////////////////////////////
 // 関数 LoadLabels_to_Objects(

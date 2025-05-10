@@ -1,0 +1,57 @@
+﻿//{{NO_DEPENDENCIES}}
+// Microsoft Visual C++ で生成されたインクルード ファイルです。
+// 次で使用: CPP_Anotation6.rc
+
+#define IDS_APP_TITLE			103
+
+#define IDR_MAINFRAME			128
+#define IDD_CPPANOTATION_DIALOG	102
+#define IDD_ABOUTBOX			103
+#define IDM_ABOUT				104
+#define IDM_EXIT				105
+#define IDI_CPPANOTATION		107
+#define IDI_SMALL				108
+#define IDC_CPPANOTATION		109
+
+//追加 200台から
+#define IDM_LOAD_IMAGES	    	200
+#define IDM_SAVE_LABELS			201
+#define IDM_LOAD_LABELS			202
+#define IDM_LOAD_CLASSIFICATION	203
+
+//2200まではクラシフィケーション用
+#define IDM_PMENU_CLSNAME00		2000 //動的ポップアップメニューのID 
+#define IDM_PMENU_CLSNAME01		2001
+#define IDM_PMENU_CLSNAME02		2002
+#define IDM_PMENU_CLSNAME03		2003
+#define IDM_PMENU_CLSNAME04		2004
+#define IDM_PMENU_CLSNAME05		2005
+#define IDM_PMENU_CLSNAME06		2006
+#define IDM_PMENU_CLSNAME07		2007
+#define IDM_PMENU_CLSNAME08		2008
+#define IDM_PMENU_CLSNAME09		2009
+#define IDM_PMENU_CLSNAME10		2010
+#define IDM_PMENU_CLSNAME11		2011
+#define IDM_PMENU_CLSNAME12		2012
+#define IDM_PMENU_CLSNAME13		2013
+#define IDM_PMENU_CLSNAME14		2014
+#define IDM_PMENU_CLSNAME15		2015 //とりあえず16個分確報 必要であれば増やす
+
+
+#define IDC_MYICON				2
+#ifndef IDC_STATIC
+#define IDC_STATIC				-1
+#endif
+
+// 新しいオブジェクトの次の既定値
+//
+#ifdef APSTUDIO_INVOKED
+#ifndef APSTUDIO_READONLY_SYMBOLS
+
+#define _APS_NO_MFC					130
+#define _APS_NEXT_RESOURCE_VALUE	129
+#define _APS_NEXT_COMMAND_VALUE		32771
+#define _APS_NEXT_CONTROL_VALUE		1000
+#define _APS_NEXT_SYMED_VALUE		110
+#endif
+#endif

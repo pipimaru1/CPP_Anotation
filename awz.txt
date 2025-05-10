@@ -1,0 +1,12 @@
+0, person, 255, 255, 0, DashStyleDash, 2
+1, forklift, 255, 0, 0, DashStyleDash, 2
+2, tractor, 0, 255, 0, DashStyleDash, 2
+3, driver, 0, 0, 255, DashStyleDash, 2
+4, truck, 255, 0, 255, DashStyleDash, 2
+5, excavator, 0, 255, 255, DashStyleDash, 2
+6, wheelloder, 128, 128, 128, DashStyleDash, 2
+7, grader, 128, 0, 128, DashStyleDash, 2
+8, bulldozer, 128, 128, 0, DashStyleDash, 2
+9, pallet, 0, 128, 128, DashStyleDash, 2
+10, cargo, 192, 192, 192, DashStyleDash, 2
+11, car, 255, 165, 0, DashStyleDash, 2

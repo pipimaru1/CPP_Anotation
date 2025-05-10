@@ -1,0 +1,80 @@
+0,person,255,0,0,DashStyleDash,2
+1,bicycle,255,76,0,DashStyleDot,2
+2,car,255,153,0,DashStyleDashDot,2
+3,motorcycle,255,229,0,DashStyleDashDotDot,2
+4,airplane,203,255,0,DashStyleSolid,2
+5,bus,127,255,0,DashStyleDash,2
+6,train,51,255,0,DashStyleDot,2
+7,truck,0,255,25,DashStyleDashDot,2
+8,boat,0,255,102,DashStyleDashDotDot,2
+9,traffic light,0,255,178,DashStyleSolid,2
+10,fire hydrant,0,255,255,DashStyleDash,2
+11,stop sign,0,178,255,DashStyleDot,2
+12,parking meter,0,102,255,DashStyleDashDot,2
+13,bench,0,25,255,DashStyleDashDotDot,2
+14,bird,50,0,255,DashStyleSolid,2
+15,cat,127,0,255,DashStyleDash,2
+16,dog,204,0,255,DashStyleDot,2
+17,horse,255,0,229,DashStyleDashDot,2
+18,sheep,255,0,152,DashStyleDashDotDot,2
+19,cow,255,0,76,DashStyleSolid,2
+20,elephant,255,0,0,DashStyleDash,2
+21,bear,255,76,0,DashStyleDot,2
+22,zebra,255,153,0,DashStyleDashDot,2
+23,giraffe,255,229,0,DashStyleDashDotDot,2
+24,backpack,203,255,0,DashStyleSolid,2
+25,umbrella,127,255,0,DashStyleDash,2
+26,handbag,51,255,0,DashStyleDot,2
+27,tie,0,255,25,DashStyleDashDot,2
+28,suitcase,0,255,102,DashStyleDashDotDot,2
+29,frisbee,0,255,178,DashStyleSolid,2
+30,skis,0,255,255,DashStyleDash,2
+31,snowboard,0,178,255,DashStyleDot,2
+32,sports ball,0,102,255,DashStyleDashDot,2
+33,kite,0,25,255,DashStyleDashDotDot,2
+34,baseball bat,50,0,255,DashStyleSolid,2
+35,baseball glove,127,0,255,DashStyleDash,2
+36,skateboard,204,0,255,DashStyleDot,2
+37,surfboard,255,0,229,DashStyleDashDot,2
+38,tennis racket,255,0,152,DashStyleDashDotDot,2
+39,bottle,255,0,76,DashStyleSolid,2
+40,wine glass,255,0,0,DashStyleDash,2
+41,cup,255,76,0,DashStyleDot,2
+42,fork,255,153,0,DashStyleDashDot,2
+43,knife,255,229,0,DashStyleDashDotDot,2
+44,spoon,203,255,0,DashStyleSolid,2
+45,bowl,127,255,0,DashStyleDash,2
+46,banana,51,255,0,DashStyleDot,2
+47,apple,0,255,25,DashStyleDashDot,2
+48,sandwich,0,255,102,DashStyleDashDotDot,2
+49,orange,0,255,178,DashStyleSolid,2
+50,broccoli,0,255,255,DashStyleDash,2
+51,carrot,0,178,255,DashStyleDot,2
+52,hot dog,0,102,255,DashStyleDashDot,2
+53,pizza,0,25,255,DashStyleDashDotDot,2
+54,donut,50,0,255,DashStyleSolid,2
+55,cake,127,0,255,DashStyleDash,2
+56,chair,204,0,255,DashStyleDot,2
+57,couch,255,0,229,DashStyleDashDot,2
+58,potted plant,255,0,152,DashStyleDashDotDot,2
+59,bed,255,0,76,DashStyleSolid,2
+60,dining table,255,0,0,DashStyleDash,2
+61,toilet,255,76,0,DashStyleDot,2
+62,tv,255,153,0,DashStyleDashDot,2
+63,laptop,255,229,0,DashStyleDashDotDot,2
+64,mouse,203,255,0,DashStyleSolid,2
+65,remote,127,255,0,DashStyleDash,2
+66,keyboard,51,255,0,DashStyleDot,2
+67,cell phone,0,255,25,DashStyleDashDot,2
+68,microwave,0,255,102,DashStyleDashDotDot,2
+69,oven,0,255,178,DashStyleSolid,2
+70,toaster,0,255,255,DashStyleDash,2
+71,sink,0,178,255,DashStyleDot,2
+72,refrigerator,0,102,255,DashStyleDashDot,2
+73,book,0,25,255,DashStyleDashDotDot,2
+74,clock,50,0,255,DashStyleSolid,2
+75,vase,127,0,255,DashStyleDash,2
+76,scissors,204,0,255,DashStyleDot,2
+77,teddy bear,255,0,229,DashStyleDashDot,2
+78,hair drier,255,0,152,DashStyleDashDotDot,2
+79,toothbrush,255,0,76,DashStyleSolid,2
