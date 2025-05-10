@@ -235,10 +235,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			// ファイルオープンダイアログを表示
             std::wstring _folderpath;
-            //_folderpath = GetFolderPath(hWnd);
-            //_folderpath = GetFolderPathIF(hWnd, GP.labelFolderPath, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
-            //_folderpath = GetFolderPathEx(hWnd, GP.labelFolderPath, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
-            _folderpath = GetFolderPathIFR(hWnd, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
+            _folderpath = GetFolderPathEx(hWnd,  L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
+            //_folderpath = GetFolderPathIFR(hWnd, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
 
             // フォルダ選択ダイアログを表示
             if (!_folderpath.empty()) 
@@ -294,8 +292,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         case IDM_LOAD_IMAGES:
         {
-            //GP.imgFolderPath = GetFolderPath(hWnd); // フォルダ選択ダイアログを表示
-            GP.imgFolderPath = GetFolderPathIFR(hWnd, L"読込イメージフォルダを選択してください"); // フォルダ選択ダイアログを表示
+            //GP.imgFolderPath = GetFolderPathIFR(hWnd, L"読込イメージフォルダを選択してください"); // フォルダ選択ダイアログを表示
+            GP.imgFolderPath = GetFolderPathEX(hWnd, L"読込イメージフォルダを選択してください"); // フォルダ選択ダイアログを表示
 
             if (!GP.imgFolderPath.empty()) {
 				// 画像ファイルのパスと矩形の配列をクリア

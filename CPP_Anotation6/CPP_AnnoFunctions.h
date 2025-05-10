@@ -19,10 +19,31 @@ int LoadImageFilesMP(const std::wstring& folderPath, std::vector<ImgObject>& _im
 // 矩形の座標を正規化する関数
 void NormalizeRect(RectF& r);
 
+///////////////////////////////////////////////////////////////////////
+// フォルダーパスをレジストリから取得する関数
+//成功したら1を返す
+int GetFolderPathfromReg(
+	const std::wstring& _subKey,
+	const std::wstring& _regValueName,
+	std::wstring& _folderPath
+);
+///////////////////////////////////////////////////////////////////////
+//フォルダーパスをレジストリに保存する関数
+// _subKey: レジストリのサブキー
+// _regValueName: レジストリの値名
+// _folderPath: 保存するフォルダーパス
+void SaveFolderPathToReg(
+	const std::wstring _subKey,
+	const std::wstring _regValueName,
+	const std::wstring _folderPath
+);
+
 // フォルダのパスを取得する関数
 std::wstring GetFolderPath(HWND hWnd);
-std::wstring GetFolderPathEx(HWND hWnd, const std::wstring& _currentFolder, const std::wstring& _title);
-std::wstring GetFolderPathIF(HWND hWnd, const std::wstring& _currentFolder, const std::wstring& _title);
+//std::wstring GetFolderPathEx(HWND hWnd, const std::wstring& _currentFolder, const std::wstring& _title);
+std::wstring GetFolderPathEx(HWND hWnd, const std::wstring& _title);
+
+//std::wstring GetFolderPathIF(HWND hWnd, const std::wstring& _currentFolder, const std::wstring& _title);
 std::wstring GetFolderPathIFR(HWND hWnd, const std::wstring& dlgTitle, const std::wstring& regValueName = L"");
 
 //std::wstring GetFileName(HWND hWnd);

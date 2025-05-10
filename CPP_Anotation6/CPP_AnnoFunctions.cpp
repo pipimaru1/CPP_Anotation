@@ -243,10 +243,13 @@ static int CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPAR
 // _title         : ダイアログのタイトル（空文字なら既定メッセージ）
 std::wstring GetFolderPathEx(
     HWND hWnd,
-    const std::wstring& _currentFolder,
+    //const std::wstring& _currentFolder,
     const std::wstring& _title)
 {
     wchar_t szPath[MAX_PATH] = { 0 };
+    std::wstring _currentFolder;
+	GetFolderPathfromReg(REGSTRY_KEYSTRING_FOLDER, _title, _currentFolder);
+
 
     BROWSEINFO bi = {};
     bi.hwndOwner = hWnd;
@@ -267,67 +270,12 @@ std::wstring GetFolderPathEx(
         if (SHGetPathFromIDList(pidl, szPath))
         {
             CoTaskMemFree(pidl);
+			SaveFolderPathToReg(REGSTRY_KEYSTRING_FOLDER, szPath, szPath);
             return std::wstring(szPath);
         }
         CoTaskMemFree(pidl);
     }
     return L"";  // キャンセル時など
-}
-///////////////////////////////////////////////////////////////////////
-// フォルダ選択ダイアログ（IFileDialog版）
-// hWnd: 親ウィンドウ
-// _currentFolder: 初期表示フォルダのパス（空文字なら既定フォルダ）
-// _title: ダイアログ上部に表示するタイトル（空文字なら既定タイトル）
-std::wstring GetFolderPathIF(
-    HWND hWnd,
-    const std::wstring& _currentFolder,
-    const std::wstring& _title)
-{
-    std::wstring result;
-
-    // COM 初期化
-    HRESULT hr = CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-
-    IFileDialog* pfd = nullptr;
-    hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pfd));
-    if (SUCCEEDED(hr) && pfd)
-    {
-        // フォルダ選択モードにする
-        DWORD dwOptions;
-        pfd->GetOptions(&dwOptions);
-        pfd->SetOptions(dwOptions | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_NOCHANGEDIR);
-
-        // 初期フォルダを設定
-        if (!_currentFolder.empty()){
-            IShellItem* psiInit = nullptr;
-            if (SUCCEEDED(SHCreateItemFromParsingName(_currentFolder.c_str(),
-                nullptr,IID_PPV_ARGS(&psiInit))))
-            {
-                pfd->SetFolder(psiInit);
-                psiInit->Release();
-            }
-        }
-
-        // タイトルを設定
-        if (!_title.empty())
-            pfd->SetTitle(_title.c_str());
-
-        // ダイアログ表示
-        if (SUCCEEDED(pfd->Show(hWnd))){
-            IShellItem* psiResult = nullptr;
-            if (SUCCEEDED(pfd->GetResult(&psiResult))){
-                PWSTR pszPath = nullptr;
-                if (SUCCEEDED(psiResult->GetDisplayName(SIGDN_FILESYSPATH, &pszPath))){
-                    result = pszPath;
-                    CoTaskMemFree(pszPath);
-                }
-                psiResult->Release();
-            }
-        }
-        pfd->Release();
-    }
-    CoUninitialize();
-    return result;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -335,7 +283,6 @@ std::wstring GetFolderPathIF(
 // hWnd: 親ウィンドウ
 // _title: ダイアログ上部に表示するタイトル（空文字なら既定タイトル）
 //レジストリに保存する
-
 std::wstring GetFolderPathIFR(
     HWND hWnd,
     const std::wstring& dlgTitle,
@@ -343,30 +290,12 @@ std::wstring GetFolderPathIFR(
 )
 {
     std::wstring result;
-    //const wchar_t* subKey = L"Software\\YourCompany\\YourApp\\FolderDialog";
-    const wchar_t* subKey = REGSTRY_KEYSTRING_FOLDER;
+    //const wchar_t* subKey = REGSTRY_KEYSTRING_FOLDER;
     std::wstring valueName = regValueName.empty() ? dlgTitle : regValueName;
 
     // 1) レジストリから前回のフォルダを読み出し
     std::wstring initialFolder;
-    HKEY hKey = nullptr;
-    if (RegCreateKeyExW(HKEY_CURRENT_USER, subKey, 0, nullptr,
-        REG_OPTION_NON_VOLATILE, KEY_READ, nullptr,
-        &hKey, nullptr) == ERROR_SUCCESS)
-    {
-        wchar_t buf[MAX_PATH] = { 0 };
-        DWORD bufSize = sizeof(buf), type = REG_SZ;
-        if (RegQueryValueExW(hKey,
-            valueName.c_str(),
-            nullptr,
-            &type,
-            reinterpret_cast<BYTE*>(buf),
-            &bufSize) == ERROR_SUCCESS)
-        {
-            initialFolder = buf;
-        }
-        RegCloseKey(hKey);
-    }
+    GetFolderPathfromReg(REGSTRY_KEYSTRING_FOLDER, valueName, initialFolder);
 
     // 2) COM 初期化 → IFileDialog 作成
     HRESULT hr = CoInitializeEx(nullptr,
@@ -416,19 +345,7 @@ std::wstring GetFolderPathIFR(
                     CoTaskMemFree(pszPath);
 
                     // 3) 結果をレジストリに保存
-                    HKEY hKey2 = nullptr;
-                    if (RegCreateKeyExW(HKEY_CURRENT_USER, subKey, 0, nullptr,
-                        REG_OPTION_NON_VOLATILE, KEY_WRITE,
-                        nullptr, &hKey2, nullptr) == ERROR_SUCCESS)
-                    {
-                        RegSetValueExW(hKey2,
-                            valueName.c_str(),
-                            0,
-                            REG_SZ,
-                            reinterpret_cast<const BYTE*>(result.c_str()),
-                            static_cast<DWORD>((result.size() + 1) * sizeof(wchar_t)));
-                        RegCloseKey(hKey2);
-                    }
+					SaveFolderPathToReg(REGSTRY_KEYSTRING_FOLDER, valueName.c_str(),result.c_str());
                 }
                 psiRes->Release();
             }
@@ -440,6 +357,66 @@ std::wstring GetFolderPathIFR(
     return result;
 }
 
+///////////////////////////////////////////////////////////////////////
+// フォルダーパスをレジストリから取得する関数
+int GetFolderPathfromReg(
+    const std::wstring& _subKey,
+    const std::wstring& _regValueName,
+    std::wstring& _folderPath
+)
+{
+	int _ret = 0;
+    //std::wstring  folderPath;
+	HKEY hKey = nullptr;
+	// レジストリキーを作成またはオープン
+	if (RegCreateKeyExW(HKEY_CURRENT_USER, _subKey.c_str(), 0, nullptr,
+		REG_OPTION_NON_VOLATILE, KEY_READ, nullptr,
+		&hKey, nullptr) == ERROR_SUCCESS)
+	{
+		// フォルダパスをレジストリから取得
+		wchar_t buf[MAX_PATH] = { 0 };
+		DWORD bufSize = sizeof(buf), type = REG_SZ;
+		if (RegQueryValueExW(hKey,
+			_regValueName.c_str(),
+			nullptr,
+			&type,
+			reinterpret_cast<BYTE*>(buf),
+			&bufSize) == ERROR_SUCCESS)
+		{
+            _folderPath = buf;
+			_ret = 1; // 成功
+		}
+        else
+            _ret = 0;
+		RegCloseKey(hKey);
+	}
+    else
+        _ret = 0;
+    return _ret;
+}
+
+///////////////////////////////////////////////////////////////////////
+//フォルダーパスをレジストリに保存する関数
+void SaveFolderPathToReg(
+    const std::wstring _subKey,
+    const std::wstring _regValueName,
+    const std::wstring _folderPath
+){
+	HKEY hKey = nullptr;
+	// レジストリキーを作成またはオープン
+	if (RegCreateKeyExW(HKEY_CURRENT_USER, _subKey.c_str(), 0, nullptr,
+		REG_OPTION_NON_VOLATILE, KEY_WRITE, nullptr,
+		&hKey, nullptr) == ERROR_SUCCESS)
+	{
+		// フォルダパスをレジストリに保存
+		RegSetValueExW(hKey, _regValueName.c_str(), 0, REG_SZ,
+			reinterpret_cast<const BYTE*>(_folderPath.c_str()), 
+			static_cast<DWORD>((wcslen(_folderPath.c_str()) + 1) * sizeof(wchar_t)));
+
+			//static_cast<DWORD>((folderPath.size() + 1) * sizeof(wchar_t)));
+		RegCloseKey(hKey);
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////
 // LabelObjをファイル保存するための文字列生成関数
