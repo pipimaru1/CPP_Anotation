@@ -79,12 +79,20 @@ EditMode IsMouseOnRectEdge(
 // 戻り値はマウスカーソルと重なる矩形のインデックス
 // 重なる矩形がない場合は-1を返す
 // マウスカーソルが矩形の辺上にある場合は、辺のインデックスをeditModeに格納する
+//int GetIdxMouseOnRectEdge(
+//	const POINT& pt,
+//	std::vector<LabelObj>& objs,//対象の矩形の配列
+//	EditMode& editMode,			//辺や頂点
+//	int overlap
+//);
+
 int GetIdxMouseOnRectEdge(
 	const POINT& pt,
-	std::vector<LabelObj>& objs,//対象の矩形の配列
-	EditMode& editMode,			//辺や頂点
+	std::vector<LabelObj>& objs,
+	EditMode& editMode,
 	int overlap
 );
+
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief クラス分類設定の読み書き

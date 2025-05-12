@@ -1028,11 +1028,11 @@ int GetIdxMouseOnRectEdge(
 ){
     int _idx=-1;
 
-    //全部
-    for (int i = 0; i < objs.size(); i++)
+	//全部の矩形のマウスオーバー状態を解除
+    for (size_t i = 0; i < objs.size(); i++)
         objs[i].mOver = false;
 
-    for (int i = 0; i < objs.size(); i++)
+    for (size_t i = 0; i < objs.size(); i++)
     {
         //辺の位置が返ってくる。
 		EditMode _em = IsMouseOnRectEdge(pt, objs[i], overlap);

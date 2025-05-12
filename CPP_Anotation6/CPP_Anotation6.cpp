@@ -634,7 +634,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         else
         {
-            GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, GP.edMode, GP.Overlap); // マウスカーソルの位置を取得
+			// マウスカーソルと矩形が重なっていないかどうかを調べて、
+            // 重なっていたらそのインデックスを取得し、現在アクティブな画像のmOverIdxに格納
+            GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, GP.edMode, GP.Overlap); 
             InvalidateRect(hWnd, NULL, TRUE);
         }
     }
