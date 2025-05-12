@@ -1,4 +1,4 @@
-﻿// CPP_Anotation.cpp : アプリケーションのエントリ ポイントを定義します。
+﻿    // CPP_Anotation.cpp : アプリケーションのエントリ ポイントを定義します。
 
 #include "pch.h"
 #include "framework.h"
@@ -672,6 +672,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 GP.imgIdx = (GP.imgIdx + step) % GP.imgObjs.size();
                 SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
             }
+            break;
+
+        case 'C': //前の画像からコピー
+			if (ctrl){
+				if (GP.imgIdx > 0){
+					//コピー前に確認のメッセージを表示
+					int _copyok = MessageBoxW(hWnd, L"前の画像からコピーしますか？", L"確認", MB_OKCANCEL);
+					if (_copyok == IDOK){
+						// コピー処理
+						GP.imgObjs[GP.imgIdx].objs = GP.imgObjs[GP.imgIdx - 1].objs;
+						InvalidateRect(hWnd, NULL, TRUE); // 再描画
+					}
+				}
+			}
             break;
         }
         InvalidateRect(hWnd, NULL, TRUE); // 再描画

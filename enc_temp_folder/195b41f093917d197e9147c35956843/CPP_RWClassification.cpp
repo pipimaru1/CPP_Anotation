@@ -134,7 +134,7 @@ int LoadClassification(
         {
             for (size_t k = 0; k < GP.imgObjs[j].objs.size(); ++k)
             {
-				// 既存のobjs[].ClassNameを更新
+				// 既存のobj.ClassNameを更新
 				int _num = GP.imgObjs[j].objs[k].ClassNum;
                 
 				if (_num < _clsNames.size())
