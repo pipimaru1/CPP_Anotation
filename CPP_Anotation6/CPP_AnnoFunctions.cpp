@@ -1020,7 +1020,7 @@ int IsMouseOnRectEdge_old(
 //マウスカーソルと重なる矩形のインデックスを取得する関数
 //最初の一つだけを返す
 //重なった矩形のオブジェクトには_mOverに1～8の値が入る
-int GetIdxMouseOnRectEdge(
+size_t GetIdxMouseOnRectEdge(
     const POINT& pt,
     std::vector<LabelObj>& objs,
 	EditMode& editMode,
@@ -1030,7 +1030,8 @@ int GetIdxMouseOnRectEdge(
 
 	//全部の矩形のマウスオーバー状態を解除
     for (size_t i = 0; i < objs.size(); i++)
-        objs[i].mOver = false;
+    //for (size_t i = 0; i < _obj_size; i++)
+            objs[i].mOver = false;
 
     for (size_t i = 0; i < objs.size(); i++)
     {
@@ -1051,3 +1052,29 @@ int GetIdxMouseOnRectEdge(
     return _idx; // 矩形がない場合は-1を返す
 }
 
+///////////////////////////////////////////////////////////////////////
+// TaskDialogIndirectを使ってダイアログボックスを表示する関数
+// Yes/Noボタンと、「次回から表示しない」を持つ
+// 戻り値は、IDYES, IDNO, IDCHECKBOX
+//int ShowDialogWithCheckbox(HWND hwnd, const std::wstring& _message, const std::wstring& _title)
+//{
+//	// ダイアログのボタンの設定
+//	TASKDIALOG_BUTTON buttons[] = {
+//		{ IDYES, L"Yes" },
+//		{ IDNO, L"No" }
+//	};
+//	// ダイアログの設定
+//	TASKDIALOGCONFIG tdc = { sizeof(tdc) };
+//	tdc.hwndParent = hwnd;
+//	tdc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS;
+//	tdc.pszWindowTitle = _title.c_str();
+//	tdc.pszContent = _message.c_str();
+//	tdc.cButtons = ARRAYSIZE(buttons);
+//	tdc.pButtons = buttons;
+//	tdc.nDefaultButton = IDYES;
+//	// ダイアログを表示
+//	int nButtonPressed = 0;
+//	BOOL bCheckBoxChecked = FALSE;
+//	TaskDialogIndirect(&tdc, &nButtonPressed, nullptr, &bCheckBoxChecked);
+//	return nButtonPressed; // 戻り値は、IDYES, IDNO, IDCHECKBOX
+//}

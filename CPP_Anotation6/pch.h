@@ -29,6 +29,8 @@ using namespace Gdiplus;
 #include <codecvt> // Add this header for codecvt_utf8
 #include <shobjidl.h>
 #include <pathcch.h>      // Windows 8 SDK 以降
+#include <commctrl.h>
+
 
 #include <omp.h>    // ← 追加
 
