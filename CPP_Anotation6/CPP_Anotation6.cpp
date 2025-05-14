@@ -577,9 +577,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         else if (GP.dgMode == DragMode::dummy) // 矩形の編集モード
         {
-			//size_t _obj_size = GP.imgObjs[GP.imgIdx].objs.size();
-            //GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, _obj_size, GP.edMode, GP.Overlap); // マウスカーソルの位置を取得
-            GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, GP.edMode, GP.Overlap); // マウスカーソルの位置を取得
+			size_t _obj_size = GP.imgObjs[GP.imgIdx].objs.size();
+			if (_obj_size > 0)
+            {
+                GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, GP.edMode, GP.Overlap); // マウスカーソルの位置を取得
+            }
 
             switch (GP.edMode)
             {
@@ -638,9 +640,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
 			// マウスカーソルと矩形が重なっていないかどうかを調べて、
             // 重なっていたらそのインデックスを取得し、現在アクティブな画像のmOverIdxに格納
-            GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, GP.edMode, GP.Overlap); 
-            //size_t _obj_size = GP.imgObjs[GP.imgIdx].objs.size();
-            //GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, _obj_size, GP.edMode, GP.Overlap); // マウスカーソルの位置を取得
+            size_t _obj_size = GP.imgObjs[GP.imgIdx].objs.size();
+			if (_obj_size > 0) //これを入れないとリリース版の時にエラーが出る。関数呼び出しの不整合ではないかとのこと。
+            {
+                GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, GP.edMode, GP.Overlap);
+            }
             InvalidateRect(hWnd, NULL, TRUE);
         }
     }
