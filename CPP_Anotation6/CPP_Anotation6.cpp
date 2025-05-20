@@ -933,16 +933,21 @@ void ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX )
     // メニュー項目を追加
     for (size_t i = 0; i < GP.ClsNames.size(); ++i)
     {
+        //ショートカットキーを追加
+        std::wostringstream clsName;
+        clsName << L"(&" << GP.ClsNames[i].c_str()[0] << L")" << GP.ClsNames[i];
+
         UINT flags = MF_STRING;
         // 「i が itemsPerColumn の倍数」のときは
         // この項目から新しい列を始める
         if (i > 0 && (i % _perColumn) == 0) {
             flags |= MF_MENUBREAK;
         }
-        AppendMenuW(hPopup, 
+        AppendMenuW(hPopup,
             flags,
             IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
-            GP.ClsNames[i].c_str());
+            clsName.str().c_str());
+            //GP.ClsNames[i].c_str());
     }
     AppendMenuW(hPopup, MF_STRING,
         IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()),
