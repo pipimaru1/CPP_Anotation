@@ -3,6 +3,8 @@
 #include "framework.h"
 #include "CPP_AnnoGblParams.h"
 
+#pragma comment(lib, "comctl32.lib")
+
 
 #define REGSTRY_KEYSTRING_FOLDER L"Software\\YourCompany\\YourApp\\FolderDialog"
 #define REGSTRY_KEYSTRING_FILE L"Software\\YourCompany\\YourApp\\FileDialog"
@@ -86,7 +88,7 @@ EditMode IsMouseOnRectEdge(
 //	int overlap
 //);
 
-int GetIdxMouseOnRectEdge(
+size_t GetIdxMouseOnRectEdge(
 	const POINT& pt,
 	std::vector<LabelObj>& objs,
 	EditMode& editMode,
@@ -114,3 +116,4 @@ int LoadClassification(
 );
 
 ///////////////////////////////////////////////////////////////////////
+//int ShowDialogWithCheckbox(HWND hwnd, const std::wstring& _message, const std::wstring& _title);

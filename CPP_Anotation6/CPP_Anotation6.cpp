@@ -577,7 +577,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         else if (GP.dgMode == DragMode::dummy) // 矩形の編集モード
         {
-            GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, GP.edMode, GP.Overlap); // マウスカーソルの位置を取得
+			//size_t _obj_size = GP.imgObjs[GP.imgIdx].objs.size();
+			//if (_obj_size > 0)
+   //         {
+   //             GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, GP.edMode, GP.Overlap); // マウスカーソルの位置を取得
+   //         }
+
+            if (GP.imgIdx < GP.imgObjs.size()) {              // ← これが先
+                auto& curImg = GP.imgObjs[GP.imgIdx];         // 安全に参照取得
+                if (!curImg.objs.empty()) {
+                    curImg.mOverIdx =
+                        GetIdxMouseOnRectEdge(pt, curImg.objs,
+                            GP.edMode, GP.Overlap);
+                }
+            }
 
             switch (GP.edMode)
             {
@@ -636,7 +649,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
 			// マウスカーソルと矩形が重なっていないかどうかを調べて、
             // 重なっていたらそのインデックスを取得し、現在アクティブな画像のmOverIdxに格納
-            GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, GP.edMode, GP.Overlap); 
+   //         size_t _obj_size = GP.imgObjs[GP.imgIdx].objs.size();
+			//if (_obj_size > 0) //これを入れないとリリース版の時にエラーが出る。関数呼び出しの不整合ではないかとのこと。
+   //         {
+   //             GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, GP.edMode, GP.Overlap);
+   //         }
+            if (GP.imgIdx < GP.imgObjs.size()) {              // ← これが先
+                auto& curImg = GP.imgObjs[GP.imgIdx];         // 安全に参照取得
+                if (!curImg.objs.empty()) {
+                    curImg.mOverIdx =
+                        GetIdxMouseOnRectEdge(pt, curImg.objs,
+                            GP.edMode, GP.Overlap);
+                }
+            }
+
+
+
             InvalidateRect(hWnd, NULL, TRUE);
         }
     }
@@ -676,18 +704,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             break;
 
+        case 'v': //前の画像からコピー
+        case 'V': //前の画像からコピー
+        case 'c': //前の画像からコピー
         case 'C': //前の画像からコピー
-			if (ctrl){
+			//if (ctrl){
 				if (GP.imgIdx > 0){
 					//コピー前に確認のメッセージを表示
 					int _copyok = MessageBoxW(hWnd, L"前の画像からコピーしますか？", L"確認", MB_OKCANCEL);
+
 					if (_copyok == IDOK){
 						// コピー処理
 						GP.imgObjs[GP.imgIdx].objs = GP.imgObjs[GP.imgIdx - 1].objs;
 						InvalidateRect(hWnd, NULL, TRUE); // 再描画
 					}
 				}
-			}
+			//}
             break;
         }
         InvalidateRect(hWnd, NULL, TRUE); // 再描画

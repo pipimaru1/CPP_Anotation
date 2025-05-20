@@ -7,8 +7,13 @@
 //コンストラクタ
 GlobalParams::GlobalParams()
 	:IMAGE_EXTENSIONS{ L"*.jpg", L"*.jpeg", L"*.png", L"*.bmp", L"*.gif" },
-	fontFamily(nullptr), font(nullptr)
+	fontFamily(nullptr), font(nullptr),
+	imgIdx(0)
 {
+	// 画像ファイル関連
+	imgObjs.clear(); // 画像ファイルのパスと矩形の配列
+	imgIdx = 0;
+
 	/// ウィンドウサイズ
 	rect_win.left = 0;
 	rect_win.top = 0;
@@ -17,9 +22,6 @@ GlobalParams::GlobalParams()
 	width = 0;
 	height = 0;
 
-	// 画像ファイル関連
-	imgObjs.clear(); // 画像ファイルのパスと矩形の配列
-	imgIdx = 0;
 
 	//マウス
 	//makeBox = false;
