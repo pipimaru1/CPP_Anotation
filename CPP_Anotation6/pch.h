@@ -30,7 +30,7 @@ using namespace Gdiplus;
 #include <shobjidl.h>
 #include <pathcch.h>      // Windows 8 SDK 以降
 #include <commctrl.h>
-
+#include <set>
 
 #include <omp.h>    // ← 追加
 

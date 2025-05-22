@@ -518,62 +518,66 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // マウス移動分を計算
             float dx = float(pt.x) - GP.prevMouse.X;
             float dy = float(pt.y) - GP.prevMouse.Y;
-            auto& r = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect;
-            switch (GP.edMode)
+			if (!GP.imgObjs[GP.imgIdx].objs.empty())//objsが空でない場合 
             {
-            case EditMode::Top:
-                // 上辺を dy だけ動かす → 矩形の高さは −dy だけ変わる
-                r.Y += dy / GP.height;
-                r.Height -= dy / GP.height;
-                break;
-            case EditMode::Bottom:
-                // 下辺を dy だけ動かす → 矩形の高さは +dy だけ変わる
-                r.Height += dy / GP.height;
-                break;
-            case EditMode::Left:
-                // 左辺を dx だけ動かす → 矩形の幅は −dx だけ変わる
-                r.X += dx / GP.width;
-                r.Width -= dx / GP.width;
-                break;
-            case EditMode::Right:
-                // 右辺を dx だけ動かす → 矩形の幅は +dx だけ変わる
-                r.Width += dx / GP.width;
-                break;
-            case EditMode::LeftTop:
-                // 左上を dx,dy だけ動かす → 矩形の幅は −dx だけ変わる
-                // 矩形の高さは −dy だけ変わる
-                r.X += dx / GP.width;
-                r.Y += dy / GP.height;
-                r.Width -= dx / GP.width;
-                r.Height -= dy / GP.height;
-                break;
-            case EditMode::RightTop:
-                // 右上を dx,dy だけ動かす → 矩形の幅は +dx だけ変わる
-                // 矩形の高さは −dy だけ変わる
-                r.Y += dy / GP.height;
-                r.Width += dx / GP.width;
-                r.Height -= dy / GP.height;
-                break;
-            case EditMode::LeftBottom:
-                // 左下を dx,dy だけ動かす → 矩形の幅は −dx だけ変わる
-                // 矩形の高さは +dy だけ変わる
-                r.X += dx / GP.width;
-                r.Height += dy / GP.height;
-                r.Width -= dx / GP.width;
-                break;
-            case EditMode::RightBottom:
-                // 右下を dx,dy だけ動かす → 矩形の幅は +dx だけ変わる
-                // 矩形の高さは +dy だけ変わる
-                r.Width += dx / GP.width;
-                r.Height += dy / GP.height;
-                break;
-            default:
-                break;
+                auto& r = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect;
+                GP.imgObjs[GP.imgIdx].isEdited = true; // 編集されたことにする
+                switch (GP.edMode)
+                {
+                case EditMode::Top:
+                    // 上辺を dy だけ動かす → 矩形の高さは −dy だけ変わる
+                    r.Y += dy / GP.height;
+                    r.Height -= dy / GP.height;
+                    break;
+                case EditMode::Bottom:
+                    // 下辺を dy だけ動かす → 矩形の高さは +dy だけ変わる
+                    r.Height += dy / GP.height;
+                    break;
+                case EditMode::Left:
+                    // 左辺を dx だけ動かす → 矩形の幅は −dx だけ変わる
+                    r.X += dx / GP.width;
+                    r.Width -= dx / GP.width;
+                    break;
+                case EditMode::Right:
+                    // 右辺を dx だけ動かす → 矩形の幅は +dx だけ変わる
+                    r.Width += dx / GP.width;
+                    break;
+                case EditMode::LeftTop:
+                    // 左上を dx,dy だけ動かす → 矩形の幅は −dx だけ変わる
+                    // 矩形の高さは −dy だけ変わる
+                    r.X += dx / GP.width;
+                    r.Y += dy / GP.height;
+                    r.Width -= dx / GP.width;
+                    r.Height -= dy / GP.height;
+                    break;
+                case EditMode::RightTop:
+                    // 右上を dx,dy だけ動かす → 矩形の幅は +dx だけ変わる
+                    // 矩形の高さは −dy だけ変わる
+                    r.Y += dy / GP.height;
+                    r.Width += dx / GP.width;
+                    r.Height -= dy / GP.height;
+                    break;
+                case EditMode::LeftBottom:
+                    // 左下を dx,dy だけ動かす → 矩形の幅は −dx だけ変わる
+                    // 矩形の高さは +dy だけ変わる
+                    r.X += dx / GP.width;
+                    r.Height += dy / GP.height;
+                    r.Width -= dx / GP.width;
+                    break;
+                case EditMode::RightBottom:
+                    // 右下を dx,dy だけ動かす → 矩形の幅は +dx だけ変わる
+                    // 矩形の高さは +dy だけ変わる
+                    r.Width += dx / GP.width;
+                    r.Height += dy / GP.height;
+                    break;
+                default:
+                    break;
+                }
+                // マウス位置を保存
+                GP.prevMouse = Gdiplus::PointF((FLOAT)pt.x, (FLOAT)pt.y);
+                // 再描画
+                InvalidateRect(hWnd, NULL, TRUE);
             }
-            // マウス位置を保存
-            GP.prevMouse = Gdiplus::PointF((FLOAT)pt.x, (FLOAT)pt.y);
-            // 再描画
-            InvalidateRect(hWnd, NULL, TRUE);
         }
         else if (GP.dgMode == DragMode::dummy) // 矩形の編集モード
         {
@@ -691,14 +695,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case 'A': // 前の画像
         case VK_LEFT:
             if (GP.imgObjs.size() > 0) {
+                SaveLabelsToFileSingle(hWnd, GP.imgIdx);
                 GP.imgIdx = (GP.imgIdx + GP.imgObjs.size() - step) % GP.imgObjs.size();
                 SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
-
             }
             break;
         case 'D': // 次の画像
         case VK_RIGHT:
             if (GP.imgObjs.size() > 0) {
+                SaveLabelsToFileSingle(hWnd, GP.imgIdx);
                 GP.imgIdx = (GP.imgIdx + step) % GP.imgObjs.size();
                 SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
             }
@@ -888,26 +893,72 @@ void ShowClassPopupMenu(HWND hWnd)
     GetCursorPos(&pt);
 
     // メニュー項目を追加
+   // for (size_t i = 0; i < GP.ClsNames.size(); ++i)
+   // {
+
+
+   //     //ショートカットキーを追加
+   //     std::wostringstream clsName;
+   //     clsName << L"(&" << GP.ClsNames[i].c_str()[0] << L")" << GP.ClsNames[i];
+
+   //     // 分類がたくさんあるときの処理
+   //     UINT flags = MF_STRING;
+   //     // 「i が itemsPerColumn の倍数」のときは
+   //     // この項目から新しい列を始める
+   //     if (i > 0 && (i % _perColumn) == 0) {
+   //         flags |= MF_MENUBREAK;
+   //     }
+   //     AppendMenuW(hPopup, 
+   //         //MF_STRING,
+			//flags,
+   //         IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
+			//clsName.str().c_str());
+   //         //GP.ClsNames[i].c_str());
+   // }
+
+    // 先頭で未使用アクセラレータを管理するセットを用意
+    std::set<wchar_t> usedAccels;
+
+    // メニュー項目を追加 
     for (size_t i = 0; i < GP.ClsNames.size(); ++i)
     {
-        //ショートカットキーを追加
+        const std::wstring& name = GP.ClsNames[i];
+        wchar_t base = name[0];          // 元の頭文字
+        wchar_t accel = 0;               // 最終的に使うアクセラレータ
+
+        // まだ使われていなければその文字を使う
+        if (usedAccels.insert(base).second) {
+            accel = base;
+        }
+        else {
+            // 重複していたら '1'～'9' から未使用のものを探す
+            for (wchar_t d = L'1'; d <= L'9'; ++d) {
+                if (usedAccels.insert(d).second) {
+                    accel = d;
+                    break;
+                }
+            }
+            // ※9個以上の重複があり得るなら、ここを拡張してください
+        }
+
+        // ショートカットキー付き文字列を作成
         std::wostringstream clsName;
-        clsName << L"(&" << GP.ClsNames[i].c_str()[0] << L")" << GP.ClsNames[i];
+        clsName << L"(&" << accel << L") " << name;
 
         // 分類がたくさんあるときの処理
         UINT flags = MF_STRING;
-        // 「i が itemsPerColumn の倍数」のときは
-        // この項目から新しい列を始める
         if (i > 0 && (i % _perColumn) == 0) {
             flags |= MF_MENUBREAK;
         }
-        AppendMenuW(hPopup, 
-            //MF_STRING,
-			flags,
+
+        AppendMenuW(
+            hPopup,
+            flags,
             IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
-			clsName.str().c_str());
-            //GP.ClsNames[i].c_str());
+            clsName.str().c_str()
+        );
     }
+
     AppendMenuW(hPopup, MF_STRING,
         IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()),
         L"(ESC)CANCEL");
@@ -938,7 +989,10 @@ void ShowClassPopupMenu(HWND hWnd)
 
         // オブジェクトを登録
         if (!GP.imgObjs.empty())
+        {
             GP.imgObjs[GP.imgIdx].objs.push_back(GP.tmpLabel);
+			GP.imgObjs[GP.imgIdx].isEdited = true; // 編集フラグを立てる
+        }
     }
     else if (cmd == 0 || cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size())) // CANCEL
     {
@@ -963,24 +1017,68 @@ void ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX )
     GetCursorPos(&pt);
 
     // メニュー項目を追加
+    //for (size_t i = 0; i < GP.ClsNames.size(); ++i)
+    //{
+    //    //ショートカットキーを追加
+    //    std::wostringstream clsName;
+    //    clsName << L"(&" << GP.ClsNames[i].c_str()[0] << L")" << GP.ClsNames[i];
+
+    //    UINT flags = MF_STRING;
+    //    // 「i が itemsPerColumn の倍数」のときは
+    //    // この項目から新しい列を始める
+    //    if (i > 0 && (i % _perColumn) == 0) {
+    //        flags |= MF_MENUBREAK;
+    //    }
+    //    AppendMenuW(hPopup,
+    //        flags,
+    //        IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
+    //        clsName.str().c_str());
+    //        //GP.ClsNames[i].c_str());
+    //}
+
+        // 先頭で未使用アクセラレータを管理するセットを用意
+    std::set<wchar_t> usedAccels;
+
+    // メニュー項目を追加 
     for (size_t i = 0; i < GP.ClsNames.size(); ++i)
     {
-        //ショートカットキーを追加
-        std::wostringstream clsName;
-        clsName << L"(&" << GP.ClsNames[i].c_str()[0] << L")" << GP.ClsNames[i];
+        const std::wstring& name = GP.ClsNames[i];
+        wchar_t base = name[0];          // 元の頭文字
+        wchar_t accel = 0;               // 最終的に使うアクセラレータ
 
+        // まだ使われていなければその文字を使う
+        if (usedAccels.insert(base).second) {
+            accel = base;
+        }
+        else {
+            // 重複していたら '1'～'9' から未使用のものを探す
+            for (wchar_t d = L'1'; d <= L'9'; ++d) {
+                if (usedAccels.insert(d).second) {
+                    accel = d;
+                    break;
+                }
+            }
+            // ※9個以上の重複があり得るなら、ここを拡張してください
+        }
+
+        // ショートカットキー付き文字列を作成
+        std::wostringstream clsName;
+        clsName << L"(&" << accel << L") " << name;
+
+        // 分類がたくさんあるときの処理
         UINT flags = MF_STRING;
-        // 「i が itemsPerColumn の倍数」のときは
-        // この項目から新しい列を始める
         if (i > 0 && (i % _perColumn) == 0) {
             flags |= MF_MENUBREAK;
         }
-        AppendMenuW(hPopup,
+
+        AppendMenuW(
+            hPopup,
             flags,
             IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
-            clsName.str().c_str());
-            //GP.ClsNames[i].c_str());
+            clsName.str().c_str()
+        );
     }
+
     AppendMenuW(hPopup, MF_STRING,
         IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()),
         L"DELETE");
@@ -1012,6 +1110,8 @@ void ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX )
         GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].color = GP.ClsColors[GP.selectedClsIdx];
         GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
         GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
+
+        GP.imgObjs[GP.imgIdx].isEdited = true; // 編集フラグを立てる
     }
     else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size())) // DELETE
     {

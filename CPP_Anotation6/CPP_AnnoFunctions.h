@@ -67,7 +67,9 @@ bool SaveLabelsToFile(
 	const std::vector<LabelObj>& objs,
 	int mode //0:default, 1:yolo
 );
-
+///////////////////////////////////////////////////////////////////////
+// LabelObjの文字列をファイル保存する関数
+bool SaveLabelsToFileSingle(HWND hWnd, size_t _idx);
 
 ///////////////////////////////////////////////////////////////////////
 //矩形の線上にマウスカーソルがあるかどうかを判定する関数
@@ -94,7 +96,6 @@ size_t GetIdxMouseOnRectEdge(
 	EditMode& editMode,
 	int overlap
 );
-
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @brief クラス分類設定の読み書き

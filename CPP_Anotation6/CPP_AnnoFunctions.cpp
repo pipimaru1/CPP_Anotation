@@ -501,6 +501,32 @@ bool SaveLabelsToFile(
 	file.close();
 	return true;
 }
+///////////////////////////////////////////////////////////////////////
+// LabelObjの文字列をファイル保存する関数
+bool SaveLabelsToFileSingle(HWND hWnd, size_t _idx)
+{
+    if (GP.imgObjs[GP.imgIdx].isEdited) {
+        // ファイル名
+        std::wstring _fileName1;
+        std::wstring _fileName2;
+        _fileName1 = GetFileNameFromPath(GP.imgObjs[GP.imgIdx].path);
+        _fileName2 = GP.labelFolderPath + L"\\" + _fileName1 + L".txt";
+        bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[GP.imgIdx].objs, 1);
+        if (_ret) {
+            //編集フラグをリセット
+            GP.imgObjs[GP.imgIdx].isEdited = false;
+			return true;
+        }
+        else {
+            // 保存失敗
+            MessageBox(hWnd, L"保存失敗", L"失敗", MB_OK);
+            return false;
+        }
+    }
+    return false;
+}
+
+
 
 ///////////////////////////////////////////////////////////////////////
 // ファイル名をダイアログボックスで取得する関数

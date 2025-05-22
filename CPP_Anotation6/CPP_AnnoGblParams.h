@@ -34,8 +34,8 @@ struct ImgObject
     std::vector<LabelObj>   objs;     // 矩形の配列
     size_t                  objIdx{0};// 現在の矩形インデックス
     std::unique_ptr<Gdiplus::Image> image;  // 生ポインタは禁止！
-
     int mOverIdx = -1;// マウスオーバーのインデックス
+	bool isEdited = false; // 編集されたかどうか
 
     // コンストラクタはデフォルトでOK
     ImgObject();
