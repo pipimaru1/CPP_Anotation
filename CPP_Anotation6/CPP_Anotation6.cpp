@@ -192,6 +192,10 @@ void ShowClassPopupMenu(HWND hWnd);
 //ラベルのクラス名をポップアップメニューで表示する関数 編集用
 void ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX);
 
+///////////////////////////////////////////////////////////////////////
+int CreatePopupMenuFor_Labels_in_CurrentImage(HWND hWnd);
+
+
 /////////////////////////////////////////////////////////////////////////
 //  関数: WndProc(HWND, UINT, WPARAM, LPARAM)
 //  目的: メイン ウィンドウのメッセージを処理します。
@@ -319,6 +323,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 		}
 		break;
+
+        // 現在のイメージのラベリングされたオブジェクトの一覧のポップアップメニューを作成する
+        case IDM_PMENU_LABEL_BASE:
+			CreatePopupMenuFor_Labels_in_CurrentImage(hWnd);
+            break;
 
         case IDM_ABOUT:
             DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
@@ -762,8 +771,6 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
-
-
 ///////////////////////////////////////////////////////////////////////
 // LabelObjを描画する関数
 void WM_PAINT_DrawLabels(
@@ -774,6 +781,7 @@ void WM_PAINT_DrawLabels(
     Gdiplus::Font* font
 )
 {
+    int _idx = 0;
     for (const auto& obj : objs)
     {
         // ペン幅はマウスオーバーで太く
@@ -792,7 +800,7 @@ void WM_PAINT_DrawLabels(
 
         // ラベル文字描画
         Gdiplus::SolidBrush textBrush(obj.color);
-        const std::wstring& text = obj.ClassName;
+        const std::wstring& text = L"(" + std::to_wstring(_idx) + L")" + obj.ClassName;
 
         // 文字高さを測定
         Gdiplus::RectF textBounds;
@@ -812,6 +820,7 @@ void WM_PAINT_DrawLabels(
             textPos,
             &textBrush
         );
+        _idx++;
     }
 }
 
@@ -1016,27 +1025,7 @@ void ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX )
     POINT pt;
     GetCursorPos(&pt);
 
-    // メニュー項目を追加
-    //for (size_t i = 0; i < GP.ClsNames.size(); ++i)
-    //{
-    //    //ショートカットキーを追加
-    //    std::wostringstream clsName;
-    //    clsName << L"(&" << GP.ClsNames[i].c_str()[0] << L")" << GP.ClsNames[i];
-
-    //    UINT flags = MF_STRING;
-    //    // 「i が itemsPerColumn の倍数」のときは
-    //    // この項目から新しい列を始める
-    //    if (i > 0 && (i % _perColumn) == 0) {
-    //        flags |= MF_MENUBREAK;
-    //    }
-    //    AppendMenuW(hPopup,
-    //        flags,
-    //        IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
-    //        clsName.str().c_str());
-    //        //GP.ClsNames[i].c_str());
-    //}
-
-        // 先頭で未使用アクセラレータを管理するセットを用意
+    // 先頭で未使用アクセラレータを管理するセットを用意
     std::set<wchar_t> usedAccels;
 
     // メニュー項目を追加 
@@ -1123,3 +1112,48 @@ void ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX )
 
     return;
 }
+
+//////////////////////////////////////////////////////////////////////////
+// 現在のイメージのオブジェクトの一覧のポップアップメニューを作成する
+int CreatePopupMenuFor_Labels_in_CurrentImage(HWND hWnd)
+{
+    HMENU hPopup = CreatePopupMenu();
+    if (!hPopup) return -1;
+
+    POINT pt;
+    GetCursorPos(&pt);
+
+    for (size_t i = 0; i < GP.imgObjs[GP.imgIdx].objs.size(); ++i)
+    {
+        const auto& obj = GP.imgObjs[GP.imgIdx].objs[i];
+        std::wstring menuText = L"(&" + std::to_wstring(i) + L") " + obj.ClassName;
+        AppendMenuW(hPopup, MF_STRING, IDM_PMENU_LABEL00 + static_cast<UINT>(i), menuText.c_str());
+    }
+    AppendMenuW(hPopup, MF_STRING,
+        IDM_PMENU_LABEL00 + static_cast<UINT>(GP.imgObjs[GP.imgIdx].objs.size()),
+        L"(ESC)CANCEL");
+
+    SetForegroundWindow(hWnd);
+    UINT cmd = TrackPopupMenuEx(
+        hPopup,
+        TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_RETURNCMD,
+        pt.x, pt.y,
+        hWnd,
+        NULL
+    );
+    DestroyMenu(hPopup);
+
+    //////////////////////////////////////////////////////////////////////////
+    // ★ 追記部分：ラベルが選択されたら編集メニューを表示する
+    if (cmd >= IDM_PMENU_LABEL00 &&
+        cmd < IDM_PMENU_LABEL00 + GP.imgObjs[GP.imgIdx].objs.size())
+    {
+        int objIdx = static_cast<int>(cmd - IDM_PMENU_LABEL00);
+        ShowClassPopupMenu_for_Edit(hWnd, objIdx);
+    }
+    //////////////////////////////////////////////////////////////////////////
+
+    return static_cast<int>(cmd);
+}
+
+

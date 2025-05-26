@@ -37,6 +37,10 @@
 #define IDM_PMENU_CLSNAME14		2014
 #define IDM_PMENU_CLSNAME15		2015 //とりあえず16個分確報 必要であれば増やす
 
+//2300まではオブジェクト選択メニュー用
+#define IDM_PMENU_LABEL_BASE	2200 //オブジェクト選択メニュー
+#define IDM_PMENU_LABEL00		2201 //オブジェクト選択メニュー
+
 
 #define IDC_MYICON				2
 #ifndef IDC_STATIC
