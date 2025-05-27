@@ -19,7 +19,7 @@ int LoadImageFiles(const std::wstring& folderPath, std::vector <ImgObject>& _img
 int LoadImageFilesMP(const std::wstring& folderPath, std::vector<ImgObject>& _imgObjs);
 
 // 矩形の座標を正規化する関数
-void NormalizeRect(RectF& r);
+void NormalizeRect(Gdiplus::RectF& r);
 
 // フォルダのパスを取得する関数
 std::wstring GetFolderPath(HWND hWnd);
@@ -51,20 +51,13 @@ int LoadLabelFilesMP(
 );
 
 ///////////////////////////////////////////////////////////////////////
-// LabelObjをファイル保存するための文字列生成関数
-// 入力値はLabelObj
-// 出力値は文字列 std::wstring
-// UTF-8で保存する
-// YOLO形式で保存する
-std::string LabelsToString(const LabelObj& obj);
-
-///////////////////////////////////////////////////////////////////////
 // LabelObjの文字列をファイル保存する関数
 // 入力値はファイル名とconst std::vector<LabelObj>&
 // 出力値は成功したらtrue、失敗したらfalse
 bool SaveLabelsToFile(
 	const std::wstring& fileName, 
 	const std::vector<LabelObj>& objs,
+	int _sc,
 	int mode //0:default, 1:yolo
 );
 ///////////////////////////////////////////////////////////////////////
@@ -118,3 +111,8 @@ int LoadClassification(
 
 ///////////////////////////////////////////////////////////////////////
 //int ShowDialogWithCheckbox(HWND hwnd, const std::wstring& _message, const std::wstring& _title);
+
+void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labelfolder, int _Idx, int _Total);
+
+//スケーリング
+void SscalingRect(Gdiplus::RectF& r_in, Gdiplus::RectF& r_out, float scaleX, float scaleY);

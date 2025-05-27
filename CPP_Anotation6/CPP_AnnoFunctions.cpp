@@ -167,8 +167,10 @@ int LoadImageFilesMP(const std::wstring& folderPath, std::vector<ImgObject>& _im
 }
 
 ///////////////////////////////////////////////////////////////////////
-// 矩形の座標を正規化する関数
-void NormalizeRect(RectF& r) 
+// 矩形の座標を正規化する関数　Gdiplus::RectF
+// X, Y：矩形の左上隅の座標,
+// Width, Height：矩形の幅と高さ
+void NormalizeRect(Gdiplus::RectF& r) 
 {
     if (r.Width < 0) 
     {
@@ -189,6 +191,27 @@ void NormalizeRect(RectF& r)
         r.Width = r.Width - ((r.X + r.Width) - 1);
     if ((r.Y + r.Height) > 1)
         r.Height = r.Height - ((r.Y + r.Height) - 1);
+}
+
+///////////////////////////////////////////////////////////////////////
+// 矩形の座標をスケーリングする
+void SscalingRect(Gdiplus::RectF& r_in, Gdiplus::RectF& r_out, float scaleX, float scaleY)
+{
+    // 元矩形の中心
+    float cx = r_in.X + r_in.Width * 0.5f;
+    float cy = r_in.Y + r_in.Height * 0.5f;
+
+    // 新しい幅・高さ
+    float newW = r_in.Width * scaleX;
+    float newH = r_in.Height * scaleY;
+
+    // 中心を固定して左上を求める
+    r_out.X = cx - newW * 0.5f;
+    r_out.Y = cy - newH * 0.5f;
+    r_out.Width = newW;
+    r_out.Height = newH;
+
+    NormalizeRect(r_out);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -450,26 +473,33 @@ std::wstring GetFolderPathIFR(
 // wchar_t → UTF-8 の変換（C++17 の場合）
 std::string LabelsToString(
     const LabelObj& obj, 
-	int mode = 0 // 0:default, 1:yolo
+	int mode, // 0:default, 1:
+    int _sc
 )
 {
     std::ostringstream oss;
+    Gdiplus::RectF _rct;
+    if (_sc != 0 ) 
+        _rct = obj.Rct_Scale; // スケールされた矩形を使用
+    else
+		_rct = obj.Rct; // 正規化された矩形を使用
+
     // 数値とスペースだけなので、普通の narrow string で OK
     if (mode == 0)
     {
         oss << obj.ClassNum << ' '
-            << std::fixed << std::setprecision(6) << static_cast<double>(obj.rect.X) << ' '
-            << std::fixed << std::setprecision(6) << static_cast<double>(obj.rect.Y) << ' '
-            << std::fixed << std::setprecision(6) << static_cast<double>(obj.rect.Width) << ' '
-            << std::fixed << std::setprecision(6) << static_cast<double>(obj.rect.Height);
+            << std::fixed << std::setprecision(6) << static_cast<double>(_rct.X) << ' '
+            << std::fixed << std::setprecision(6) << static_cast<double>(_rct.Y) << ' '
+            << std::fixed << std::setprecision(6) << static_cast<double>(_rct.Width) << ' '
+            << std::fixed << std::setprecision(6) << static_cast<double>(_rct.Height);
     }
 	else if (mode == 1)
 	{
         oss << obj.ClassNum << ' '
-            << std::fixed << std::setprecision(6) << static_cast<double>(obj.rect.X + obj.rect.Width /2) << ' '
-            << std::fixed << std::setprecision(6) << static_cast<double>(obj.rect.Y + obj.rect.Height/2) << ' '
-            << std::fixed << std::setprecision(6) << static_cast<double>(obj.rect.Width) << ' '
-            << std::fixed << std::setprecision(6) << static_cast<double>(obj.rect.Height);
+            << std::fixed << std::setprecision(6) << static_cast<double>(_rct.X + _rct.Width /2) << ' '
+            << std::fixed << std::setprecision(6) << static_cast<double>(_rct.Y + _rct.Height/2) << ' '
+            << std::fixed << std::setprecision(6) << static_cast<double>(_rct.Width) << ' '
+            << std::fixed << std::setprecision(6) << static_cast<double>(_rct.Height);
 	}
 	else
 	{   
@@ -486,7 +516,8 @@ std::string LabelsToString(
 bool SaveLabelsToFile(
     const std::wstring& fileName, 
     const std::vector<LabelObj>& objs, 
-	int mode = 0 // 0:default, 1:yolo
+    int _sc,
+	int mode // 0:default, 1:yolo
 ){
 	// UTF-8で保存するための設定
 	std::ofstream file(fileName, std::ios::binary);
@@ -496,13 +527,41 @@ bool SaveLabelsToFile(
 		return false; // ファイルオープン失敗
 	}
 	for (const auto& obj : objs) {
-		file << LabelsToString(obj, mode) << std::endl;
+		file << LabelsToString(obj, mode, _sc) << std::endl;
 	}
 	file.close();
 	return true;
 }
+
 ///////////////////////////////////////////////////////////////////////
 // LabelObjの文字列をファイル保存する関数
+// 入力値はファイル名とconst std::vector<LabelObj>&
+// 出力値は成功したらtrue、失敗したらfalse
+//bool SaveLabelsToFileWithScale(
+//    const std::wstring& fileName,
+//    const std::vector<LabelObj>& objs,
+//	float scaleX = 1.0f, // X軸のスケール
+//	float scaleY = 1.0f, // Y軸のスケール
+//    int mode = 0 // 0:default, 1:yolo
+//) {
+//    // UTF-8で保存するための設定
+//    std::ofstream file(fileName, std::ios::binary);
+//
+//    // ファイルオープン
+//    if (!file.is_open()) {
+//        return false; // ファイルオープン失敗
+//    }
+//    for (const auto& obj : objs) {
+//        file << LabelsToString(obj, mode, true) << std::endl;
+//    }
+//    file.close();
+//    return true;
+//}
+//
+
+///////////////////////////////////////////////////////////////////////
+// LabelObjの文字列をファイル保存する関数
+// 画像ページングの時に使う
 bool SaveLabelsToFileSingle(HWND hWnd, size_t _idx)
 {
     if (GP.imgObjs[GP.imgIdx].isEdited) {
@@ -511,7 +570,8 @@ bool SaveLabelsToFileSingle(HWND hWnd, size_t _idx)
         std::wstring _fileName2;
         _fileName1 = GetFileNameFromPath(GP.imgObjs[GP.imgIdx].path);
         _fileName2 = GP.labelFolderPath + L"\\" + _fileName1 + L".txt";
-        bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[GP.imgIdx].objs, 1);
+        bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[GP.imgIdx].objs, 0, 1);
+
         if (_ret) {
             //編集フラグをリセット
             GP.imgObjs[GP.imgIdx].isEdited = false;
@@ -525,8 +585,6 @@ bool SaveLabelsToFileSingle(HWND hWnd, size_t _idx)
     }
     return false;
 }
-
-
 
 ///////////////////////////////////////////////////////////////////////
 // ファイル名をダイアログボックスで取得する関数
@@ -666,8 +724,6 @@ std::wstring GetFileName(HWND hWnd, const std::wstring& title, int _rw)
     return fileName;
 }
 
-
-
 ///////////////////////////////////////////////////////////////////////
 // ファイルパスから拡張子を指定の拡張子に変更する関数
 // 入力値はファイルパスと拡張子
@@ -695,7 +751,6 @@ std::wstring RemoveFileExtension(const std::wstring& filePath)
 	}
 	return newFilePath;
 }
-
 
 ///////////////////////////////////////////////////////////////////////
 // ファイルパスからファイル名のみ抽出する関数
@@ -764,7 +819,7 @@ int mode //0:default, 1:yolo
     if (mode == 0)
     {
         LabelObj obj;
-        while (file >> obj.ClassNum >> obj.rect.X >> obj.rect.Y >> obj.rect.Width >> obj.rect.Height)
+        while (file >> obj.ClassNum >> obj.Rct.X >> obj.Rct.Y >> obj.Rct.Width >> obj.Rct.Height)
         {
 
             imgObj.objs.push_back(obj);
@@ -780,10 +835,10 @@ int mode //0:default, 1:yolo
 		// 画像サイズで割った値を元に戻すために、imgObj.widthとimgObj.heightを使用
 		while (file >> obj.ClassNum >> tmp_x >> tmp_y >> tmp_w >> tmp_h)
 		{
-            obj.rect.X = tmp_x - tmp_w / 2;
-			obj.rect.Y = tmp_y - tmp_h / 2;
-			obj.rect.Width = tmp_w;
-            obj.rect.Height = tmp_h;
+            obj.Rct.X = tmp_x - tmp_w / 2;
+			obj.Rct.Y = tmp_y - tmp_h / 2;
+			obj.Rct.Width = tmp_w;
+            obj.Rct.Height = tmp_h;
 			// YOLO形式のデータをLabelObj形式に変換
 			imgObj.objs.push_back(obj);
 		}
@@ -825,9 +880,9 @@ int LoadLabelFiles(
         if (mode == 0)
         {
             LabelObj obj;
-            while (file >> obj.ClassNum >> obj.rect.X >> obj.rect.Y >> obj.rect.Width >> obj.rect.Height)
+            while (file >> obj.ClassNum >> obj.Rct.X >> obj.Rct.Y >> obj.Rct.Width >> obj.Rct.Height)
             {
-				NormalizeRect(obj.rect); // 矩形の座標を正規化
+				NormalizeRect(obj.Rct); // 矩形の座標を正規化
 
                 if (obj.ClassNum < GP.ClsNames.size())
                     obj.ClassName = GP.ClsNames[obj.ClassNum];
@@ -854,12 +909,12 @@ int LoadLabelFiles(
 			// 画像サイズで割った値を元に戻すために、imgObj.widthとimgObj.heightを使用
 			while (file >> obj.ClassNum >> tmp_x >> tmp_y >> tmp_w >> tmp_h)
 			{
-				obj.rect.X = tmp_x - tmp_w / 2;
-				obj.rect.Y = tmp_y - tmp_h / 2;
-				obj.rect.Width = tmp_w;
-				obj.rect.Height = tmp_h;
+				obj.Rct.X = tmp_x - tmp_w / 2;
+				obj.Rct.Y = tmp_y - tmp_h / 2;
+				obj.Rct.Width = tmp_w;
+				obj.Rct.Height = tmp_h;
 
-                NormalizeRect(obj.rect); // 矩形の座標を正規化
+                NormalizeRect(obj.Rct); // 矩形の座標を正規化
                 
                 if (obj.ClassNum < GP.ClsNames.size())
 					obj.ClassName = GP.ClsNames[obj.ClassNum];
@@ -909,10 +964,10 @@ int LoadLabelFilesMP(
         {
             LabelObj obj;
             while (file >> obj.ClassNum
-                >> obj.rect.X >> obj.rect.Y
-                >> obj.rect.Width >> obj.rect.Height)
+                >> obj.Rct.X >> obj.Rct.Y
+                >> obj.Rct.Width >> obj.Rct.Height)
             {
-                NormalizeRect(obj.rect);
+                NormalizeRect(obj.Rct);
 
                 if (obj.ClassNum < GP.ClsNames.size())     obj.ClassName = GP.ClsNames[obj.ClassNum];
                 if (obj.ClassNum < GP.ClsColors.size())    obj.color = GP.ClsColors[obj.ClassNum];
@@ -929,11 +984,11 @@ int LoadLabelFilesMP(
             while (file >> obj.ClassNum >> tmp_x >> tmp_y >> tmp_w >> tmp_h)
             {
                 // YOLO->BBox
-                obj.rect.X = tmp_x - tmp_w / 2;
-                obj.rect.Y = tmp_y - tmp_h / 2;
-                obj.rect.Width = tmp_w;
-                obj.rect.Height = tmp_h;
-                NormalizeRect(obj.rect);
+                obj.Rct.X = tmp_x - tmp_w / 2;
+                obj.Rct.Y = tmp_y - tmp_h / 2;
+                obj.Rct.Width = tmp_w;
+                obj.Rct.Height = tmp_h;
+                NormalizeRect(obj.Rct);
 
                 if (obj.ClassNum < GP.ClsNames.size())     obj.ClassName = GP.ClsNames[obj.ClassNum];
                 if (obj.ClassNum < GP.ClsColors.size())    obj.color = GP.ClsColors[obj.ClassNum];
@@ -966,10 +1021,10 @@ EditMode IsMouseOnRectEdge(
 	bool Bottom = false;
 
     // 矩形の座標
-    float x0 = obj.rect.X * GP.width;
-    float y0 = obj.rect.Y * GP.height;
-    float w = obj.rect.Width * GP.width;
-    float h = obj.rect.Height * GP.height;
+    float x0 = obj.Rct.X * GP.width;
+    float y0 = obj.Rct.Y * GP.height;
+    float w = obj.Rct.Width * GP.width;
+    float h = obj.Rct.Height * GP.height;
 
     // 各辺の幅を帯状に見立てて判定
 	EditMode  _ret = EditMode::None;
@@ -1016,10 +1071,10 @@ int IsMouseOnRectEdge_old(
     int overlap
 ){
     // 矩形の座標
-    float x0 = obj.rect.X * GP.width;
-    float y0 = obj.rect.Y * GP.height;
-    float w = obj.rect.Width * GP.width;
-    float h = obj.rect.Height * GP.height;
+    float x0 = obj.Rct.X * GP.width;
+    float y0 = obj.Rct.Y * GP.height;
+    float w = obj.Rct.Width * GP.width;
+    float h = obj.Rct.Height * GP.height;
 
     // 各辺の幅を帯状に見立てて判定
     int _ret = 0;
@@ -1076,6 +1131,17 @@ size_t GetIdxMouseOnRectEdge(
         }
     }
     return _idx; // 矩形がない場合は-1を返す
+}
+
+///////////////////////////////////////////////////////////////////////
+//タイトルバーに画像のパスを表示
+void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labelfolder, int _Idx, int _Total)
+{
+    std::wstring title =
+        L"Annotation Tool - " + _imgfolder + L" - " + _labelfolder +
+        L" [ " + std::to_wstring(_Idx) + L" / " + std::to_wstring(_Total) + L"]";
+    SetWindowText(hWnd, title.c_str());
+    return;
 }
 
 ///////////////////////////////////////////////////////////////////////

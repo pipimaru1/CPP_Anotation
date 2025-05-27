@@ -96,10 +96,10 @@ GlobalParams::~GlobalParams()
 LabelObj::LabelObj()
 {
 	// 矩形の初期化
-	rect.X = 0;
-	rect.Y = 0;
-	rect.Width = 0;
-	rect.Height = 0;
+	Rct.X = 0;
+	Rct.Y = 0;
+	Rct.Width = 0;
+	Rct.Height = 0;
 	// クラシフィケーションの初期化
 	ClassName.clear();
 	ClassNum = 0;

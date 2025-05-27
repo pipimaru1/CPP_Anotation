@@ -5,11 +5,14 @@ enum class EditMode { None, Left, Right, Top, Bottom, LeftTop, RightTop, LeftBot
 
 ///////////////////////////////////////////////////////
 // アノテーションクラス
-struct LabelObj
+class LabelObj
 {
+public:
     //座標情報
-	Gdiplus::RectF  rect; // 矩形の座標
+    Gdiplus::RectF  Rct; //正規化された矩形
+	Gdiplus::RectF  Rct_Scale; // スケールされた矩形 
 
+public:
     //クラシフィケーション情報
     std::wstring    ClassName; // ラベル
     int             ClassNum; // 現在のラベルインデックス

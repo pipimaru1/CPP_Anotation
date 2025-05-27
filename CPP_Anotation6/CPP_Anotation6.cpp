@@ -155,16 +155,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 // フィルパスのフォルダは'/'で区切る必要があります。
 // '\'で記述する場合は'\\'に置き換える必要があります。
 const wchar_t* INIT_IMGFOLDER = L"../images/";  // JPEGまたはPNG
-///////////////////////////////////////////////////////////////////////
-//タイトルバーに画像のパスを表示
-void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labelfolder, int _Idx, int _Total)
-{
-	std::wstring title = 
-        L"Annotation Tool - " + _imgfolder + L" - " + _labelfolder + 
-        L" [ " + std::to_wstring(_Idx) + L" / " + std::to_wstring(_Total) + L"]";
-    SetWindowText(hWnd, title.c_str());
-    return;
-}
+
 ///////////////////////////////////////////////////////////////////////
 //ラベルの矩形を描画する関数
 void WM_PAINT_DrawLabels(
@@ -195,6 +186,11 @@ void ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX);
 ///////////////////////////////////////////////////////////////////////
 int CreatePopupMenuFor_Labels_in_CurrentImage(HWND hWnd);
 
+/////////////////////////////////////////////////////////////////////////
+// アノテーションデータを保存する関数 WM_Procの補助関数
+// _scは0,25,50,75,100のいずれかで、0だとスケールしない
+//int  SaveAnnotations(HWND hWnd, int _sc);
+int  SaveAnnotations(HWND hWnd, std::wstring _title, int _sc);
 
 /////////////////////////////////////////////////////////////////////////
 //  関数: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -237,9 +233,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			// ファイルオープンダイアログを表示
             std::wstring _folderpath;
-            //_folderpath = GetFolderPath(hWnd);
-            //_folderpath = GetFolderPathIF(hWnd, GP.labelFolderPath, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
-            //_folderpath = GetFolderPathEx(hWnd, GP.labelFolderPath, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
             _folderpath = GetFolderPathIFR(hWnd, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
 
             // フォルダ選択ダイアログを表示
@@ -248,7 +241,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 GP.labelFolderPath = _folderpath; // フォルダパスを指定
 
                 // フォルダが選択された場合、アノテーションデータを読み込み
-                //LoadLabelFiles(GP.imgObjs, GP.labelFolderPath, L".txt", 1);
                 LoadLabelFilesMP(GP.imgObjs, GP.labelFolderPath, L".txt", 1);
 
                 //タイトルバーに編集中の画像とラベルのパスを表示
@@ -258,41 +250,49 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
         case IDM_SAVE_LABELS:
 		{
-			// ファイル保存ダイアログを表示
-            std::wstring _folderpath;
-            //_folderpath = GetFolderPath(hWnd);
-            _folderpath = GetFolderPathIF(hWnd, GP.labelFolderPath, L"書込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
-
-			// フォルダ選択ダイアログを表示
-			if (!_folderpath.empty()) {
-				int _saveok = MessageBoxW(hWnd, L"保存しますか？", L"確認", MB_OKCANCEL);
-                if (_saveok == IDOK)
-                {
-                    GP.labelFolderPath = _folderpath; // フォルダパスを指定
-                    //タイトルバーに編集中の画像とラベルのパスを表示
-                    SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.activeIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
-
-                    // フォルダが選択された場合、アノテーションデータを保存
-                    for (size_t i = 0; i < GP.imgObjs.size(); i++)
-                    {
-                        // ファイル名
-                        std::wstring _fileName1;
-                        std::wstring _fileName2;
-
-                        _fileName1 = GetFileNameFromPath(GP.imgObjs[i].path);
-                        _fileName2 = _folderpath + L"\\" + _fileName1 + L".txt";
-
-                        bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[i].objs, 1);
-                        if (!_ret)
-                        {
-                            // 保存失敗
-                            MessageBox(hWnd, L"保存失敗", L"失敗", MB_OK);
-                        }
-                    }
-				}
-            }
-		}
+			SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください", 0); // アノテーションデータを保存する関数を呼び出す
+        }
         break;
+
+        case IDM_SAVE_LABELS_25:
+        {
+            std::wstring _msg = L"保存先に注意してください。\nスケールをかけてラベル出力します。\n1.25倍で保存します。";
+            int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
+            if (_ID == IDOK)
+            {
+                SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+25%)", 25); // アノテーションデータを保存する関数を呼び出す
+            }
+        }
+        break;
+		case IDM_SAVE_LABELS_50:
+		{
+			std::wstring _msg = L"保存先に注意してください。\nスケールをかけてラベル出力します。\n1.5倍で保存します。";
+			int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
+			if (_ID == IDOK)
+			{
+				SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+50%)", 50); // アノテーションデータを保存する関数を呼び出す
+			}
+		}
+		break;
+		case IDM_SAVE_LABELS_75:
+		{
+			std::wstring _msg = L"保存先に注意してください。\nスケールをかけてラベル出力します。\n1.75倍で保存します。";
+			int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
+			if (_ID == IDOK)
+			{
+				SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+75%)", 75); // アノテーションデータを保存する関数を呼び出す
+			}
+		}
+		break;
+		case IDM_SAVE_LABELS_100:
+		{
+			std::wstring _msg = L"保存先に注意してください。\nスケールをかけてラベル出力します。\n2.0倍で保存します。";
+			int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
+			if (_ID == IDOK)
+			{
+				SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+100%)", 100); // アノテーションデータを保存する関数を呼び出す
+			}
+		}
 
         case IDM_LOAD_IMAGES:
         {
@@ -382,7 +382,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             // ドラッグ中の矩形を描画
             if(GP.dgMode==DragMode::MakeBox)
-                WM_PAINT_DrawTmpBox(graphics, GP.tmpLabel.rect, GP.width, GP.height);
+                WM_PAINT_DrawTmpBox(graphics, GP.tmpLabel.Rct, GP.width, GP.height);
            
             // 最後に画面に転送
             BitBlt(hdc, 0, 0, GP.width, GP.height, memDC, 0, 0, SRCCOPY);
@@ -425,10 +425,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if( GP.imgObjs[GP.imgIdx].mOverIdx == -1 )
         {
             // 矩形の開始位置を設定
-            GP.tmpLabel.rect.X = float(pt.x) / float(GP.width);
-            GP.tmpLabel.rect.Y = float(pt.y) / float(GP.height);
-            GP.tmpLabel.rect.Width = 0;
-            GP.tmpLabel.rect.Height = 0;
+            GP.tmpLabel.Rct.X = float(pt.x) / float(GP.width);
+            GP.tmpLabel.Rct.Y = float(pt.y) / float(GP.height);
+            GP.tmpLabel.Rct.Width = 0;
+            GP.tmpLabel.Rct.Height = 0;
             GP.dgMode = DragMode::MakeBox;
         }
         //矩形にマウスオーバーしている
@@ -456,9 +456,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             ReleaseCapture(); // マウスキャプチャを解放
 
             // 矩形の幅と高さを計算
-            GP.tmpLabel.rect.Width = float(pt.x) / float(GP.width) - GP.tmpLabel.rect.X;
-            GP.tmpLabel.rect.Height = float(pt.y) / float(GP.height) - GP.tmpLabel.rect.Y;
-            NormalizeRect(GP.tmpLabel.rect); // 矩形の座標を正規化
+            GP.tmpLabel.Rct.Width = float(pt.x) / float(GP.width) - GP.tmpLabel.Rct.X;
+            GP.tmpLabel.Rct.Height = float(pt.y) / float(GP.height) - GP.tmpLabel.Rct.Y;
+            NormalizeRect(GP.tmpLabel.Rct); // 矩形の座標を正規化
 
 			//クラス名をポップアップメニューで表示
             ShowClassPopupMenu(hWnd);
@@ -482,10 +482,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         GP.edMode = EditMode::None; // 編集モードをリセット
 
         // テンポラリ矩形の座標をリセット
-        GP.tmpLabel.rect.X = 0;
-        GP.tmpLabel.rect.Y = 0;
-        GP.tmpLabel.rect.Width = 0;
-        GP.tmpLabel.rect.Height = 0;
+        GP.tmpLabel.Rct.X = 0;
+        GP.tmpLabel.Rct.Y = 0;
+        GP.tmpLabel.Rct.Width = 0;
+        GP.tmpLabel.Rct.Height = 0;
         //GP.makeBox = false; // ドラッグ中フラグを下ろす
         GP.dgMode = DragMode::None;
 	}
@@ -516,8 +516,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         //if (GP.makeBox)
         if (GP.dgMode == DragMode::MakeBox)
         {
-            GP.tmpLabel.rect.Width = float(pt.x) / float(GP.width) - GP.tmpLabel.rect.X;
-            GP.tmpLabel.rect.Height = float(pt.y) / float(GP.height) - GP.tmpLabel.rect.Y;
+            GP.tmpLabel.Rct.Width = float(pt.x) / float(GP.width) - GP.tmpLabel.Rct.X;
+            GP.tmpLabel.Rct.Height = float(pt.y) / float(GP.height) - GP.tmpLabel.Rct.Y;
 
             // 再描画
             InvalidateRect(hWnd, NULL, TRUE);
@@ -529,7 +529,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             float dy = float(pt.y) - GP.prevMouse.Y;
 			if (!GP.imgObjs[GP.imgIdx].objs.empty())//objsが空でない場合 
             {
-                auto& r = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect;
+                auto& r = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct;
                 GP.imgObjs[GP.imgIdx].isEdited = true; // 編集されたことにする
                 switch (GP.edMode)
                 {
@@ -609,45 +609,45 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
             case EditMode::Top:
                 // 上辺をドラッグ。 直接、マウスの値を辺の位置に設定
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y = float(pt.y) / float(GP.height);
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Height = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y - GP.prevMouse.Y;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y = float(pt.y) / float(GP.height);
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Height = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y - GP.prevMouse.Y;
                 break;
             case EditMode::Bottom:
                 // 下辺をドラッグ。 直接、マウスの値を辺の位置に設定
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Height = float(pt.y) / float(GP.height) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Height = float(pt.y) / float(GP.height) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y;
                 break;
             case EditMode::Left:
                 // 左辺をドラッグ。 直接、マウスの値を辺の位置に設定
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X = float(pt.x) / float(GP.width);
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Width = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X - GP.prevMouse.X;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X = float(pt.x) / float(GP.width);
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Width = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X - GP.prevMouse.X;
                 break;
             case EditMode::Right:
                 // 右辺をドラッグ。 直接、マウスの値を辺の位置に設定
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Width = float(pt.x) / float(GP.width) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Width = float(pt.x) / float(GP.width) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X;
                 break;
             case EditMode::LeftTop:
                 // 左上をドラッグ。 直接、マウスの値を辺の位置に設定   
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X = float(pt.x) / float(GP.width);
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y = float(pt.y) / float(GP.height);
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Width = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X - GP.prevMouse.X;
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Height = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y - GP.prevMouse.Y;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X = float(pt.x) / float(GP.width);
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y = float(pt.y) / float(GP.height);
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Width = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X - GP.prevMouse.X;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Height = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y - GP.prevMouse.Y;
                 break;
             case EditMode::RightTop:
                 // 右上をドラッグ。 直接、マウスの値を辺の位置に設定
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y = float(pt.y) / float(GP.height);
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Width = float(pt.x) / float(GP.width) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X;
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Height = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y - GP.prevMouse.Y;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y = float(pt.y) / float(GP.height);
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Width = float(pt.x) / float(GP.width) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Height = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y - GP.prevMouse.Y;
                 break;
             case EditMode::LeftBottom:
                 // 左下をドラッグ。 直接、マウスの値を辺の位置に設定
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X = float(pt.x) / float(GP.width);
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Height = float(pt.y) / float(GP.height) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y;
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Width = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X - GP.prevMouse.X;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X = float(pt.x) / float(GP.width);
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Height = float(pt.y) / float(GP.height) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Width = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X - GP.prevMouse.X;
                 break;
             case EditMode::RightBottom:
                 // 右下をドラッグ。 直接、マウスの値を辺の位置に設定
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Width = float(pt.x) / float(GP.width) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.X;
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Height = float(pt.y) / float(GP.height) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].rect.Y;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Width = float(pt.x) / float(GP.width) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Height = float(pt.y) / float(GP.height) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y;
                 break;
             case EditMode::None:
                 // 何もしない    
@@ -790,10 +790,10 @@ void WM_PAINT_DrawLabels(
         pen.SetDashStyle(obj.dashStyle);
 
         // 矩形の座標をピクセル変換
-        float x0 = obj.rect.X * clientWidth;
-        float y0 = obj.rect.Y * clientHeight;
-        float w = obj.rect.Width * clientWidth;
-        float h = obj.rect.Height * clientHeight;
+		float x0 = obj.Rct.X * clientWidth;
+        float y0 = obj.Rct.Y * clientHeight;
+        float w = obj.Rct.Width * clientWidth;
+        float h = obj.Rct.Height * clientHeight;
 
         // 矩形描画
         graphics.DrawRectangle(&pen, x0, y0, w, h);
@@ -1157,3 +1157,97 @@ int CreatePopupMenuFor_Labels_in_CurrentImage(HWND hWnd)
 }
 
 
+///////////////////////////////////////////////////////////////////////
+// ファイル保存ダイアログを表示
+int  SaveAnnotations(HWND hWnd, std::wstring _title, int _sc)
+{
+    std::wstring _folderpath;
+
+    //すべてのラベルオブジェクトをスケーリングする
+    if (_sc != 0)
+    {
+        for (auto& _imgObj : GP.imgObjs)
+        {
+            for (auto& _labelObj : _imgObj.objs)
+            {
+                if (_sc == 25) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.25, 1.25);
+                else if (_sc == 50) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.5, 1.5);
+                else if (_sc == 75) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.75, 1.75);
+                else if (_sc == 100) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 2.0, 2.0);
+            }
+        }
+    }
+
+	//この関数でレジストリにフォルダパスを保存をしている。
+    //_folderpath = GetFolderPathIF(hWnd, GP.labelFolderPath, L"書込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
+    _folderpath = GetFolderPathIFR(hWnd, GP.labelFolderPath, _title); // フォルダ選択ダイアログを表示
+
+    // フォルダ選択ダイアログを表示
+    if (!_folderpath.empty()) {
+        int _saveok = MessageBoxW(hWnd, L"保存しますか？", L"確認", MB_OKCANCEL);
+        if (_saveok == IDOK)
+        {
+            GP.labelFolderPath = _folderpath; // フォルダパスを指定
+            //タイトルバーに編集中の画像とラベルのパスを表示
+            SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.activeIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
+
+            // フォルダが選択された場合、アノテーションデータを保存
+            for (size_t i = 0; i < GP.imgObjs.size(); i++)
+            {
+                // ファイル名
+                std::wstring _fileName1;
+                std::wstring _fileName2;
+
+                _fileName1 = GetFileNameFromPath(GP.imgObjs[i].path);
+                _fileName2 = _folderpath + L"\\" + _fileName1 + L".txt";
+
+                bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[i].objs, _sc, 1);
+                if (!_ret)
+                {
+                    // 保存失敗
+                    MessageBox(hWnd, L"保存失敗", L"失敗", MB_OK);
+                }
+            }
+        }
+    }
+    return 0; // 成功
+}
+
+///////////////////////////////////////////////////////////////////////
+// ファイル保存ダイアログを表示
+//int  SaveAnnotations_with_Scale(HWND hWnd, float _scale)
+//{
+//    std::wstring _folderpath;
+//    //_folderpath = GetFolderPath(hWnd);
+//    _folderpath = GetFolderPathIF(hWnd, GP.labelFolderPath, L"書込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
+//
+//    // フォルダ選択ダイアログを表示
+//    if (!_folderpath.empty()) {
+//        int _saveok = MessageBoxW(hWnd, L"保存しますか？", L"確認", MB_OKCANCEL);
+//        if (_saveok == IDOK)
+//        {
+//            GP.labelFolderPath = _folderpath; // フォルダパスを指定
+//            //タイトルバーに編集中の画像とラベルのパスを表示
+//            SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.activeIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
+//
+//            // フォルダが選択された場合、アノテーションデータを保存
+//            for (size_t i = 0; i < GP.imgObjs.size(); i++)
+//            {
+//                // ファイル名
+//                std::wstring _fileName1;
+//                std::wstring _fileName2;
+//
+//                _fileName1 = GetFileNameFromPath(GP.imgObjs[i].path);
+//                _fileName2 = _folderpath + L"\\" + _fileName1 + L".txt";
+//
+//                bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[i].objs, 1);
+//                if (!_ret)
+//                {
+//                    // 保存失敗
+//                    MessageBox(hWnd, L"保存失敗", L"失敗", MB_OK);
+//                }
+//            }
+//        }
+//    }
+//    return 0; // 成功
+//}
