@@ -116,3 +116,5 @@ void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labe
 
 //スケーリング
 void SscalingRect(Gdiplus::RectF& r_in, Gdiplus::RectF& r_out, float scaleX, float scaleY);
+
+void DoPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, size_t _idx);

@@ -347,6 +347,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     //////////////////////////////////////////////////////////////////////////////////
     case WM_PAINT:
     {
+        if(!GP.isCompare)
+    		DoPaint(hWnd, wParam, lParam, GP.imgIdx); // 描画処理を行う関数を呼び出す
+        else
+            DoPaint(hWnd, wParam, lParam, GP.imgIdxCompare); // 描画処理を行う関数を呼び出す
+
+#ifdef ORG_WMPAINT
         // マウス移動中でない場合は、描画処理を行う
         if (!GP.isMouseMoving)
         {
@@ -397,6 +403,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         GP.isMouseMoving = false; // フラグをリセット
         // 十字目盛りを描画
         DrawCrosshairLines(hWnd);
+#endif
     }
     break;
 
@@ -666,8 +673,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
             }
 
-
-
             InvalidateRect(hWnd, NULL, TRUE);
         }
     }
@@ -675,7 +680,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     //キー入力を処理する
     case WM_KEYDOWN:
-    {		// swtch文で入力されたキーを判定、処理を分ける
+    {   // swtch文で入力されたキーを判定、処理を分ける
         // swtch文が二重になっている(Windowsプログラミングでは定石)
 
 		// 移動する量を計算
@@ -686,6 +691,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
         bool alt = (GetKeyState(VK_MENU) & 0x8000) != 0; // Altキーが押されているかどうかを調べる
         
+		// 何らかのキーダウンがあれば、比較モードをオフにする
+        GP.isCompare = false; // 比較モードをオフ
+
         if (shift){   // Shift＋矢印なら大きく移動、小なら通常移動
             step = shift ? 10 : step;
         }
@@ -746,11 +754,39 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 			//}
             break;
+        case 'S': //前後画像の比較
+        case 's': 
+            if(GP.isCompare)
+				GP.isCompare = false; // 比較モードをオフ
+            else
+            {
+                if (GP.imgIdx == GP.imgObjs.size() - 1) // 最後の画像でない場合
+                    break; // 最後の画像の場合は何もしない
+                else
+                {
+                    GP.isCompare = true; // 比較モードをオン
+                    SetTimer(hWnd, IDT_COMPARE, 30, nullptr);
+                }
+            }
+            break;
         }
         InvalidateRect(hWnd, NULL, TRUE); // 再描画
     }
     break;
+    case WM_TIMER:
+	{
+        //画像比較用のタイマーの処理
+        if (wParam == IDT_COMPARE)
+        {   
+			if (GP.imgIdxCompare != GP.imgIdx) // 比較用の画像インデックスが現在の画像と異なる場合
+				GP.imgIdxCompare = GP.imgIdx;
+            else
+                GP.imgIdxCompare = GP.imgIdx+1;
 
+            InvalidateRect(hWnd, nullptr, FALSE);
+        }
+        return 0;
+	}
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
@@ -1225,40 +1261,59 @@ int  SaveAnnotations(HWND hWnd, std::wstring _title, int _sc)
 }
 
 ///////////////////////////////////////////////////////////////////////
-// ファイル保存ダイアログを表示
-//int  SaveAnnotations_with_Scale(HWND hWnd, float _scale)
-//{
-//    std::wstring _folderpath;
-//    //_folderpath = GetFolderPath(hWnd);
-//    _folderpath = GetFolderPathIF(hWnd, GP.labelFolderPath, L"書込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
-//
-//    // フォルダ選択ダイアログを表示
-//    if (!_folderpath.empty()) {
-//        int _saveok = MessageBoxW(hWnd, L"保存しますか？", L"確認", MB_OKCANCEL);
-//        if (_saveok == IDOK)
-//        {
-//            GP.labelFolderPath = _folderpath; // フォルダパスを指定
-//            //タイトルバーに編集中の画像とラベルのパスを表示
-//            SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.activeIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
-//
-//            // フォルダが選択された場合、アノテーションデータを保存
-//            for (size_t i = 0; i < GP.imgObjs.size(); i++)
-//            {
-//                // ファイル名
-//                std::wstring _fileName1;
-//                std::wstring _fileName2;
-//
-//                _fileName1 = GetFileNameFromPath(GP.imgObjs[i].path);
-//                _fileName2 = _folderpath + L"\\" + _fileName1 + L".txt";
-//
-//                bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[i].objs, 1);
-//                if (!_ret)
-//                {
-//                    // 保存失敗
-//                    MessageBox(hWnd, L"保存失敗", L"失敗", MB_OK);
-//                }
-//            }
-//        }
-//    }
-//    return 0; // 成功
-//}
+// 描画処理を行う関数
+///////////////////////////////////////////////////////////////////////
+void DoPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, size_t _idx)
+{ 
+    // マウス移動中でない場合は、描画処理を行う
+    if (!GP.isMouseMoving)
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+
+        // メモリDC作成
+        HDC memDC = CreateCompatibleDC(hdc);
+        HBITMAP memBitmap = CreateCompatibleBitmap(hdc, GP.width, GP.height);
+        HBITMAP oldBitmap = (HBITMAP)SelectObject(memDC, memBitmap);
+
+        // GDI+ の Graphics を memDC に結びつける
+        Graphics graphics(memDC);
+        graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+        graphics.SetSmoothingMode(SmoothingModeAntiAlias); // 任意
+
+        // 背景塗りつぶし（必要に応じて）
+        graphics.Clear(Color(0, 0, 0)); // 黒背景
+
+        // 補間品質
+        graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+        if (GP.imgObjs.size() > 0)
+        {
+            //画像の描画
+            if (GP.imgObjs[_idx].image) //配列が空でなければ
+            {
+                //スケーリングしながら描画
+                graphics.DrawImage(GP.imgObjs[_idx].image.get(), 0, 0, GP.width, GP.height);
+                graphics.Flush();
+            }
+            // 矩形を描画
+            WM_PAINT_DrawLabels(graphics, GP.imgObjs[_idx].objs, GP.width, GP.height, GP.font);
+        }
+        // ドラッグ中の矩形を描画
+        if (GP.dgMode == DragMode::MakeBox)
+            WM_PAINT_DrawTmpBox(graphics, GP.tmpLabel.Rct, GP.width, GP.height);
+
+        // 最後に画面に転送
+        BitBlt(hdc, 0, 0, GP.width, GP.height, memDC, 0, 0, SRCCOPY);
+
+        // クリーンアップ
+        SelectObject(memDC, oldBitmap);
+        DeleteObject(memBitmap);
+        DeleteDC(memDC);
+        EndPaint(hWnd, &ps);
+    }
+    //すべての操作 
+    GP.isMouseMoving = false; // フラグをリセット
+    // 十字目盛りを描画
+    DrawCrosshairLines(hWnd);
+}
+

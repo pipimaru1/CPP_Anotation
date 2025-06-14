@@ -13,6 +13,7 @@ GlobalParams::GlobalParams()
 	// 画像ファイル関連
 	imgObjs.clear(); // 画像ファイルのパスと矩形の配列
 	imgIdx = 0;
+	imgIdxCompare = 0; // 前後画像の比較用インデックス
 
 	/// ウィンドウサイズ
 	rect_win.left = 0;

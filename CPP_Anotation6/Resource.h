@@ -47,6 +47,8 @@
 #define IDM_PMENU_LABEL_BASE	2200 //オブジェクト選択メニュー
 #define IDM_PMENU_LABEL00		2201 //オブジェクト選択メニュー
 
+#define IDT_COMPARE				3001 // 比較用タイマーID
+
 
 #define IDC_MYICON				2
 #ifndef IDC_STATIC

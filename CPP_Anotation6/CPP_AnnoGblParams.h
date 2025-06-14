@@ -68,6 +68,7 @@ struct GlobalParams
     //イメージファイル関連
 	std::vector<ImgObject>      imgObjs; // 画像ファイルのパスと矩形の配列
     size_t                      imgIdx; // 現在の画像インデックス
+	size_t                      imgIdxCompare; // 前後画像の比較用インデックス
 	std::wstring                imgFolderPath; // 現在の画像フォルダ
     std::wstring                labelFolderPath; // 現在のラベルフォルダ
 
@@ -85,6 +86,9 @@ struct GlobalParams
 	EditMode edMode = EditMode::None;// マウスオーバー中の矩形の辺を表す
     Gdiplus::PointF prevMouse;   // 前回のマウス座標
 
+    //前後画僧の比較
+	bool isCompare = false; // 前後画像の比較モード
+    
     // 対象とする画像拡張子パターン
     std::vector<std::wstring>   IMAGE_EXTENSIONS;
 
