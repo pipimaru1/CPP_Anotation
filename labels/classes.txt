@@ -1,0 +1,12 @@
+person
+forklift
+truck
+tractor
+cargo
+excavator
+bulldozer
+wheelloder
+grader
+driver
+pallet
+car

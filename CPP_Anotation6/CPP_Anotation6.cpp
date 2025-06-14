@@ -590,11 +590,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         else if (GP.dgMode == DragMode::dummy) // 矩形の編集モード
         {
-			//size_t _obj_size = GP.imgObjs[GP.imgIdx].objs.size();
-			//if (_obj_size > 0)
-   //         {
-   //             GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, GP.edMode, GP.Overlap); // マウスカーソルの位置を取得
-   //         }
 
             if (GP.imgIdx < GP.imgObjs.size()) {              // ← これが先
                 auto& curImg = GP.imgObjs[GP.imgIdx];         // 安全に参照取得
@@ -662,11 +657,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
 			// マウスカーソルと矩形が重なっていないかどうかを調べて、
             // 重なっていたらそのインデックスを取得し、現在アクティブな画像のmOverIdxに格納
-   //         size_t _obj_size = GP.imgObjs[GP.imgIdx].objs.size();
-			//if (_obj_size > 0) //これを入れないとリリース版の時にエラーが出る。関数呼び出しの不整合ではないかとのこと。
-   //         {
-   //             GP.imgObjs[GP.imgIdx].mOverIdx = GetIdxMouseOnRectEdge(pt, GP.imgObjs[GP.imgIdx].objs, GP.edMode, GP.Overlap);
-   //         }
             if (GP.imgIdx < GP.imgObjs.size()) {              // ← これが先
                 auto& curImg = GP.imgObjs[GP.imgIdx];         // 安全に参照取得
                 if (!curImg.objs.empty()) {
@@ -688,32 +678,53 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {		// swtch文で入力されたキーを判定、処理を分ける
         // swtch文が二重になっている(Windowsプログラミングでは定石)
 
+		// 移動する量を計算
         // Shift が押されているかどうかを調べる
         bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
         int step = 1;
 		// Ctrl が押されているかどうかを調べる
 		bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
-
-        // Shift＋矢印なら大きく移動、小なら通常移動
-        step = shift ? 10 : step;
-		// Ctrl＋矢印なら大きく移動、小なら通常移動
-		step = ctrl ? 100 : step;
+        bool alt = (GetKeyState(VK_MENU) & 0x8000) != 0; // Altキーが押されているかどうかを調べる
+        
+        if (shift){   // Shift＋矢印なら大きく移動、小なら通常移動
+            step = shift ? 10 : step;
+        }
+		else if (ctrl) {   // Ctrl＋矢印なら大きく移動
+            step = ctrl ? 100 : step;
+        }
+        else{              // 通常の移動量
+			step = 1; 
+        }
 
         switch (wParam)
         {
         case 'A': // 前の画像
         case VK_LEFT:
             if (GP.imgObjs.size() > 0) {
+				// 前の画像に移動する前に、現在のラベルを保存
                 SaveLabelsToFileSingle(hWnd, GP.imgIdx);
                 GP.imgIdx = (GP.imgIdx + GP.imgObjs.size() - step) % GP.imgObjs.size();
                 SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
             }
             break;
-        case 'D': // 次の画像
+		case 'D': // 次の画像 alt+ctrlならラベル定義のない画像まで移動
         case VK_RIGHT:
             if (GP.imgObjs.size() > 0) {
-                SaveLabelsToFileSingle(hWnd, GP.imgIdx);
-                GP.imgIdx = (GP.imgIdx + step) % GP.imgObjs.size();
+                if (alt && ctrl){ // Altキーが押されている場合
+                    if(GP.imgIdx < (GP.imgObjs.size() - 1)){
+                        step = 1;
+                        while (!GP.imgObjs[GP.imgIdx + step].objs.empty()) {
+                            step++;
+                            if (GP.imgIdx + step >= GP.imgObjs.size()) { // 画像の範囲を超えたら
+
+                                step = 0; // 0に戻す
+                                break; // ループを抜ける
+                            }
+                        }
+                    }
+                }
+                SaveLabelsToFileSingle(hWnd, GP.imgIdx);        // 前の画像に移動する前に、現在のラベルを保存
+                GP.imgIdx = (GP.imgIdx + step) % GP.imgObjs.size(); // 次の画像に移動 stepの値分だけ移動する
                 SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
             }
             break;
