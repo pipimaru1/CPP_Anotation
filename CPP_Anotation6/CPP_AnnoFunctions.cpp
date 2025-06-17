@@ -474,7 +474,8 @@ std::wstring GetFolderPathIFR(
 std::string LabelsToString(
     const LabelObj& obj, 
 	int mode, // 0:default, 1:
-    int _sc
+	int _sc, // 0:正規化、1:スケールされた矩形を使用
+	float minimumsize // 最小サイズ制限（デフォルトはなし）
 )
 {
     std::ostringstream oss;
@@ -483,6 +484,13 @@ std::string LabelsToString(
         _rct = obj.Rct_Scale; // スケールされた矩形を使用
     else
 		_rct = obj.Rct; // 正規化された矩形を使用
+
+	if (minimumsize > 0) {
+		// 最小サイズ制限を適用
+		if (_rct.Width < minimumsize || _rct.Height < minimumsize) {
+			return ""; // サイズが小さすぎる場合は空文字列を返す
+		}
+	}
 
     // 数値とスペースだけなので、普通の narrow string で OK
     if (mode == 0)
@@ -517,6 +525,7 @@ bool SaveLabelsToFile(
     const std::wstring& fileName, 
     const std::vector<LabelObj>& objs, 
     int _sc,
+	float minimumsize, // 最小サイズ制限（デフォルトはなし）
 	int mode // 0:default, 1:yolo
 ){
 	// UTF-8で保存するための設定
@@ -527,7 +536,12 @@ bool SaveLabelsToFile(
 		return false; // ファイルオープン失敗
 	}
 	for (const auto& obj : objs) {
-		file << LabelsToString(obj, mode, _sc) << std::endl;
+		std::string _sc_str = LabelsToString(obj, mode, _sc, minimumsize);
+		if (_sc_str.empty()) 
+            continue; // 最小サイズ制限に引っかかった場合はスキップ
+        else
+			file << _sc_str << std::endl; // スケールされた矩形を使用
+		//file << LabelsToString(obj, mode, minimumsize, _sc) << std::endl;
 	}
 	file.close();
 	return true;
@@ -562,7 +576,7 @@ bool SaveLabelsToFile(
 ///////////////////////////////////////////////////////////////////////
 // LabelObjの文字列をファイル保存する関数
 // 画像ページングの時に使う
-bool SaveLabelsToFileSingle(HWND hWnd, size_t _idx)
+bool SaveLabelsToFileSingle(HWND hWnd, size_t _idx, float minimumsize) // 最小サイズ制限（デフォルトはなし）
 {
     if (GP.imgObjs[GP.imgIdx].isEdited) {
         // ファイル名
@@ -570,7 +584,7 @@ bool SaveLabelsToFileSingle(HWND hWnd, size_t _idx)
         std::wstring _fileName2;
         _fileName1 = GetFileNameFromPath(GP.imgObjs[GP.imgIdx].path);
         _fileName2 = GP.labelFolderPath + L"\\" + _fileName1 + L".txt";
-        bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[GP.imgIdx].objs, 0, 1);
+        bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[GP.imgIdx].objs, 0, minimumsize, 1);
 
         if (_ret) {
             //編集フラグをリセット
@@ -1143,6 +1157,10 @@ void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labe
     SetWindowText(hWnd, title.c_str());
     return;
 }
+
+
+
+
 
 ///////////////////////////////////////////////////////////////////////
 // TaskDialogIndirectを使ってダイアログボックスを表示する関数

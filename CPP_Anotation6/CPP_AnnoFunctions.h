@@ -58,11 +58,16 @@ bool SaveLabelsToFile(
 	const std::wstring& fileName, 
 	const std::vector<LabelObj>& objs,
 	int _sc,
+	float minimumsize, // 最小サイズ制限（デフォルトはなし）
 	int mode //0:default, 1:yolo
 );
 ///////////////////////////////////////////////////////////////////////
 // LabelObjの文字列をファイル保存する関数
-bool SaveLabelsToFileSingle(HWND hWnd, size_t _idx);
+bool SaveLabelsToFileSingle(
+	HWND hWnd, 
+	size_t _idx,
+	float minimumsize // 最小サイズ制限（デフォルトはなし）
+	);
 
 ///////////////////////////////////////////////////////////////////////
 //矩形の線上にマウスカーソルがあるかどうかを判定する関数
@@ -110,11 +115,13 @@ int LoadClassification(
 );
 
 ///////////////////////////////////////////////////////////////////////
-//int ShowDialogWithCheckbox(HWND hwnd, const std::wstring& _message, const std::wstring& _title);
-
 void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labelfolder, int _Idx, int _Total);
 
 //スケーリング
 void SscalingRect(Gdiplus::RectF& r_in, Gdiplus::RectF& r_out, float scaleX, float scaleY);
 
+///////////////////////////////////////////////////////////////////////
 void DoPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, size_t _idx);
+
+///////////////////////////////////////////////////////////////////////
+int  SaveAnnotations(HWND hWnd, std::wstring _title, float _sc);

@@ -16,11 +16,19 @@
 //追加 200台から
 #define IDM_LOAD_IMAGES	    	200
 #define IDM_SAVE_LABELS			201
-#define IDM_SAVE_LABELS_10		204
+#define IDM_SAVE_LABELS_13		204
 #define IDM_SAVE_LABELS_25		205
 #define IDM_SAVE_LABELS_50		206
 #define IDM_SAVE_LABELS_75		207
 #define IDM_SAVE_LABELS_100		208
+
+#define IDM_NOSAVE_SMALL00  	209 //全て保存 
+#define IDM_NOSAVE_SMALL010	    210 //小さいラベルを保存しない 画面比1.5%以上のものを保存する 一度保存するとリセット(全て保存に戻る) 
+#define IDM_NOSAVE_SMALL015	    211 //小さいラベルを保存しない 画面比1.5%以上のものを保存する 一度保存するとリセット(全て保存に戻る) 
+#define IDM_NOSAVE_SMALL02	    212 //小さいラベルを保存しない 画面比1.5%以上のものを保存する 一度保存するとリセット(全て保存に戻る) 
+#define IDM_NOSAVE_SMALL03		213 //小さいラベルを保存しない 画面比3%以上のものを保存する 一度保存するとリセット(全て保存に戻る)
+#define IDM_NOSAVE_SMALL05		214 //小さいラベルを保存しない 画面比5%以上のものを保存する 一度保存するとリセット(全て保存に戻る)
+#define IDM_NOSAVE_SMALL10		215 //小さいラベルを保存しない 画面比10%以上のものを保存する  一度保存するとリセット(全て保存に戻る)
 
 #define IDM_LOAD_LABELS			202
 #define IDM_LOAD_CLASSIFICATION	203

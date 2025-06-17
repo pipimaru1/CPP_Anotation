@@ -9,6 +9,7 @@
 // 必要なライブラリ
 #pragma comment(lib, "gdiplus.lib")
 #pragma comment(lib, "Shlwapi.lib")
+
 #define MAX_LOADSTRING 100
 
 struct GdiplusRAII {
@@ -190,7 +191,6 @@ int CreatePopupMenuFor_Labels_in_CurrentImage(HWND hWnd);
 // アノテーションデータを保存する関数 WM_Procの補助関数
 // _scは0,25,50,75,100のいずれかで、0だとスケールしない
 //int  SaveAnnotations(HWND hWnd, int _sc);
-int  SaveAnnotations(HWND hWnd, std::wstring _title, int _sc);
 
 /////////////////////////////////////////////////////////////////////////
 //  関数: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -250,17 +250,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
         case IDM_SAVE_LABELS:
 		{
-			SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください", 0); // アノテーションデータを保存する関数を呼び出す
+			SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください", 1.0f); // アノテーションデータを保存する関数を呼び出す
         }
         break;
 
+        case IDM_SAVE_LABELS_13:
+        {
+            std::wstring _msg = L"保存先に注意してください。\nスケールをかけてラベル出力します。\n1.13倍で保存します。";
+            int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
+            if (_ID == IDOK)
+            {
+                SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+13%)", 1.13f); // アノテーションデータを保存する関数を呼び出す
+            }
+        }
+        break;
         case IDM_SAVE_LABELS_25:
         {
             std::wstring _msg = L"保存先に注意してください。\nスケールをかけてラベル出力します。\n1.25倍で保存します。";
             int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
             if (_ID == IDOK)
             {
-                SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+25%)", 25); // アノテーションデータを保存する関数を呼び出す
+                SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+25%)", 1.25f); // アノテーションデータを保存する関数を呼び出す
             }
         }
         break;
@@ -270,7 +280,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
 			if (_ID == IDOK)
 			{
-				SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+50%)", 50); // アノテーションデータを保存する関数を呼び出す
+				SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+50%)", 1.50f); // アノテーションデータを保存する関数を呼び出す
 			}
 		}
 		break;
@@ -280,7 +290,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
 			if (_ID == IDOK)
 			{
-				SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+75%)", 75); // アノテーションデータを保存する関数を呼び出す
+				SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+75%)", 1.75f); // アノテーションデータを保存する関数を呼び出す
 			}
 		}
 		break;
@@ -290,8 +300,50 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
 			if (_ID == IDOK)
 			{
-				SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+100%)", 100); // アノテーションデータを保存する関数を呼び出す
+				SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+100%)", 2.0f); // アノテーションデータを保存する関数を呼び出す
 			}
+		}
+        break;
+		case IDM_NOSAVE_SMALL00: // 全て保存
+		{
+			GP.minimumLabelSize = 0.0f; // 最小サイズ制限を解除
+			int _ID = MessageBox(hWnd, L"全てのオブジェクトを保存します。", L"注意", MB_OKCANCEL);
+		}
+		break;
+		case IDM_NOSAVE_SMALL010: // 小さいラベルを保存しない
+		{
+			GP.minimumLabelSize = 0.01f; // 画面比1%以下の小さいオブジェクトを保存しない
+			int _ID = MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比1%以下)を消して保存します。", L"注意", MB_OKCANCEL);
+		}
+		break;
+        case IDM_NOSAVE_SMALL015: // 小さいラベルを保存しない
+        {
+			GP.minimumLabelSize = 0.015f; // 画面比1.5%以下の小さいオブジェクトを保存しない
+            int _ID = MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比1.5%以下)を消して保存します。", L"注意", MB_OKCANCEL);
+        }
+		break;
+		case IDM_NOSAVE_SMALL02: // 小さいラベルを保存しない
+		{
+			GP.minimumLabelSize = 0.02f; // 画面比2%以下の小さいオブジェクトを保存しない
+			int _ID = MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比2%以下)を消して保存します。", L"注意", MB_OKCANCEL);
+		}
+		break;
+		case IDM_NOSAVE_SMALL03: // 小さいラベルを保存しない
+		{
+			GP.minimumLabelSize = 0.03f; // 画面比3%以下の小さいオブジェクトを保存しない
+			int _ID = MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比3%以下)を消して保存します。", L"注意", MB_OKCANCEL);
+		}
+		break;
+		case IDM_NOSAVE_SMALL05: // 小さいラベルを保存しない
+		{
+			GP.minimumLabelSize = 0.05f; // 画面比5%以下の小さいオブジェクトを保存しない
+			int _ID = MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比5%以下)を消して保存します。", L"注意", MB_OKCANCEL);
+		}
+		break;
+		case IDM_NOSAVE_SMALL10: // 小さいラベルを保存しない
+		{
+			GP.minimumLabelSize = 0.1f; // 画面比10%以下の小さいオブジェクトを保存しない
+			int _ID = MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比10%以下)を消して保存します。", L"注意", MB_OKCANCEL);
 		}
 
         case IDM_LOAD_IMAGES:
@@ -710,7 +762,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case VK_LEFT:
             if (GP.imgObjs.size() > 0) {
 				// 前の画像に移動する前に、現在のラベルを保存
-                SaveLabelsToFileSingle(hWnd, GP.imgIdx);
+                // 自動保存の場合は全て保存
+                SaveLabelsToFileSingle(hWnd, GP.imgIdx, 0.0f);
+                // 次の画像に移動 stepの値分だけ移動する
                 GP.imgIdx = (GP.imgIdx + GP.imgObjs.size() - step) % GP.imgObjs.size();
                 SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
             }
@@ -731,8 +785,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                         }
                     }
                 }
-                SaveLabelsToFileSingle(hWnd, GP.imgIdx);        // 前の画像に移動する前に、現在のラベルを保存
-                GP.imgIdx = (GP.imgIdx + step) % GP.imgObjs.size(); // 次の画像に移動 stepの値分だけ移動する
+                // 前の画像に移動する前に、現在のラベルを保存
+                // 自動保存の場合は全て保存
+                SaveLabelsToFileSingle(hWnd, GP.imgIdx, 0.0f);     
+                // 次の画像に移動 stepの値分だけ移動する
+                GP.imgIdx = (GP.imgIdx + step) % GP.imgObjs.size();
                 SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
             }
             break;
@@ -1204,61 +1261,6 @@ int CreatePopupMenuFor_Labels_in_CurrentImage(HWND hWnd)
 }
 
 
-///////////////////////////////////////////////////////////////////////
-// ファイル保存ダイアログを表示
-int  SaveAnnotations(HWND hWnd, std::wstring _title, int _sc)
-{
-    std::wstring _folderpath;
-
-    //すべてのラベルオブジェクトをスケーリングする
-    if (_sc != 0)
-    {
-        for (auto& _imgObj : GP.imgObjs)
-        {
-            for (auto& _labelObj : _imgObj.objs)
-            {
-                if (_sc == 25) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.25, 1.25);
-                else if (_sc == 50) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.5, 1.5);
-                else if (_sc == 75) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.75, 1.75);
-                else if (_sc == 100) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 2.0, 2.0);
-            }
-        }
-    }
-
-	//この関数でレジストリにフォルダパスを保存をしている。
-    //_folderpath = GetFolderPathIF(hWnd, GP.labelFolderPath, L"書込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
-    _folderpath = GetFolderPathIFR(hWnd, GP.labelFolderPath, _title); // フォルダ選択ダイアログを表示
-
-    // フォルダ選択ダイアログを表示
-    if (!_folderpath.empty()) {
-        int _saveok = MessageBoxW(hWnd, L"保存しますか？", L"確認", MB_OKCANCEL);
-        if (_saveok == IDOK)
-        {
-            GP.labelFolderPath = _folderpath; // フォルダパスを指定
-            //タイトルバーに編集中の画像とラベルのパスを表示
-            SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.activeIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
-
-            // フォルダが選択された場合、アノテーションデータを保存
-            for (size_t i = 0; i < GP.imgObjs.size(); i++)
-            {
-                // ファイル名
-                std::wstring _fileName1;
-                std::wstring _fileName2;
-
-                _fileName1 = GetFileNameFromPath(GP.imgObjs[i].path);
-                _fileName2 = _folderpath + L"\\" + _fileName1 + L".txt";
-
-                bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[i].objs, _sc, 1);
-                if (!_ret)
-                {
-                    // 保存失敗
-                    MessageBox(hWnd, L"保存失敗", L"失敗", MB_OK);
-                }
-            }
-        }
-    }
-    return 0; // 成功
-}
 
 ///////////////////////////////////////////////////////////////////////
 // 描画処理を行う関数
@@ -1317,3 +1319,64 @@ void DoPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, size_t _idx)
     DrawCrosshairLines(hWnd);
 }
 
+///////////////////////////////////////////////////////////////////////
+// ファイル保存ダイアログを表示
+// この関数はWinProcの一部という位置づけ
+// GP.minimumLabelSize に注意
+int  SaveAnnotations(HWND hWnd, std::wstring _title, float _sc) // 最小サイズ制限（デフォルトはなし）
+{
+    std::wstring _folderpath;
+
+    //すべてのラベルオブジェクトをスケーリングする
+    if (_sc != 0)
+    {
+        for (auto& _imgObj : GP.imgObjs)
+        {
+            for (auto& _labelObj : _imgObj.objs)
+            {
+                SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, _sc, _sc);
+
+                //if (_sc == 13) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.13, 1.13);
+                //else if (_sc == 25) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.25, 1.25);
+                //else if (_sc == 50) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.5, 1.5);
+                //else if (_sc == 75) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.75, 1.75);
+                //else if (_sc == 100) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 2.0, 2.0);
+            }
+        }
+    }
+
+    //この関数でレジストリにフォルダパスを保存をしている。
+    //_folderpath = GetFolderPathIF(hWnd, GP.labelFolderPath, L"書込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
+    _folderpath = GetFolderPathIFR(hWnd, GP.labelFolderPath, _title); // フォルダ選択ダイアログを表示
+
+    // フォルダ選択ダイアログを表示
+    if (!_folderpath.empty()) {
+        int _saveok = MessageBoxW(hWnd, L"保存しますか？", L"確認", MB_OKCANCEL);
+        if (_saveok == IDOK)
+        {
+            GP.labelFolderPath = _folderpath; // フォルダパスを指定
+            //タイトルバーに編集中の画像とラベルのパスを表示
+            SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.activeIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
+
+            // フォルダが選択された場合、アノテーションデータを保存
+            for (size_t i = 0; i < GP.imgObjs.size(); i++)
+            {
+                // ファイル名
+                std::wstring _fileName1;
+                std::wstring _fileName2;
+
+                _fileName1 = GetFileNameFromPath(GP.imgObjs[i].path);
+                _fileName2 = _folderpath + L"\\" + _fileName1 + L".txt";
+
+                bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[i].objs, _sc, GP.minimumLabelSize, 1);
+                if (!_ret)
+                {
+                    // 保存失敗
+                    MessageBox(hWnd, L"保存失敗", L"失敗", MB_OK);
+                }
+            }
+            GP.minimumLabelSize = 0.0f; // 最小サイズ制限を設定
+        }
+    }
+    return 0; // 成功
+}
