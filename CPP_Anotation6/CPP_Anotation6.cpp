@@ -188,6 +188,9 @@ void ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX);
 int CreatePopupMenuFor_Labels_in_CurrentImage(HWND hWnd);
 
 /////////////////////////////////////////////////////////////////////////
+void CheckMenu(HWND hWnd, int _IDM, bool _sw);
+
+/////////////////////////////////////////////////////////////////////////
 // アノテーションデータを保存する関数 WM_Procの補助関数
 // _scは0,25,50,75,100のいずれかで、0だとスケールしない
 //int  SaveAnnotations(HWND hWnd, int _sc);
@@ -211,8 +214,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         LoadImageFiles(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
         SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, 0, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
 
-        break;
+    break;
+    case WM_INITMENUPOPUP:
+	{	
+        // ポップアップメニューの初期化
+		HMENU hMenu = GetMenu(hWnd);
+        CheckMenu(hWnd, IDM_NOSAVE_SMALL00, (GP.minimumLabelSize == 0.0f)); // メニューのチェック状態を更新
+        CheckMenu(hWnd, IDM_NOSAVE_SMALL010, (GP.minimumLabelSize == 0.01f)); // メニューのチェック状態を更新
+        CheckMenu(hWnd, IDM_NOSAVE_SMALL015, (GP.minimumLabelSize == 0.015f)); // メニューのチェック状態を更新
+        CheckMenu(hWnd, IDM_NOSAVE_SMALL02, (GP.minimumLabelSize == 0.02f)); // メニューのチェック状態を更新
+        CheckMenu(hWnd, IDM_NOSAVE_SMALL03, (GP.minimumLabelSize == 0.03f)); // メニューのチェック状態を更新
+        CheckMenu(hWnd, IDM_NOSAVE_SMALL05, (GP.minimumLabelSize == 0.05f)); // メニューのチェック状態を更新
+        CheckMenu(hWnd, IDM_NOSAVE_SMALL10, (GP.minimumLabelSize == 0.1f)); // メニューのチェック状態を更新
+        CheckMenu(hWnd, IDM_NOSAVE_OR_CORRECT, GP.isMinimumLabelCrrect); // メニューのチェック状態を更新
+        // メニュー表示を更新
+        DrawMenuBar(hWnd);
+    }
 
+    break;
     case WM_COMMAND:
     {
         int wmId = LOWORD(wParam);
@@ -307,45 +326,60 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case IDM_NOSAVE_SMALL00: // 全て保存
 		{
 			GP.minimumLabelSize = 0.0f; // 最小サイズ制限を解除
-			int _ID = MessageBox(hWnd, L"全てのオブジェクトを保存します。", L"注意", MB_OKCANCEL);
-		}
+            if(GP.minimumLabelSize == 0.0f)
+                MessageBox(hWnd, L"全てのオブジェクトを保存します。", L"注意", MB_OKCANCEL);
+        }
 		break;
 		case IDM_NOSAVE_SMALL010: // 小さいラベルを保存しない
 		{
 			GP.minimumLabelSize = 0.01f; // 画面比1%以下の小さいオブジェクトを保存しない
-			int _ID = MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比1%以下)を消して保存します。", L"注意", MB_OKCANCEL);
+			if (GP.minimumLabelSize == 0.01f)
+                MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比1%以下)を消して保存します。", L"注意", MB_OKCANCEL);
 		}
 		break;
         case IDM_NOSAVE_SMALL015: // 小さいラベルを保存しない
         {
 			GP.minimumLabelSize = 0.015f; // 画面比1.5%以下の小さいオブジェクトを保存しない
-            int _ID = MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比1.5%以下)を消して保存します。", L"注意", MB_OKCANCEL);
+			if (GP.minimumLabelSize == 0.015f) 
+                MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比1.5%以下)を消して保存します。", L"注意", MB_OKCANCEL);
         }
 		break;
 		case IDM_NOSAVE_SMALL02: // 小さいラベルを保存しない
 		{
 			GP.minimumLabelSize = 0.02f; // 画面比2%以下の小さいオブジェクトを保存しない
-			int _ID = MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比2%以下)を消して保存します。", L"注意", MB_OKCANCEL);
+            if (GP.minimumLabelSize == 0.02f)
+                MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比2%以下)を消して保存します。", L"注意", MB_OKCANCEL);
 		}
 		break;
 		case IDM_NOSAVE_SMALL03: // 小さいラベルを保存しない
 		{
 			GP.minimumLabelSize = 0.03f; // 画面比3%以下の小さいオブジェクトを保存しない
-			int _ID = MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比3%以下)を消して保存します。", L"注意", MB_OKCANCEL);
+            if (GP.minimumLabelSize == 0.03f)
+                MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比3%以下)を消して保存します。", L"注意", MB_OKCANCEL);
 		}
 		break;
 		case IDM_NOSAVE_SMALL05: // 小さいラベルを保存しない
 		{
 			GP.minimumLabelSize = 0.05f; // 画面比5%以下の小さいオブジェクトを保存しない
-			int _ID = MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比5%以下)を消して保存します。", L"注意", MB_OKCANCEL);
+            if (GP.minimumLabelSize == 0.05f)
+                MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比5%以下)を消して保存します。", L"注意", MB_OKCANCEL);
 		}
 		break;
 		case IDM_NOSAVE_SMALL10: // 小さいラベルを保存しない
 		{
 			GP.minimumLabelSize = 0.1f; // 画面比10%以下の小さいオブジェクトを保存しない
-			int _ID = MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比10%以下)を消して保存します。", L"注意", MB_OKCANCEL);
+            if (GP.minimumLabelSize == 0.1f)
+                MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比10%以下)を消して保存します。", L"注意", MB_OKCANCEL);
 		}
-
+        break;
+        case IDM_NOSAVE_OR_CORRECT: 
+        {
+            if (GP.isMinimumLabelCrrect)
+                GP.isMinimumLabelCrrect = false;
+            else
+                GP.isMinimumLabelCrrect = true;
+        }
+        break;
         case IDM_LOAD_IMAGES:
         {
             GP.imgFolderPath = GetFolderPathIFR(hWnd, L"読込イメージフォルダを選択してください"); // フォルダ選択ダイアログを表示
@@ -1375,8 +1409,26 @@ int  SaveAnnotations(HWND hWnd, std::wstring _title, float _sc) // 最小サイ�
                     MessageBox(hWnd, L"保存失敗", L"失敗", MB_OK);
                 }
             }
-            GP.minimumLabelSize = 0.0f; // 最小サイズ制限を設定
+			if (GP.minimumLabelSize != 0.0f)
+			{
+				// 最小サイズ制限を設定
+				GP.minimumLabelSize = 0.0f; // 保存後は最小サイズ制限をリセット
+                MessageBox(hWnd, L"最小サイズ制限をリセットしました", L"お知らせ", MB_OK);
+			}
         }
     }
     return 0; // 成功
+}
+
+void CheckMenu(HWND hWnd, int _IDM, bool _sw)
+{
+    HMENU hMenu = GetMenu(hWnd);
+    UINT uState = _sw ? MF_CHECKED : MF_UNCHECKED;
+    // チェック状態をセット
+    CheckMenuItem(
+        hMenu,
+        _IDM,
+        MF_BYCOMMAND |
+        uState
+    );
 }

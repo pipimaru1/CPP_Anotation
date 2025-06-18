@@ -473,7 +473,7 @@ std::wstring GetFolderPathIFR(
 // wchar_t → UTF-8 の変換（C++17 の場合）
 std::string LabelsToString(
     const LabelObj& obj, 
-	int mode, // 0:default, 1:
+	int mode, // 0:default, 1:Yolo
 	int _sc, // 0:正規化、1:スケールされた矩形を使用
 	float minimumsize // 最小サイズ制限（デフォルトはなし）
 )
@@ -485,11 +485,24 @@ std::string LabelsToString(
     else
 		_rct = obj.Rct; // 正規化された矩形を使用
 
-	if (minimumsize > 0) {
-		// 最小サイズ制限を適用
-		if (_rct.Width < minimumsize || _rct.Height < minimumsize) {
-			return ""; // サイズが小さすぎる場合は空文字列を返す
-		}
+	if (minimumsize > 0){
+        if (GP.isMinimumLabelCrrect){ //最小サイズ補正
+            if (obj.Rct.Width < minimumsize)
+            {
+				_rct.X = obj.Rct.X - (minimumsize - obj.Rct.Width) / 2; // 中央寄せ
+                _rct.Width = minimumsize; // 最小幅制限
+            }
+            if (obj.Rct.Height < minimumsize)
+            {
+				_rct.Y = obj.Rct.Y - (minimumsize - obj.Rct.Height) / 2; // 中央寄せ
+                _rct.Height = minimumsize; // 最小高さ制限
+            }
+        }else{
+            // 最小サイズ制限を適用 正規化された矩形で判定
+            if (obj.Rct.Width < minimumsize || obj.Rct.Height < minimumsize){
+                return ""; // サイズが小さすぎる場合は空文字列を返しておしまい
+            }
+        }
 	}
 
     // 数値とスペースだけなので、普通の narrow string で OK
@@ -1157,10 +1170,6 @@ void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labe
     SetWindowText(hWnd, title.c_str());
     return;
 }
-
-
-
-
 
 ///////////////////////////////////////////////////////////////////////
 // TaskDialogIndirectを使ってダイアログボックスを表示する関数

@@ -113,8 +113,8 @@ struct GlobalParams
     ~GlobalParams();
 
     //最小保存ラベルサイズ
-	float minimumLabelSize = 0.05f; // 最小サイズ制限 メニューで指定したときのみ
-
+	float minimumLabelSize = 0.0f; // 最小サイズ制限 メニューで指定したときのみ
+	bool isMinimumLabelCrrect = true; // 最小サイズ補正
 };
 
 extern GlobalParams GP;
