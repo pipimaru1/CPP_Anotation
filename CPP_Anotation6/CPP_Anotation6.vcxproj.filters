@@ -67,4 +67,9 @@
       <Filter>リソース ファイル</Filter>
     </Image>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\coco80.txt" />
+    <Text Include="..\TimeStudy.txt" />
+    <Text Include="..\TimeStudyW.txt" />
+  </ItemGroup>
 </Project>
