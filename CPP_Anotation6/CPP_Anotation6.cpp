@@ -1183,6 +1183,7 @@ void ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX )
         {
             // オブジェクトを削除
             GP.imgObjs[GP.imgIdx].objs.erase(GP.imgObjs[GP.imgIdx].objs.begin() + activeObjectIDX);
+            GP.imgObjs[GP.imgIdx].isEdited = true; // 編集フラグを立てる
         }
         else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1) // CANCEL
             return;

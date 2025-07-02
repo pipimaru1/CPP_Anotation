@@ -31,6 +31,11 @@ using namespace Gdiplus;
 #include <pathcch.h>      // Windows 8 SDK 以降
 #include <commctrl.h>
 #include <set>
+#include <iostream>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+
 
 #include <omp.h>    // ← 追加
 

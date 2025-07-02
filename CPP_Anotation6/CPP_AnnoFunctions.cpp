@@ -5,6 +5,51 @@
 #include "CPP_Anotation6.h"
 
 #pragma comment(lib, "Pathcch.lib")
+#pragma comment(lib,"winmm.lib")
+
+//Windowsの音
+wchar_t sound[39][2][256] = {
+    {L"NFP 完了",                          L"Notification.Proximity" },
+    {L"NFP 接続",                          L"ProximityConnection" },
+    {L"Windows の終了",                    L"SystemExit" },
+    {L"Windows の起動",                    L"SystemStart" },
+    {L"Windows テーマの変更",              L"ChangeTheme" },
+    {L"Windows ユーザー アカウント制御",   L"WindowsUAC" },
+    {L"Windows ログオフ",                  L"WindowsLogoff" },
+    {L"Windows ログオン",                  L"WindowsLogon" },
+    {L"インスタント メッセージの通知",     L"Notification.IM" },
+    {L"システム エラー",                   L"SystemHand" },
+    {L"システム通知",                      L"SystemNotification" },
+    {L"ツール バー バンドの表示",          L"ShowBand" },
+    {L"デスクトップ メールの通知",         L"MailBeep" },
+    {L"デバイスの切断",                    L"DeviceDisconnect" },
+    {L"デバイスの接続",                    L"DeviceConnect" },
+    {L"デバイスの接続の失敗",              L"DeviceFail" },
+    {L"バッテリ低下アラーム",              L"LowBatteryAlarm" },
+    {L"バッテリ切れアラーム",              L"CriticalBatteryAlarm" },
+    {L"プログラム エラー",                 L"AppGPFault" },
+    {L"プログラムの終了",                  L"Close" },
+    {L"プログラムの起動",                  L"Open" },
+    {L"メッセージ (問い合わせ)",           L"SystemQuestion" },
+    {L"メッセージ (情報)",                 L"SystemAsterisk" },
+    {L"メッセージ (警告)",                 L"SystemExclamation" },
+    {L"メッセージのシェイク",              L"MessageNudge" },
+    {L"メニュー コマンド",                 L"MenuCommand" },
+    {L"メニュー ポップアップ",             L"MenuPopup" },
+    {L"一般の警告音",                      L".Default" },
+    {L"予定表のアラーム",                  L"Notification.Reminder" },
+    {L"元に戻す (拡大)",                   L"RestoreUp" },
+    {L"元に戻す (縮小)",                   L"RestoreDown" },
+    {L"印刷完了",                          L"PrintComplete" },
+    {L"新着テキスト メッセージの通知",     L"Notification.SMS" },
+    {L"新着ファックスの通知",              L"FaxBeep" },
+    {L"新着メールの通知",                  L"Notification.Mail" },
+    {L"最大化",                            L"Maximize" },
+    {L"最小化",                            L"Minimize" },
+    {L"通知",                              L"Notification.Default" },
+    {L"選択",                              L"CCSelect" }
+};
+
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -585,6 +630,28 @@ bool SaveLabelsToFile(
 //    return true;
 //}
 //
+std::wstring get_now_time_string()
+{
+    // 現在時刻を SYSTEMTIME で取得
+    SYSTEMTIME st;
+    GetLocalTime(&st);
+
+    // std::tm に変換
+    std::tm tm{};
+    tm.tm_year = st.wYear - 1900;  // 年は 1900 起点
+    tm.tm_mon = st.wMonth - 1;     // 月は 0-11
+    tm.tm_mday = st.wDay;
+    tm.tm_hour = st.wHour;
+    tm.tm_min = st.wMinute;
+    tm.tm_sec = st.wSecond;
+    tm.tm_isdst = -1; // 夏時間の自動判定
+    // std::mktime でタイムスタンプに変換
+    //std::time_t now = std::mktime(&tm);
+    // std::put_time を使ってフォーマット
+    std::wostringstream oss;
+    oss << std::put_time(&tm, L"%Y-%m-%d %H:%M:%S");
+    return oss.str(); // std::wstring で返す
+}
 
 ///////////////////////////////////////////////////////////////////////
 // LabelObjの文字列をファイル保存する関数
@@ -602,7 +669,23 @@ bool SaveLabelsToFileSingle(HWND hWnd, size_t _idx, float minimumsize) // 最小サ
         if (_ret) {
             //編集フラグをリセット
             GP.imgObjs[GP.imgIdx].isEdited = false;
-			return true;
+            //MessageBeep(0x010L);  // MB_OKは「ポン」という標準音（クリック音に近い）
+            PlaySound(sound[15][1], NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT); // 鳴らす  
+
+            //書き込んだファイル名を"records.log"に書き込む
+            //日時、ファイル名、ラベルの数
+            std::wstring logFile = GP.labelFolderPath + L"\\records.log";
+            std::wofstream logStream(logFile, std::ios::app);
+            if (logStream.is_open()) {
+                SYSTEMTIME st;
+                GetLocalTime(&st);
+                logStream << get_now_time_string() << L" "
+                    << L"ANNOTATIONS:" << GP.imgObjs[GP.imgIdx].objs.size() << L" "
+                    << GP.labelFolderPath + L"\\" + _fileName1 << std::endl;
+                logStream.close();
+            }
+
+            return true;
         }
         else {
             // 保存失敗
@@ -1197,3 +1280,4 @@ void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labe
 //	TaskDialogIndirect(&tdc, &nButtonPressed, nullptr, &bCheckBoxChecked);
 //	return nButtonPressed; // 戻り値は、IDYES, IDNO, IDCHECKBOX
 //}
+
