@@ -56,6 +56,7 @@
 //2300まではオブジェクト選択メニュー用
 #define IDM_PMENU_LABEL_BASE	2200 //オブジェクト選択メニュー
 #define IDM_PMENU_LABEL00		2201 //オブジェクト選択メニュー
+#define ID_ANNOT_JUMP_IGNOREBOX 2202 //異常ラベルまでジャンプ
 
 #define IDT_COMPARE				3001 // 比較用タイマーID
 

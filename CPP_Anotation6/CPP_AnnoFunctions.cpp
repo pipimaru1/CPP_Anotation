@@ -8,7 +8,7 @@
 #pragma comment(lib,"winmm.lib")
 
 //Windowsの音
-wchar_t sound[39][2][256] = {
+wchar_t SOUND_ARRY[39][2][256] = {
     {L"NFP 完了",                          L"Notification.Proximity" },
     {L"NFP 接続",                          L"ProximityConnection" },
     {L"Windows の終了",                    L"SystemExit" },
@@ -670,7 +670,7 @@ bool SaveLabelsToFileSingle(HWND hWnd, size_t _idx, float minimumsize) // 最小サ
             //編集フラグをリセット
             GP.imgObjs[GP.imgIdx].isEdited = false;
             //MessageBeep(0x010L);  // MB_OKは「ポン」という標準音（クリック音に近い）
-            PlaySound(sound[15][1], NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT); // 鳴らす  
+            PlaySound(SOUND_ARRY[15][1], NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT); // 鳴らす  
 
             //書き込んだファイル名を"records.log"に書き込む
             //日時、ファイル名、ラベルの数
@@ -1281,3 +1281,47 @@ void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labe
 //	return nButtonPressed; // 戻り値は、IDYES, IDNO, IDCHECKBOX
 //}
 
+// minx, miny は「これ以下なら NG」とみなす最小幅・最小高さ
+// #include "CPP_Anotation6.h"  // ImgObject/LabelObj 定義 :contentReference[oaicite:0]{index=0}
+
+// _startIdx: 検索開始の画像インデックス（既定は 0）
+// minW/minH: 幅・高さの閾値（正規化済み or ピクセルに合わせて）
+std::optional<size_t> jumpImgWithIgnoreBox(
+    const std::vector<ImgObject>& imgObjs,
+    size_t _startIdx ,
+    float minW ,
+    float minH )
+{
+    if (_startIdx >= imgObjs.size())
+        return std::nullopt;
+
+    for (size_t imgIdx = _startIdx; imgIdx < imgObjs.size(); ++imgIdx)
+    {
+        const auto& img = imgObjs[imgIdx];
+        for (const auto& lb : img.objs)
+        {
+            // スケール後矩形 or ノーマル矩形を選択
+            //const auto& rc = (lb.Rct_Scale.Width > 0 && lb.Rct_Scale.Height > 0)
+            //    ? lb.Rct_Scale
+            //    : lb.Rct;
+            //const auto& rc = lb.Rct;
+            //if (rc.Width <= minW || rc.Height <= minH)
+            //    return imgIdx;
+            if(isIgnoreBox(lb, minW, minH))
+            {
+                return imgIdx; // 最初に見つかった画像インデックスを返す
+			}
+        }
+    }
+    return std::nullopt;
+}
+
+bool isIgnoreBox(
+    const LabelObj& obj,
+    float minW,
+    float minH)
+{    
+	bool _ret = false;
+    _ret = (obj.Rct.Width <= minW || obj.Rct.Height <= minH);
+    return _ret;
+}

@@ -34,7 +34,7 @@ using namespace Gdiplus;
 #include <iostream>
 #include <chrono>
 #include <ctime>
-#include <iomanip>
+#include <optional>
 
 
 #include <omp.h>    // ← 追加

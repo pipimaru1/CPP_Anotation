@@ -22,7 +22,8 @@ public:
 	int 		        penWidth; // ペンの幅
 	Gdiplus::DashStyle  dashStyle; // ダッシュスタイル
 
-    bool mOver; //マウスがオーバーラップしているときの辺を表す
+    bool mOver;                 //マウスがオーバーラップしているときの辺を表す
+    //bool isAbnormal = false;    // 異常フラグ：true のとき目立つように描画
 
 	// コンストラクタ
     LabelObj();
@@ -115,6 +116,13 @@ struct GlobalParams
     //最小保存ラベルサイズ
 	float minimumLabelSize = 0.0f; // 最小サイズ制限 メニューで指定したときのみ
 	bool isMinimumLabelCrrect = true; // 最小サイズ補正
+
+	float MINSIZEW = 8.0f; // 最小幅
+    float MINSIZEH = 8.0f; // 最小高さ
+
+    float IMGSIZEW = 640.0f; // 画像の幅
+    float IMGSIZEH = 640.0f; // 画像の高さ
+
 };
 
 extern GlobalParams GP;

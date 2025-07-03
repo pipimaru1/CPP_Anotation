@@ -125,3 +125,8 @@ void DoPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, size_t _idx);
 
 ///////////////////////////////////////////////////////////////////////
 int  SaveAnnotations(HWND hWnd, std::wstring _title, float _sc);
+
+///////////////////////////////////////////////////////////////////////
+std::optional<size_t> jumpImgWithIgnoreBox(const std::vector<ImgObject>& imgObjs,size_t _startIdx = 0,float minW = 1.0f,float minH = 1.0f);
+bool isIgnoreBox(const LabelObj& obj, float minW, float minH);
+

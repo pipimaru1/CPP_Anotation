@@ -230,8 +230,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // メニュー表示を更新
         DrawMenuBar(hWnd);
     }
-
     break;
+
+    ///////////////////////////////////////////////////////////
+	//
+    // WM_COMMAND メッセージの処理
+    // 
+    ///////////////////////////////////////////////////////////
     case WM_COMMAND:
     {
         int wmId = LOWORD(wParam);
@@ -248,182 +253,212 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // 選択されたメニューの解析:
         switch (wmId)
         {
-        case IDM_LOAD_LABELS:
-		{
-			// ファイルオープンダイアログを表示
-            std::wstring _folderpath;
-            _folderpath = GetFolderPathIFR(hWnd, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
+            case IDM_LOAD_LABELS:
+		    {
+			    // ファイルオープンダイアログを表示
+                std::wstring _folderpath;
+                _folderpath = GetFolderPathIFR(hWnd, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
 
-            // フォルダ選択ダイアログを表示
-            if (!_folderpath.empty()) 
-            {
-                GP.labelFolderPath = _folderpath; // フォルダパスを指定
+                // フォルダ選択ダイアログを表示
+                if (!_folderpath.empty()) 
+                {
+                    GP.labelFolderPath = _folderpath; // フォルダパスを指定
 
-                // フォルダが選択された場合、アノテーションデータを読み込み
-                LoadLabelFilesMP(GP.imgObjs, GP.labelFolderPath, L".txt", 1);
+                    // フォルダが選択された場合、アノテーションデータを読み込み
+                    LoadLabelFilesMP(GP.imgObjs, GP.labelFolderPath, L".txt", 1);
 
-                //タイトルバーに編集中の画像とラベルのパスを表示
-                SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
+                    //タイトルバーに編集中の画像とラベルのパスを表示
+                    SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
+                }
+		    }
+		    break;
+            case IDM_SAVE_LABELS:
+		    {
+			    SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください", 1.0f); // アノテーションデータを保存する関数を呼び出す
             }
-		}
-		break;
-        case IDM_SAVE_LABELS:
-		{
-			SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください", 1.0f); // アノテーションデータを保存する関数を呼び出す
-        }
-        break;
-
-        case IDM_SAVE_LABELS_13:
-        {
-            std::wstring _msg = L"保存先に注意してください。\nスケールをかけてラベル出力します。\n1.13倍で保存します。";
-            int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
-            if (_ID == IDOK)
-            {
-                SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+13%)", 1.13f); // アノテーションデータを保存する関数を呼び出す
-            }
-        }
-        break;
-        case IDM_SAVE_LABELS_25:
-        {
-            std::wstring _msg = L"保存先に注意してください。\nスケールをかけてラベル出力します。\n1.25倍で保存します。";
-            int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
-            if (_ID == IDOK)
-            {
-                SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+25%)", 1.25f); // アノテーションデータを保存する関数を呼び出す
-            }
-        }
-        break;
-		case IDM_SAVE_LABELS_50:
-		{
-			std::wstring _msg = L"保存先に注意してください。\nスケールをかけてラベル出力します。\n1.5倍で保存します。";
-			int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
-			if (_ID == IDOK)
-			{
-				SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+50%)", 1.50f); // アノテーションデータを保存する関数を呼び出す
-			}
-		}
-		break;
-		case IDM_SAVE_LABELS_75:
-		{
-			std::wstring _msg = L"保存先に注意してください。\nスケールをかけてラベル出力します。\n1.75倍で保存します。";
-			int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
-			if (_ID == IDOK)
-			{
-				SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+75%)", 1.75f); // アノテーションデータを保存する関数を呼び出す
-			}
-		}
-		break;
-		case IDM_SAVE_LABELS_100:
-		{
-			std::wstring _msg = L"保存先に注意してください。\nスケールをかけてラベル出力します。\n2.0倍で保存します。";
-			int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
-			if (_ID == IDOK)
-			{
-				SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+100%)", 2.0f); // アノテーションデータを保存する関数を呼び出す
-			}
-		}
-        break;
-		case IDM_NOSAVE_SMALL00: // 全て保存
-		{
-			GP.minimumLabelSize = 0.0f; // 最小サイズ制限を解除
-            if(GP.minimumLabelSize == 0.0f)
-                MessageBox(hWnd, L"全てのオブジェクトを保存します。", L"注意", MB_OKCANCEL);
-        }
-		break;
-		case IDM_NOSAVE_SMALL010: // 小さいラベルを保存しない
-		{
-			GP.minimumLabelSize = 0.01f; // 画面比1%以下の小さいオブジェクトを保存しない
-			if (GP.minimumLabelSize == 0.01f)
-                MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比1%以下)を消して保存します。", L"注意", MB_OKCANCEL);
-		}
-		break;
-        case IDM_NOSAVE_SMALL015: // 小さいラベルを保存しない
-        {
-			GP.minimumLabelSize = 0.015f; // 画面比1.5%以下の小さいオブジェクトを保存しない
-			if (GP.minimumLabelSize == 0.015f) 
-                MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比1.5%以下)を消して保存します。", L"注意", MB_OKCANCEL);
-        }
-		break;
-		case IDM_NOSAVE_SMALL02: // 小さいラベルを保存しない
-		{
-			GP.minimumLabelSize = 0.02f; // 画面比2%以下の小さいオブジェクトを保存しない
-            if (GP.minimumLabelSize == 0.02f)
-                MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比2%以下)を消して保存します。", L"注意", MB_OKCANCEL);
-		}
-		break;
-		case IDM_NOSAVE_SMALL03: // 小さいラベルを保存しない
-		{
-			GP.minimumLabelSize = 0.03f; // 画面比3%以下の小さいオブジェクトを保存しない
-            if (GP.minimumLabelSize == 0.03f)
-                MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比3%以下)を消して保存します。", L"注意", MB_OKCANCEL);
-		}
-		break;
-		case IDM_NOSAVE_SMALL05: // 小さいラベルを保存しない
-		{
-			GP.minimumLabelSize = 0.05f; // 画面比5%以下の小さいオブジェクトを保存しない
-            if (GP.minimumLabelSize == 0.05f)
-                MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比5%以下)を消して保存します。", L"注意", MB_OKCANCEL);
-		}
-		break;
-		case IDM_NOSAVE_SMALL10: // 小さいラベルを保存しない
-		{
-			GP.minimumLabelSize = 0.1f; // 画面比10%以下の小さいオブジェクトを保存しない
-            if (GP.minimumLabelSize == 0.1f)
-                MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比10%以下)を消して保存します。", L"注意", MB_OKCANCEL);
-		}
-        break;
-        case IDM_NOSAVE_OR_CORRECT: 
-        {
-            if (GP.isMinimumLabelCrrect)
-                GP.isMinimumLabelCrrect = false;
-            else
-                GP.isMinimumLabelCrrect = true;
-        }
-        break;
-        case IDM_LOAD_IMAGES:
-        {
-            GP.imgFolderPath = GetFolderPathIFR(hWnd, L"読込イメージフォルダを選択してください"); // フォルダ選択ダイアログを表示
-
-            if (!GP.imgFolderPath.empty()) {
-				// 画像ファイルのパスと矩形の配列をクリア
-                GP.imgObjs.clear();
-                // フォルダが選択された場合、画像ファイルを取得
-                LoadImageFilesMP(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
-                SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size() ); // タイトルバーに画像のパスを表示
-
-                GP.imgIdx = 0; // インデックスをリセット
-            }
-            // 再描画
-            InvalidateRect(hWnd, NULL, TRUE);
-        }
-        break;
-
-        case IDM_LOAD_CLASSIFICATION:
-		{
-			//クラシフィケーションファイルを読込
-			std::wstring _filepath;
-			_filepath = GetFileName(hWnd, L"クラス分類ファイルを読込", 0);
-			if (!_filepath.empty()) {
-				// クラシフィケーションファイルを読込
-				LoadClassification(_filepath, GP.ClsNames, GP.ClsColors, GP.ClsDashStyles, GP.ClsPenWidths, 0);//0=読み込み、1=書き込み
-			}
-		}
-		break;
-
-        // 現在のイメージのラベリングされたオブジェクトの一覧のポップアップメニューを作成する
-        case IDM_PMENU_LABEL_BASE:
-			CreatePopupMenuFor_Labels_in_CurrentImage(hWnd);
             break;
 
-        case IDM_ABOUT:
-            DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+            case IDM_SAVE_LABELS_13:
+            {
+                std::wstring _msg = L"保存先に注意してください。\nスケールをかけてラベル出力します。\n1.13倍で保存します。";
+                int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
+                if (_ID == IDOK)
+                {
+                    SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+13%)", 1.13f); // アノテーションデータを保存する関数を呼び出す
+                }
+            }
             break;
-        case IDM_EXIT:
-            DestroyWindow(hWnd);
+            case IDM_SAVE_LABELS_25:
+            {
+                std::wstring _msg = L"保存先に注意してください。\nスケールをかけてラベル出力します。\n1.25倍で保存します。";
+                int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
+                if (_ID == IDOK)
+                {
+                    SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+25%)", 1.25f); // アノテーションデータを保存する関数を呼び出す
+                }
+            }
+            break;
+		    case IDM_SAVE_LABELS_50:
+		    {
+			    std::wstring _msg = L"保存先に注意してください。\nスケールをかけてラベル出力します。\n1.5倍で保存します。";
+			    int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
+			    if (_ID == IDOK)
+			    {
+				    SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+50%)", 1.50f); // アノテーションデータを保存する関数を呼び出す
+			    }
+		    }
+		    break;
+		    case IDM_SAVE_LABELS_75:
+		    {
+			    std::wstring _msg = L"保存先に注意してください。\nスケールをかけてラベル出力します。\n1.75倍で保存します。";
+			    int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
+			    if (_ID == IDOK)
+			    {
+				    SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+75%)", 1.75f); // アノテーションデータを保存する関数を呼び出す
+			    }
+		    }
+		    break;
+		    case IDM_SAVE_LABELS_100:
+		    {
+			    std::wstring _msg = L"保存先に注意してください。\nスケールをかけてラベル出力します。\n2.0倍で保存します。";
+			    int _ID = MessageBox(hWnd, L"保存先に注意してください。\nスケールをかけてラベル出力します。", L"注意", MB_OKCANCEL);
+			    if (_ID == IDOK)
+			    {
+				    SaveAnnotations(hWnd, L"書込ラベルフォルダを選択してください(スケール+100%)", 2.0f); // アノテーションデータを保存する関数を呼び出す
+			    }
+		    }
+            break;
+		    case IDM_NOSAVE_SMALL00: // 全て保存
+		    {
+			    GP.minimumLabelSize = 0.0f; // 最小サイズ制限を解除
+                if(GP.minimumLabelSize == 0.0f)
+                    MessageBox(hWnd, L"全てのオブジェクトを保存します。", L"注意", MB_OKCANCEL);
+            }
+		    break;
+		    case IDM_NOSAVE_SMALL010: // 小さいラベルを保存しない
+		    {
+			    GP.minimumLabelSize = 0.01f; // 画面比1%以下の小さいオブジェクトを保存しない
+			    if (GP.minimumLabelSize == 0.01f)
+                    MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比1%以下)を消して保存します。", L"注意", MB_OKCANCEL);
+		    }
+		    break;
+            case IDM_NOSAVE_SMALL015: // 小さいラベルを保存しない
+            {
+			    GP.minimumLabelSize = 0.015f; // 画面比1.5%以下の小さいオブジェクトを保存しない
+			    if (GP.minimumLabelSize == 0.015f) 
+                    MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比1.5%以下)を消して保存します。", L"注意", MB_OKCANCEL);
+            }
+		    break;
+		    case IDM_NOSAVE_SMALL02: // 小さいラベルを保存しない
+		    {
+			    GP.minimumLabelSize = 0.02f; // 画面比2%以下の小さいオブジェクトを保存しない
+                if (GP.minimumLabelSize == 0.02f)
+                    MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比2%以下)を消して保存します。", L"注意", MB_OKCANCEL);
+		    }
+		    break;
+		    case IDM_NOSAVE_SMALL03: // 小さいラベルを保存しない
+		    {
+			    GP.minimumLabelSize = 0.03f; // 画面比3%以下の小さいオブジェクトを保存しない
+                if (GP.minimumLabelSize == 0.03f)
+                    MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比3%以下)を消して保存します。", L"注意", MB_OKCANCEL);
+		    }
+		    break;
+		    case IDM_NOSAVE_SMALL05: // 小さいラベルを保存しない
+		    {
+			    GP.minimumLabelSize = 0.05f; // 画面比5%以下の小さいオブジェクトを保存しない
+                if (GP.minimumLabelSize == 0.05f)
+                    MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比5%以下)を消して保存します。", L"注意", MB_OKCANCEL);
+		    }
+		    break;
+		    case IDM_NOSAVE_SMALL10: // 小さいラベルを保存しない
+		    {
+			    GP.minimumLabelSize = 0.1f; // 画面比10%以下の小さいオブジェクトを保存しない
+                if (GP.minimumLabelSize == 0.1f)
+                    MessageBox(hWnd, L"保存先に注意してください。\n小さいオブジェクト(画面比10%以下)を消して保存します。", L"注意", MB_OKCANCEL);
+		    }
+            break;
+            case IDM_NOSAVE_OR_CORRECT: 
+            {
+                if (GP.isMinimumLabelCrrect)
+                    GP.isMinimumLabelCrrect = false;
+                else
+                    GP.isMinimumLabelCrrect = true;
+            }
+            break;
+            case IDM_LOAD_IMAGES:
+            {
+                GP.imgFolderPath = GetFolderPathIFR(hWnd, L"読込イメージフォルダを選択してください"); // フォルダ選択ダイアログを表示
+
+                if (!GP.imgFolderPath.empty()) {
+				    // 画像ファイルのパスと矩形の配列をクリア
+                    GP.imgObjs.clear();
+                    // フォルダが選択された場合、画像ファイルを取得
+                    LoadImageFilesMP(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
+                    SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size() ); // タイトルバーに画像のパスを表示
+
+                    GP.imgIdx = 0; // インデックスをリセット
+                }
+                // 再描画
+                InvalidateRect(hWnd, NULL, TRUE);
+            }
             break;
 
-        default:
-            return DefWindowProc(hWnd, message, wParam, lParam);
+            case IDM_LOAD_CLASSIFICATION:
+		    {
+			    //クラシフィケーションファイルを読込
+			    std::wstring _filepath;
+			    _filepath = GetFileName(hWnd, L"クラス分類ファイルを読込", 0);
+			    if (!_filepath.empty()) {
+				    // クラシフィケーションファイルを読込
+				    LoadClassification(_filepath, GP.ClsNames, GP.ClsColors, GP.ClsDashStyles, GP.ClsPenWidths, 0);//0=読み込み、1=書き込み
+			    }
+		    }
+		    break;
+
+            case ID_ANNOT_JUMP_IGNOREBOX:
+            {
+                // startIdx は次の画像から検索したい場合は currentImageIdx+1
+                auto result = jumpImgWithIgnoreBox(GP.imgObjs,
+                    static_cast<size_t>(GP.imgIdx + 1),
+					float(GP.MINSIZEW) / float(GP.IMGSIZEW),
+                    float(GP.MINSIZEH) / float(GP.IMGSIZEH));
+
+                if (result.has_value())
+                {
+                    // 前の画像に移動する前に、現在のラベルを保存
+                    // 自動保存の場合は全て保存
+                    SaveLabelsToFileSingle(hWnd, GP.imgIdx, 0.0f);
+                    // 
+                    GP.imgIdx = result.value() % GP.imgObjs.size();
+                    SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
+                    // 再描画
+                    InvalidateRect(hWnd, nullptr, TRUE);
+                }
+                else
+                {
+                    MessageBox(hWnd,
+                        L"不適切なアノテーションボックスは見つかりませんでした。",
+                        L"ジャンプ",
+                        MB_OK | MB_ICONINFORMATION);
+                }
+            }
+            break;
+
+
+            // 現在のイメージのラベリングされたオブジェクトの一覧のポップアップメニューを作成する
+            case IDM_PMENU_LABEL_BASE:
+			    CreatePopupMenuFor_Labels_in_CurrentImage(hWnd);
+                break;
+
+            case IDM_ABOUT:
+                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+                break;
+            case IDM_EXIT:
+                DestroyWindow(hWnd);
+                break;
+
+            default:
+                return DefWindowProc(hWnd, message, wParam, lParam);
         }
     }
     break;
@@ -792,8 +827,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         switch (wParam)
         {
-        case 'A': // 前の画像
-        case VK_LEFT:
+            case 'A': // 前の画像
+            case VK_LEFT:
             if (GP.imgObjs.size() > 0) {
 				// 前の画像に移動する前に、現在のラベルを保存
                 // 自動保存の場合は全て保存
@@ -803,60 +838,75 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
             }
             break;
-		case 'D': // 次の画像 alt+ctrlならラベル定義のない画像まで移動
-        case VK_RIGHT:
-            if (GP.imgObjs.size() > 0) {
-                if (alt && ctrl){ // Altキーが押されている場合
-                    if(GP.imgIdx < (GP.imgObjs.size() - 1)){
-                        step = 1;
-                        while (!GP.imgObjs[GP.imgIdx + step].objs.empty()) {
-                            step++;
-                            if (GP.imgIdx + step >= GP.imgObjs.size()) { // 画像の範囲を超えたら
+		    case 'D': // 次の画像 alt+ctrlならラベル定義のない画像まで移動
+            case VK_RIGHT:
+            {
+                if (GP.imgObjs.size() > 0) {
+                    if (alt && ctrl) { // Altキーが押されている場合
+                        if (GP.imgIdx < (GP.imgObjs.size() - 1)) {
+                            step = 1;
+                            while (!GP.imgObjs[GP.imgIdx + step].objs.empty()) {
+                                step++;
+                                if (GP.imgIdx + step >= GP.imgObjs.size()) { // 画像の範囲を超えたら
 
-                                step = 0; // 0に戻す
-                                break; // ループを抜ける
+                                    step = 0; // 0に戻す
+                                    break; // ループを抜ける
+                                }
                             }
                         }
                     }
+                    // 前の画像に移動する前に、現在のラベルを保存
+                    // 自動保存の場合は全て保存
+                    SaveLabelsToFileSingle(hWnd, GP.imgIdx, 0.0f);
+                    // 次の画像に移動 stepの値分だけ移動する
+                    GP.imgIdx = (GP.imgIdx + step) % GP.imgObjs.size();
+                    SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
                 }
-                // 前の画像に移動する前に、現在のラベルを保存
-                // 自動保存の場合は全て保存
-                SaveLabelsToFileSingle(hWnd, GP.imgIdx, 0.0f);     
-                // 次の画像に移動 stepの値分だけ移動する
-                GP.imgIdx = (GP.imgIdx + step) % GP.imgObjs.size();
-                SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
             }
             break;
 
-        case 'v': //前の画像からコピー
-        case 'V': //前の画像からコピー
-        case 'c': //前の画像からコピー
-        case 'C': //前の画像からコピー
-			//if (ctrl){
-				if (GP.imgIdx > 0){
-					//コピー前に確認のメッセージを表示
-					int _copyok = MessageBoxW(hWnd, L"前の画像からコピーしますか？", L"確認", MB_OKCANCEL);
+            case 'v': //前の画像からコピー
+            case 'V': //前の画像からコピー
+            case 'c': //前の画像からコピー
+            case 'C': //前の画像からコピー
+            {    //if (ctrl){
+                if (GP.imgIdx > 0) {
+                    //コピー前に確認のメッセージを表示
+                    int _copyok = MessageBoxW(hWnd, L"前の画像からコピーしますか？", L"確認", MB_OKCANCEL);
 
-					if (_copyok == IDOK){
-						// コピー処理
-						GP.imgObjs[GP.imgIdx].objs = GP.imgObjs[GP.imgIdx - 1].objs;
-						InvalidateRect(hWnd, NULL, TRUE); // 再描画
-					}
-				}
-			//}
+                    if (_copyok == IDOK) {
+                        // コピー処理
+                        GP.imgObjs[GP.imgIdx].objs = GP.imgObjs[GP.imgIdx - 1].objs;
+                        InvalidateRect(hWnd, NULL, TRUE); // 再描画
+                    }
+                }
+                //}
+            }
             break;
-        case 'S': //前後画像の比較
-        case 's': 
-            if(GP.isCompare)
-				GP.isCompare = false; // 比較モードをオフ
-            else
+            case 'S': //前後画像の比較
+            case 's':
             {
-                if (GP.imgIdx == GP.imgObjs.size() - 1) // 最後の画像でない場合
-                    break; // 最後の画像の場合は何もしない
+                if (GP.isCompare)
+                    GP.isCompare = false; // 比較モードをオフ
                 else
                 {
-                    GP.isCompare = true; // 比較モードをオン
-                    SetTimer(hWnd, IDT_COMPARE, 30, nullptr);
+                    if (GP.imgIdx == GP.imgObjs.size() - 1) // 最後の画像でない場合
+                        break; // 最後の画像の場合は何もしない
+                    else
+                    {
+                        GP.isCompare = true; // 比較モードをオン
+                        SetTimer(hWnd, IDT_COMPARE, 30, nullptr);
+                    }
+                }
+            }
+            break;
+
+            case 'i': // 異常なラベルのある画像までジャンプ 
+            case 'I':
+            {
+                if (ctrl) 
+                {
+					PostMessage(hWnd, WM_COMMAND, ID_ANNOT_JUMP_IGNOREBOX, 0); // ジャンプメニューを呼び出す
                 }
             }
             break;
@@ -926,6 +976,17 @@ void WM_PAINT_DrawLabels(
         int penWidth = obj.penWidth + (obj.mOver ? 2 : 0);
         Gdiplus::Pen pen(obj.color, static_cast<REAL>(penWidth));
         pen.SetDashStyle(obj.dashStyle);
+
+        if (isIgnoreBox(obj, GP.MINSIZEW / GP.IMGSIZEW, GP.MINSIZEH / GP.IMGSIZEH))
+        {
+            //太く、さらにマウスオーバーで太く
+            int penWidth = obj.penWidth + 2 + (obj.mOver ? 2 : 0);
+            pen.SetWidth(static_cast<REAL>(penWidth));
+            //色は赤にする
+			pen.SetColor(Gdiplus::Color(255, 0, 0)); // 赤色
+			//ソリッド
+			pen.SetDashStyle(Gdiplus::DashStyleSolid); // ソリッド
+        }
 
         // 矩形の座標をピクセル変換
 		float x0 = obj.Rct.X * clientWidth;
@@ -1087,7 +1148,7 @@ int ShowClassPopupMenu_Core(HWND hWnd, UINT& cmd)
 
     AppendMenuW(hPopup, MF_STRING,
         IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()),
-        L"DELETE");
+        L"DELETE(&1)");
 
     AppendMenuW(hPopup, MF_STRING,
         IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1,
@@ -1155,12 +1216,6 @@ void ShowClassPopupMenu(HWND hWnd)
 // 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
 void ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX )
 {
-    //UINT cmd = 0;
-    //int _cmd = ShowClassPopupMenu_Core(hWnd);
-    //if (_cmd != -1) // コマンドが正常に取得できた場合
-    //    cmd = static_cast<UINT>(_cmd); // コマンドをUINTに変換
-    //else
-    //    return; // メニューの表示に失敗した場合は何もしない
     UINT cmd = 0;
     if (ShowClassPopupMenu_Core(hWnd, cmd))
     {
