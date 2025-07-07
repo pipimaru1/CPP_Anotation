@@ -630,6 +630,8 @@ bool SaveLabelsToFile(
 //    return true;
 //}
 //
+
+///////////////////////////////////////////////////////////////////////
 std::wstring get_now_time_string()
 {
     // 現在時刻を SYSTEMTIME で取得
@@ -662,7 +664,7 @@ bool SaveLabelsToFileSingle(HWND hWnd, size_t _idx, float minimumsize) // 最小サ
         // ファイル名
         std::wstring _fileName1;
         std::wstring _fileName2;
-        _fileName1 = GetFileNameFromPath(GP.imgObjs[GP.imgIdx].path);
+        _fileName1 = GetOnlyFileNameFormPath(GP.imgObjs[GP.imgIdx].path);
         _fileName2 = GP.labelFolderPath + L"\\" + _fileName1 + L".txt";
         bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[GP.imgIdx].objs, 0, minimumsize, 1);
 
@@ -863,11 +865,11 @@ std::wstring RemoveFileExtension(const std::wstring& filePath)
 }
 
 ///////////////////////////////////////////////////////////////////////
-// ファイルパスからファイル名のみ抽出する関数
+// ファイルパスからファイル名のみ抽出する関数 
 // 拡張子も削除
 // 入力値はファイルパス
 // 出力値はファイル名 std::wstring
-std::wstring GetFileNameFromPath(const std::wstring& filePath)
+std::wstring GetOnlyFileNameFormPath(const std::wstring& filePath)
 {
     std::wstring _fileName1;
     std::wstring _fileName2;
@@ -880,15 +882,31 @@ std::wstring GetFileNameFromPath(const std::wstring& filePath)
 	return _fileName2;
 }
 ///////////////////////////////////////////////////////////////////////
+// ファイルパスからファイル名のみ抽出する関数 拡張子は残す
+// 入力値はファイルパス
+// 出力値はファイル名 std::wstring
+std::wstring GetFileNameFormPath(const std::wstring& filePath)
+{
+    std::wstring _fileName1;
+    size_t pos = filePath.find_last_of(L'\\');
+    if (pos != std::wstring::npos) {
+        _fileName1 = filePath.substr(pos + 1);
+    }
+    return _fileName1; // 拡張子も含むファイル名を返す
+}
+
+
+
+///////////////////////////////////////////////////////////////////////
 //フォルダパスとファイル名と拡張子を指定して
 //ファイルが存在すれば、そのファイルのフルパスを返す関数
 //ファイルが存在しなければ、空文字""を返す
-std::wstring GetFileNameFromPath(
+std::wstring ChkFileExistWithPathExt(
     const std::wstring& folderpath, 
     const std::wstring& filename,
 	const std::wstring& ext) // ".txt"など。"."を含むこと
 {
-	std::wstring _fn = GetFileNameFromPath(filename);
+	std::wstring _fn = GetOnlyFileNameFormPath(filename);
 
 	std::wstring fullPath = folderpath + L"\\" + _fn + ext;
 	if (PathFileExistsW(fullPath.c_str())) 
@@ -911,7 +929,7 @@ const std::wstring& ext, //アノテーションファイルの拡張子
 int mode //0:default, 1:yolo
 ){
 	//アノテーションファイルのフルパスを取得
-	std::wstring _fileName = GetFileNameFromPath(folderpath, imgObj.path, ext);
+	std::wstring _fileName = ChkFileExistWithPathExt(folderpath, imgObj.path, ext);
 	if (_fileName.empty()) 
     {
 		return 0; // ファイルが存在しない場合、0を返す
@@ -973,7 +991,7 @@ int LoadLabelFiles(
 	for (int i = 0; i < imgObjs.size(); i++)
 	{
         //アノテーションファイルのフルパスを取得
-        std::wstring _fileName = GetFileNameFromPath(folderpath, imgObjs[i].path, ext);
+        std::wstring _fileName = ChkFileExistWithPathExt(folderpath, imgObjs[i].path, ext);
         if (_fileName.empty())
         {
 			continue; // ファイルが存在しない場合、次の画像へ
@@ -1060,7 +1078,7 @@ int LoadLabelFilesMP(
     for (int i = 0; i < N; ++i)
     {
         // ファイル名取得（スレッドごとにローカルな変数）
-        std::wstring _fileName = GetFileNameFromPath(folderpath, imgObjs[i].path, ext);
+        std::wstring _fileName = ChkFileExistWithPathExt(folderpath, imgObjs[i].path, ext);
         if (_fileName.empty()) continue;
 
         // ファイルを開いてパース
@@ -1325,3 +1343,97 @@ bool isIgnoreBox(
     _ret = (obj.Rct.Width <= minW || obj.Rct.Height <= minH);
     return _ret;
 }
+
+/// @brief フォルダパスの末尾ディレクトリ名の直前に"deleted"フォルダを挿入する
+/// @param folderPath 元のフォルダパス（例: L"C:\\hoge1\\hoge2\\labels"）
+/// @return 挿入後のフォルダパス（例: L"C:\\hoge1\\hoge2\\deleted\\labels"）
+std::wstring InsertSubFolder(const std::wstring& folderPath, const std::wstring& _sub)
+{
+    // 末尾の'\'または'/'を除去
+    std::wstring path = folderPath;
+    if (!path.empty() && (path.back() == L'\\' || path.back() == L'/')) {
+        path.pop_back();
+    }
+
+    // 最後の区切り文字位置を取得
+    size_t pos = path.find_last_of(L"\\/");
+    std::wstring parent, leaf;
+    if (pos == std::wstring::npos) {
+        // 区切り文字なしなら全体をleafとみなす
+        parent.clear();
+        leaf = path;
+    }
+    else {
+        parent = path.substr(0, pos);
+        leaf = path.substr(pos + 1);
+    }
+
+    // 組み立て
+    if (!parent.empty()) {
+        return parent + L"\\" + _sub + L"\\" + leaf;
+        //return parent + L"\\deleted\\" + leaf;
+    }
+    else {
+        return _sub + L"\\" + leaf;
+        //return L"deleted\\" + leaf;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////
+// 指定idxの画像とラベルを移動
+int MoveCurrentImageAndLabel(HWND hWnd, int imgIdx)
+{
+    if (imgIdx < 0 || imgIdx >= static_cast<int>(GP.imgObjs.size())) {
+        MessageBox(hWnd, L"無効な画像インデックスです。", L"エラー", MB_OK | MB_ICONERROR);
+        return -1; // エラーコード
+    }
+    // 現在の画像とラベルを保存
+    SaveLabelsToFileSingle(hWnd, GP.imgIdx, 0.0f);
+
+    std::wstring _ImgFilePath = GP.imgObjs[GP.imgIdx].path;
+    std::wstring _fn1 = GetOnlyFileNameFormPath(_ImgFilePath);
+    std::wstring _LabelFilePath = GP.labelFolderPath + L"\\" + _fn1 + L".txt";
+
+	// 移動先のパスを作成
+    std::wstring tempImageFilePath = InsertSubFolder(GP.imgFolderPath, L"deleted") + L"\\" + _fn1 + L".jpg";
+    std::wstring tempLabelFilePath = InsertSubFolder(GP.labelFolderPath, L"deleted") + L"\\" + _fn1 + L".txt";
+
+	// 移動先のフォルダが存在しない場合は作成
+    if (!PathFileExistsW(_ImgFilePath.c_str()))
+    {
+        if (!CreateDirectoryW(_ImgFilePath.c_str(), NULL) && GetLastError() != ERROR_ALREADY_EXISTS) {
+            MessageBox(hWnd, _ImgFilePath.c_str(), L"移動先のフォルダの作成に失敗しました", MB_OK | MB_ICONERROR);
+            return -1; // エラーコード
+        }
+	}
+    if (!PathFileExistsW(_LabelFilePath.c_str())) {
+        if (!CreateDirectoryW(_LabelFilePath.c_str(), NULL) && GetLastError() != ERROR_ALREADY_EXISTS)
+        {
+            MessageBox(hWnd, _LabelFilePath.c_str(), L"移動先のフォルダの作成に失敗しました", MB_OK | MB_ICONERROR);
+            return -1; // エラーコード
+        }
+    }
+    
+    // 現在の画像とラベルを移動
+    if (!MoveFileEx(_ImgFilePath.c_str(), tempImageFilePath.c_str(), MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING))
+    {
+        MessageBox(hWnd, L"画像の移動に失敗しました。", L"エラー", MB_OK | MB_ICONERROR);
+        return -1; // エラーコード
+    }
+    // ラベルファイルも同様に移動
+    if (!MoveFileEx(_LabelFilePath.c_str(), tempLabelFilePath.c_str(), MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING))
+    {
+        MessageBox(hWnd, L"ラベルの移動に失敗しました。", L"エラー", MB_OK | MB_ICONERROR);
+        return -1; // エラーコード
+    }
+    
+    //メモリ上の画像とラベルを削除
+    GP.imgObjs.erase(GP.imgObjs.begin() + GP.imgIdx); // 現在の画像とラベルを削除
+    //GP.imgIdx = imgIdx;
+    // タイトルバーに新しい画像とラベルのパスを表示
+    SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, static_cast<int>(GP.imgObjs.size()));
+    // 再描画
+    InvalidateRect(hWnd, NULL, TRUE);
+    return 0; // 成功
+}
+

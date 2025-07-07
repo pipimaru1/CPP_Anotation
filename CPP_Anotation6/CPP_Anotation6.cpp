@@ -443,6 +443,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
             }
             break;
+			//現在の画像とラベルを削除 
+			// 実際は削除はせず、画像は ..\delete\images\に、ラベルは ..\delete\labels\に移動する
+            case IDM_DLETE_IMAGE:
+            {
+                // 現在の画像とラベルを移動
+                if (GP.imgObjs.size() > 0 && GP.imgIdx < GP.imgObjs.size())
+                {
+                    // 指定idxの画像とラベルを移動
+                    MoveCurrentImageAndLabel(hWnd, GP.imgIdx);
+                    
+                    // タイトルバーに画像のパスを表示
+                    SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size());
+                    // 再描画
+                    InvalidateRect(hWnd, nullptr, TRUE);
+                }
+			}
 
 
             // 現在のイメージのラベリングされたオブジェクトの一覧のポップアップメニューを作成する
@@ -462,6 +478,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
     }
     break;
+    //メニューここまで
+    //////////////////////////////////////////////////////////////////////////////////
 
     //////////////////////////////////////////////////////////////////////////////////
     // 描画処理
@@ -1396,7 +1414,7 @@ int  SaveAnnotations(HWND hWnd, std::wstring _title, float _sc) // 最小サイ�
                 std::wstring _fileName1;
                 std::wstring _fileName2;
 
-                _fileName1 = GetFileNameFromPath(GP.imgObjs[i].path);
+                _fileName1 = GetOnlyFileNameFormPath(GP.imgObjs[i].path);
                 _fileName2 = _folderpath + L"\\" + _fileName1 + L".txt";
 
                 bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[i].objs, _sc, GP.minimumLabelSize, 1);
@@ -1429,3 +1447,4 @@ void CheckMenu(HWND hWnd, int _IDM, bool _sw)
         uState
     );
 }
+

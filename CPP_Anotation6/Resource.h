@@ -35,6 +35,8 @@
 #define IDM_LOAD_LABELS		202
 #define IDM_LOAD_CLASSIFICATION	203
 
+#define IDM_DLETE_IMAGE		300 //画像を削除
+
 //2200まではクラシフィケーション用
 #define IDM_PMENU_CLSNAME00		2000 //動的ポップアップメニューのID 
 #define IDM_PMENU_CLSNAME01		2001

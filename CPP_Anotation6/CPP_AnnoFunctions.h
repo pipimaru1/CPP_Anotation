@@ -31,7 +31,10 @@ std::wstring GetFolderPathIFR(HWND hWnd, const std::wstring& dlgTitle, const std
 std::wstring GetFileName(HWND hWnd, const std::wstring& title, int _rw);// _rw: 0=読み込み、1=書き込み
 
 std::wstring ChangeFileExtension(const std::wstring& filePath, const std::wstring& newExt);
-std::wstring GetFileNameFromPath(const std::wstring& filePath);
+std::wstring GetOnlyFileNameFormPath(const std::wstring& filePath);
+std::wstring GetFileNameFormPath(const std::wstring& filePath);		// ファイルパスからファイル名のみ抽出する関数 拡張子は残す
+int MoveCurrentImageAndLabel(HWND hWnd, int imgIdx);
+
 
 ///////////////////////////////////////////////////////////////////////
 // 関数 アノテーションデータの読み込み
@@ -129,4 +132,7 @@ int  SaveAnnotations(HWND hWnd, std::wstring _title, float _sc);
 ///////////////////////////////////////////////////////////////////////
 std::optional<size_t> jumpImgWithIgnoreBox(const std::vector<ImgObject>& imgObjs,size_t _startIdx = 0,float minW = 1.0f,float minH = 1.0f);
 bool isIgnoreBox(const LabelObj& obj, float minW, float minH);
+
+///////////////////////////////////////////////////////////////////////
+std::wstring InsertSubFolder(const std::wstring& folderPath, const std::wstring& _sub);
 
