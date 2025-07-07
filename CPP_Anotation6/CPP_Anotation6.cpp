@@ -9,6 +9,7 @@
 // 必要なライブラリ
 #pragma comment(lib, "gdiplus.lib")
 #pragma comment(lib, "Shlwapi.lib")
+//#pragma comment(lib, "Shlwapi.lib")
 
 #define MAX_LOADSTRING 100
 
@@ -42,7 +43,8 @@ LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 ULONG_PTR g_GdiToken;
 
-int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
+int APIENTRY wWinMain(
+    _In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
     _In_ LPWSTR    lpCmdLine,
     _In_ int       nCmdShow)
@@ -51,7 +53,35 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // TODO: ここにコードを挿入してください。
+    
+    //コマンドライン引数
+    int argc = 0;
+    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    bool isInitOK = false;
 
+    // デフォルトのままだと lpCmdLine はクォート含まれないので argv の方を使う
+    if (argc >= 4) {
+        std::wstring classFile = argv[1];
+        std::wstring imageFolder = argv[2];
+        std::wstring labelFolder = argv[3];
+
+        // ファイル・フォルダ存在確認
+        if (PathFileExistsW(classFile.c_str()) &&
+            PathIsDirectoryW(imageFolder.c_str()) &&
+            PathIsDirectoryW(labelFolder.c_str()))
+        {
+            // クラスファイル読み込み
+            LoadClassification(classFile, GP.ClsNames, GP.ClsColors, GP.ClsDashStyles, GP.ClsPenWidths, 0);
+            // 画像とラベルのパスを保存
+            GP.imgFolderPath = imageFolder;
+            GP.labelFolderPath = labelFolder;
+            // 画像読み込み
+            LoadImageFilesMP(GP.imgFolderPath, GP.imgObjs);
+            // ラベル読み込み
+            LoadLabelFilesMP(GP.imgObjs, GP.labelFolderPath, L".txt", 1);
+            isInitOK = true;
+        }
+    }
     // GDIPlusのスタートの後に フォントを生成
     GP.InitFont();
 
@@ -64,6 +94,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     if (!InitInstance(hInstance, nCmdShow))
     {
         return FALSE;
+    }
+
+    // ファイルやフォルダが不正だった場合はエラーメッセージ
+    if (!isInitOK && (argc != 1)) 
+    {
+        MessageBoxW(NULL,
+            L"コマンドライン引数が不足しているか、ファイル／フォルダが存在しません。\n"
+            L"引数: <分類ファイル> <画像フォルダ> <ラベルフォルダ>",
+            L"エラー",
+            MB_OK | MB_ICONERROR);
     }
 
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_CPPANOTATION));
@@ -208,10 +248,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
     case WM_CREATE:
-		GP.imgObjs.clear(); // 画像ファイルのパスと矩形の配列
-		GP.imgFolderPath = INIT_IMGFOLDER; // フォルダパスを指定
-
-        LoadImageFiles(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
+        if (GP.imgFolderPath.empty()) {
+            GP.imgObjs.clear(); // 画像ファイルのパスと矩形の配列
+            GP.imgFolderPath = INIT_IMGFOLDER;
+            LoadImageFiles(GP.imgFolderPath, GP.imgObjs);
+        }
+        //GP.imgObjs.clear(); // 画像ファイルのパスと矩形の配列
+        //GP.imgFolderPath = INIT_IMGFOLDER; // フォルダパスを指定
+        //LoadImageFiles(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
         SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, 0, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
 
     break;

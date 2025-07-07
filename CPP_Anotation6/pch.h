@@ -36,7 +36,6 @@ using namespace Gdiplus;
 #include <ctime>
 #include <optional>
 
-
 #include <omp.h>    // ← 追加
 
 //残すが不要
