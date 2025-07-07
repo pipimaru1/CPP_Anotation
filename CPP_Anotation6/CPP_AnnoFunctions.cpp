@@ -197,6 +197,23 @@ int LoadImageFilesMP(const std::wstring& folderPath, std::vector<ImgObject>& _im
             ImgObject& img = _imgObjs[i];
             img.path = fileList[i];
 
+#define _RELEASE_IMAGE
+#ifdef RELEASE_IMAGE
+            auto imgFile = std::make_unique<Gdiplus::Image>(img.path.c_str());
+            if (imgFile->GetLastStatus() == Gdiplus::Ok)
+            {
+                auto w = imgFile->GetWidth();
+                auto h = imgFile->GetHeight();
+                auto pf = imgFile->GetPixelFormat();
+
+                auto bmp = std::make_unique<Gdiplus::Bitmap>(w, h, pf);
+                Gdiplus::Graphics g(bmp.get());
+                g.DrawImage(imgFile.get(), 0, 0, w, h);
+
+                imgFile.reset();              // ここでハンドル解放
+                img.image = std::move(bmp); // 以降はメモリ上の Bitmap を保持
+            }
+#else
             // unique_ptr で管理
             auto image = std::make_unique<Gdiplus::Image>(img.path.c_str());
             if (image->GetLastStatus() != Gdiplus::Ok) {
@@ -204,6 +221,7 @@ int LoadImageFilesMP(const std::wstring& folderPath, std::vector<ImgObject>& _im
                 image = std::make_unique<Gdiplus::Image>(L"NO Image");
             }
             img.image = std::move(image);
+#endif
         }
     }
     else
@@ -1380,6 +1398,24 @@ std::wstring InsertSubFolder(const std::wstring& folderPath, const std::wstring&
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
+inline void FlushLeftMouseClick()
+{
+    // 1) 左ボタンが離されるまで待つ
+    while (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
+        Sleep(10);
+    }
+
+    // 2) キュー内の残っている WM_LBUTTONDOWN ～ WM_LBUTTONUP を取り除く
+    MSG msg;
+    while (PeekMessage(&msg, nullptr,
+        WM_LBUTTONDOWN, WM_LBUTTONUP,
+        PM_REMOVE))
+    {
+        // 何もしない
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////
 // 指定idxの画像とラベルを移動
 int MoveCurrentImageAndLabel(HWND hWnd, int imgIdx)
 {
@@ -1394,46 +1430,96 @@ int MoveCurrentImageAndLabel(HWND hWnd, int imgIdx)
     std::wstring _fn1 = GetOnlyFileNameFormPath(_ImgFilePath);
     std::wstring _LabelFilePath = GP.labelFolderPath + L"\\" + _fn1 + L".txt";
 
-	// 移動先のパスを作成
-    std::wstring tempImageFilePath = InsertSubFolder(GP.imgFolderPath, L"deleted") + L"\\" + _fn1 + L".jpg";
-    std::wstring tempLabelFilePath = InsertSubFolder(GP.labelFolderPath, L"deleted") + L"\\" + _fn1 + L".txt";
+    // 移動先のフォルダパスを作成
+    std::wstring _tempImagePath = InsertSubFolder(GP.imgFolderPath, L"deleted");
+    std::wstring _tempLabelPath = InsertSubFolder(GP.labelFolderPath, L"deleted");
+    
+    // 移動先のファイルパスを作成
+    std::wstring _tempImageFilePath = _tempImagePath + L"\\" + _fn1 + L".jpg";
+    std::wstring _tempLabelFilePath = _tempLabelPath + L"\\" + _fn1 + L".txt";
 
 	// 移動先のフォルダが存在しない場合は作成
-    if (!PathFileExistsW(_ImgFilePath.c_str()))
+    if (!PathFileExistsW(_tempImagePath.c_str()))
     {
-        if (!CreateDirectoryW(_ImgFilePath.c_str(), NULL) && GetLastError() != ERROR_ALREADY_EXISTS) {
-            MessageBox(hWnd, _ImgFilePath.c_str(), L"移動先のフォルダの作成に失敗しました", MB_OK | MB_ICONERROR);
+        //if (!CreateDirectoryW(_tempImagePath.c_str(), NULL) && GetLastError() != ERROR_ALREADY_EXISTS) {
+        if(!std::filesystem::create_directories(_tempImagePath))
+        {
+            MessageBox(hWnd, _tempImagePath.c_str(), L"移動先のフォルダの作成に失敗しました", MB_OK | MB_ICONERROR);
+            FlushLeftMouseClick();
             return -1; // エラーコード
         }
 	}
-    if (!PathFileExistsW(_LabelFilePath.c_str())) {
-        if (!CreateDirectoryW(_LabelFilePath.c_str(), NULL) && GetLastError() != ERROR_ALREADY_EXISTS)
+    if (!PathFileExistsW(_tempLabelPath.c_str())) {
+        //if (!CreateDirectoryW(_tempLabelPath.c_str(), NULL) && GetLastError() != ERROR_ALREADY_EXISTS)
+        if (!std::filesystem::create_directories(_tempLabelPath))
         {
-            MessageBox(hWnd, _LabelFilePath.c_str(), L"移動先のフォルダの作成に失敗しました", MB_OK | MB_ICONERROR);
+            MessageBox(hWnd, _tempLabelPath.c_str(), L"移動先のフォルダの作成に失敗しました", MB_OK | MB_ICONERROR);
+            FlushLeftMouseClick();
             return -1; // エラーコード
         }
     }
     
-    // 現在の画像とラベルを移動
-    if (!MoveFileEx(_ImgFilePath.c_str(), tempImageFilePath.c_str(), MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING))
-    {
-        MessageBox(hWnd, L"画像の移動に失敗しました。", L"エラー", MB_OK | MB_ICONERROR);
-        return -1; // エラーコード
+    // ★ここから存在チェックを追加
+    auto FileExists = [](const std::wstring& path) -> bool {
+        return GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES;
+        };
+
+    if (!FileExists(_ImgFilePath)) {
+        MessageBox(hWnd, (_ImgFilePath + L"\n(画像が見つかりません)").c_str(),
+            L"移動失敗", MB_OK | MB_ICONERROR);
+        FlushLeftMouseClick();
+        return -1;
     }
-    // ラベルファイルも同様に移動
-    if (!MoveFileEx(_LabelFilePath.c_str(), tempLabelFilePath.c_str(), MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING))
+#ifdef _DEBUG
+     if (!FileExists(_LabelFilePath)) {
+        MessageBox(hWnd, (_LabelFilePath + L"\n(ラベルが見つかりません 続行します)").c_str(),
+			L"警告", MB_OK | MB_ICONWARNING);
+        FlushLeftMouseClick();
+     }
+#endif   
+
+#ifndef RELEASE_IMAGE
+    // ① 画像ファイルのハンドルを解放してから移動する
+    if (GP.imgIdx < GP.imgObjs.size() && GP.imgObjs[GP.imgIdx].image)
+        GP.imgObjs[GP.imgIdx].image.reset();   // ← unique_ptr をリセット
+#endif
+
+    if (!MoveFileEx(_ImgFilePath.c_str(),
+        _tempImageFilePath.c_str(),   // ★ファイル名付きパスを渡す
+        MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING))
     {
-        MessageBox(hWnd, L"ラベルの移動に失敗しました。", L"エラー", MB_OK | MB_ICONERROR);
-        return -1; // エラーコード
+        std::wstring _msg = _ImgFilePath + L"\n" + _tempImageFilePath;
+        MessageBox(hWnd, _msg.c_str(), L"画像の移動に失敗しました", MB_OK | MB_ICONERROR);
+        FlushLeftMouseClick();
+        return -1;
     }
-    
+
+    // ラベル
+    if (!MoveFileEx(_LabelFilePath.c_str(),
+        _tempLabelFilePath.c_str(),   // ★こちらも同様
+        MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING))
+    {
+        std::wstring _msg = _LabelFilePath + L"\n" + _tempLabelFilePath;
+#ifdef _DEBUG
+        MessageBox(hWnd, _msg.c_str(), L"ラベルファイルはなかったようです 続行します",
+            MB_OK | MB_ICONWARNING);
+        FlushLeftMouseClick();
+#endif   
+    }
+
     //メモリ上の画像とラベルを削除
     GP.imgObjs.erase(GP.imgObjs.begin() + GP.imgIdx); // 現在の画像とラベルを削除
     //GP.imgIdx = imgIdx;
+
+	//マウスのクリックをフラッシュ
+    //FlushLeftMouseClick();
+
     // タイトルバーに新しい画像とラベルのパスを表示
     SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, static_cast<int>(GP.imgObjs.size()));
     // 再描画
     InvalidateRect(hWnd, NULL, TRUE);
+
+    FlushLeftMouseClick();
     return 0; // 成功
 }
 

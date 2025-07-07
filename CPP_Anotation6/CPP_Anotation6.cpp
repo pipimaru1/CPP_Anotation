@@ -61,9 +61,9 @@ int APIENTRY wWinMain(
 
     // デフォルトのままだと lpCmdLine はクォート含まれないので argv の方を使う
     if (argc >= 4) {
-        std::wstring classFile = argv[1];
-        std::wstring imageFolder = argv[2];
-        std::wstring labelFolder = argv[3];
+        std::wstring classFile = argv[1];   // クラス名ファイル
+		std::wstring imageFolder = argv[2]; // 画像フォルダ
+		std::wstring labelFolder = argv[3]; // ラベルフォルダ
 
         // ファイル・フォルダ存在確認
         if (PathFileExistsW(classFile.c_str()) &&
@@ -229,6 +229,10 @@ int CreatePopupMenuFor_Labels_in_CurrentImage(HWND hWnd);
 
 /////////////////////////////////////////////////////////////////////////
 void CheckMenu(HWND hWnd, int _IDM, bool _sw);
+
+/////////////////////////////////////////////////////////////////////////
+//未ラベルの画像までジャンプする関数
+void JumpToUnlabeledImage(HWND hWnd);
 
 /////////////////////////////////////////////////////////////////////////
 // アノテーションデータを保存する関数 WM_Procの補助関数
@@ -503,7 +507,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     InvalidateRect(hWnd, nullptr, TRUE);
                 }
 			}
-
+            break;
+            case IDM_JUNP_NO_ANNOTATION:
+            {
+                // アノテーションのない画像にジャンプ
+                JumpToUnlabeledImage(hWnd);
+			}
+            break;
 
             // 現在のイメージのラベリングされたオブジェクトの一覧のポップアップメニューを作成する
             case IDM_PMENU_LABEL_BASE:
@@ -1492,3 +1502,23 @@ void CheckMenu(HWND hWnd, int _IDM, bool _sw)
     );
 }
 
+//未ラベルの画像までジャンプする関数
+void JumpToUnlabeledImage(HWND hWnd)
+{
+    // ラベルのない画像までジャンプ
+    for (size_t i = GP.imgIdx + 1; i < GP.imgObjs.size(); ++i)
+    {
+        if (GP.imgObjs[i].objs.empty())
+        {
+            SaveLabelsToFileSingle(hWnd, GP.imgIdx, 0.0f);
+
+            GP.imgIdx = i; // ジャンプ
+
+
+            SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
+            InvalidateRect(hWnd, NULL, TRUE); // 再描画
+            return;
+        }
+    }
+    MessageBoxW(hWnd, L"ラベルのない画像はありません", L"情報", MB_OK);
+}
