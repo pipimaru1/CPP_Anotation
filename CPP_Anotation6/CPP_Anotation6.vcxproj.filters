@@ -55,11 +55,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="CPP_Anotation.rc">
-      <Filter>リソース ファイル</Filter>
-    </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
     <Image Include="small.ico">
       <Filter>リソース ファイル</Filter>
     </Image>
@@ -71,5 +66,10 @@
     <Text Include="..\coco80.txt" />
     <Text Include="..\TimeStudy.txt" />
     <Text Include="..\TimeStudyW.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="CPP_Anotation.rc">
+      <Filter>リソース ファイル</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>
