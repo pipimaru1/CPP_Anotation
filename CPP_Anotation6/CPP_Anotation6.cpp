@@ -725,29 +725,58 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         else if (GP.dgMode == DragMode::ReBox) // 矩形の編集モード
         {
             // マウス移動分を計算
-            float dx = float(pt.x) - GP.prevMouse.X;
+            //prevMouse はフロートだが画面のピクセルサイズのスケール
+            float dx = float(pt.x) - GP.prevMouse.X; 
             float dy = float(pt.y) - GP.prevMouse.Y;
-			if (!GP.imgObjs[GP.imgIdx].objs.empty())//objsが空でない場合 
+
+            if (!GP.imgObjs[GP.imgIdx].objs.empty())//objsが空でない場合 
             {
+                // 矩形の編集モードで、マウス移動分を適用
                 auto& r = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct;
+
+                /*
+                //矩形サイズが小さい場合は、編集しない
+                bool isSmallRectX = false; // 矩形サイズが小さいかどうかのフラグ
+                bool isSmallRectY = false; // 矩形サイズが小さいかどうかのフラグ
+				if ((int(r.Width * GP.IMGSIZEW) + dx) < GP.MINSIZEW )
+                    isSmallRectX = true; // 矩形サイズが小さい場合は、小さい方向に変形できない
+				if ((int(r.Height * GP.IMGSIZEH) + dy) < GP.MINSIZEH )
+                    isSmallRectY = true; // 矩形サイズが小さい場合は、小さい方向に変形できない
+                */
                 GP.imgObjs[GP.imgIdx].isEdited = true; // 編集されたことにする
                 switch (GP.edMode)
                 {
                 case EditMode::Top:
+                    // 矩形サイズが小さく、かつ、小さい方向に動かす場合は、上辺を動かさない 
+                    //if(isSmallRectY && dy > 0) 
+					//  break; // 編集しない
+                    
                     // 上辺を dy だけ動かす → 矩形の高さは −dy だけ変わる
                     r.Y += dy / GP.height;
                     r.Height -= dy / GP.height;
                     break;
                 case EditMode::Bottom:
+                    // 矩形サイズが小さく、かつ、小さい方向に動かす場合は、上辺を動かさない 
+                    //if (isSmallRectY && dy < 0)
+                    //    break; // 編集しない
+
                     // 下辺を dy だけ動かす → 矩形の高さは +dy だけ変わる
                     r.Height += dy / GP.height;
                     break;
                 case EditMode::Left:
+                    // 矩形サイズが小さく、かつ、小さい方向に動かす場合は、左辺を動かさない 
+                    //if (isSmallRectX && dx > 0)
+                    //    break; // 編集しない
+
                     // 左辺を dx だけ動かす → 矩形の幅は −dx だけ変わる
                     r.X += dx / GP.width;
                     r.Width -= dx / GP.width;
                     break;
                 case EditMode::Right:
+                    // 矩形サイズが小さく、かつ、小さい方向に動かす場合は、左辺を動かさない 
+                    //if (isSmallRectX && dx < 0)
+                    //    break; // 編集しない
+
                     // 右辺を dx だけ動かす → 矩形の幅は +dx だけ変わる
                     r.Width += dx / GP.width;
                     break;
@@ -783,7 +812,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     break;
                 }
                 // マウス位置を保存
+                //if(!isSmallRectX&& !isSmallRectY)
                 GP.prevMouse = Gdiplus::PointF((FLOAT)pt.x, (FLOAT)pt.y);
+
                 // 再描画
                 InvalidateRect(hWnd, NULL, TRUE);
             }
