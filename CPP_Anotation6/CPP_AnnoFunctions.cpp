@@ -191,7 +191,9 @@ int LoadImageFilesMP(const std::wstring& folderPath, std::vector<ImgObject>& _im
         // 2) 結果コンテナをあらかじめ確保しておく
         _imgObjs.resize(N);
 
-        // 3) 画像ロードを並列化
+        // 3) 画像ロードを並列化（チャンク単位）
+        //const int CHUNK_SIZE = 8;
+//#pragma omp parallel for schedule(static, CHUNK_SIZE)
 #pragma omp parallel for schedule(dynamic)
         for (int i = 0; i < N; ++i) {
             ImgObject& img = _imgObjs[i];
