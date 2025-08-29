@@ -8,3 +8,4 @@
 7, RobotWelding ,128, 255, 0, DashStyleDash, 2
 8, Picking, 255, 128, 0, DashStyleSolid, 1
 9, Crane_Operation, 128, 255, 128, DashStyleDash, 2
+10,Push, 128, 255, 0, DashStyleDash, 2
