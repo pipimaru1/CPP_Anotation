@@ -18,6 +18,7 @@
 #define IDM_SAVE_LABELS			201
 #define IDM_LOAD_LABELS			202
 #define IDM_LOAD_CLASSIFICATION	203
+#define IDM_YOLO_PRESETBOX		204
 
 //2200まではクラシフィケーション用
 #define IDM_PMENU_CLSNAME00		2000 //動的ポップアップメニューのID 

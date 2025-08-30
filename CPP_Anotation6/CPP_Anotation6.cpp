@@ -6,7 +6,14 @@
 #include "CPP_AnnoFunctions.h"
 #include "CPP_Anotation6.h"
 
+#include "CPP_YoloAuto.h"
+
 // 必要なライブラリ
+// 修正: cv::imread関数に渡すパスをstd::stringに変換する必要があります。
+// cv::imreadはstd::string型の引数を受け取るため、std::wstringをstd::stringに変換します。
+//#include <opencv2/opencv.hpp>
+//#include <string>
+
 #pragma comment(lib, "gdiplus.lib")
 #pragma comment(lib, "Shlwapi.lib")
 #define MAX_LOADSTRING 100
@@ -229,106 +236,130 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // 選択されたメニューの解析:
         switch (wmId)
         {
-        case IDM_LOAD_LABELS:
-		{
-			// ファイルオープンダイアログを表示
-            std::wstring _folderpath;
-            //_folderpath = GetFolderPathIFR(hWnd, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
-            _folderpath = GetFolderPathEx(hWnd, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
+            case IDM_LOAD_LABELS:
+		    {
+			    // ファイルオープンダイアログを表示
+                std::wstring _folderpath;
+                //_folderpath = GetFolderPathIFR(hWnd, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
+                _folderpath = GetFolderPathEx(hWnd, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
 
-            // フォルダ選択ダイアログを表示
-            if (!_folderpath.empty()) 
-            {
-                GP.labelFolderPath = _folderpath; // フォルダパスを指定
-
-                // フォルダが選択された場合、アノテーションデータを読み込み
-                //LoadLabelFiles(GP.imgObjs, GP.labelFolderPath, L".txt", 1);
-                LoadLabelFilesMP(GP.imgObjs, GP.labelFolderPath, L".txt", 1);
-
-                //タイトルバーに編集中の画像とラベルのパスを表示
-                SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
-            }
-		}
-		break;
-        case IDM_SAVE_LABELS:
-		{
-			// ファイル保存ダイアログを表示
-            std::wstring _folderpath;
-            //_folderpath = GetFolderPath(hWnd);
-            //_folderpath = GetFolderPathIFR(hWnd, GP.labelFolderPath, L"書込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
-            _folderpath = GetFolderPathEx(hWnd, L"書込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
-
-			// フォルダ選択ダイアログを表示
-			if (!_folderpath.empty()) {
-				int _saveok = MessageBoxW(hWnd, L"保存しますか？", L"確認", MB_OKCANCEL);
-                if (_saveok == IDOK)
+                // フォルダ選択ダイアログを表示
+                if (!_folderpath.empty()) 
                 {
                     GP.labelFolderPath = _folderpath; // フォルダパスを指定
+
+                    // フォルダが選択された場合、アノテーションデータを読み込み
+                    //LoadLabelFiles(GP.imgObjs, GP.labelFolderPath, L".txt", 1);
+                    LoadLabelFilesMP(GP.imgObjs, GP.labelFolderPath, L".txt", 1);
+
                     //タイトルバーに編集中の画像とラベルのパスを表示
-                    SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.activeIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
+                    SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
+                }
+		    }
+		    break;
+            case IDM_SAVE_LABELS:
+		    {
+			    // ファイル保存ダイアログを表示
+                std::wstring _folderpath;
+                //_folderpath = GetFolderPath(hWnd);
+                //_folderpath = GetFolderPathIFR(hWnd, GP.labelFolderPath, L"書込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
+                _folderpath = GetFolderPathEx(hWnd, L"書込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
 
-                    // フォルダが選択された場合、アノテーションデータを保存
-                    for (size_t i = 0; i < GP.imgObjs.size(); i++)
+			    // フォルダ選択ダイアログを表示
+			    if (!_folderpath.empty()) {
+				    int _saveok = MessageBoxW(hWnd, L"保存しますか？", L"確認", MB_OKCANCEL);
+                    if (_saveok == IDOK)
                     {
-                        // ファイル名
-                        std::wstring _fileName1;
-                        std::wstring _fileName2;
+                        GP.labelFolderPath = _folderpath; // フォルダパスを指定
+                        //タイトルバーに編集中の画像とラベルのパスを表示
+                        SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.activeIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
 
-                        _fileName1 = GetFileNameFromPath(GP.imgObjs[i].path);
-                        _fileName2 = _folderpath + L"\\" + _fileName1 + L".txt";
-
-                        bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[i].objs, 1);
-                        if (!_ret)
+                        // フォルダが選択された場合、アノテーションデータを保存
+                        for (size_t i = 0; i < GP.imgObjs.size(); i++)
                         {
-                            // 保存失敗
-                            MessageBox(hWnd, L"保存失敗", L"失敗", MB_OK);
+                            // ファイル名
+                            std::wstring _fileName1;
+                            std::wstring _fileName2;
+
+                            _fileName1 = GetFileNameFromPath(GP.imgObjs[i].path);
+                            _fileName2 = _folderpath + L"\\" + _fileName1 + L".txt";
+
+                            bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[i].objs, 1);
+                            if (!_ret)
+                            {
+                                // 保存失敗
+                                MessageBox(hWnd, L"保存失敗", L"失敗", MB_OK);
+                            }
                         }
-                    }
-				}
-            }
-		}
-        break;
-
-        case IDM_LOAD_IMAGES:
-        {
-            //GP.imgFolderPath = GetFolderPathIFR(hWnd, L"読込イメージフォルダを選択してください"); // フォルダ選択ダイアログを表示
-            GP.imgFolderPath = GetFolderPathEx(hWnd, L"読込イメージフォルダを選択してください"); // フォルダ選択ダイアログを表示
-
-            if (!GP.imgFolderPath.empty()) {
-				// 画像ファイルのパスと矩形の配列をクリア
-                GP.imgObjs.clear();
-                // フォルダが選択された場合、画像ファイルを取得
-                LoadImageFilesMP(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
-                SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size() ); // タイトルバーに画像のパスを表示
-
-                GP.imgIdx = 0; // インデックスをリセット
-            }
-            // 再描画
-            InvalidateRect(hWnd, NULL, TRUE);
-        }
-        break;
-
-        case IDM_LOAD_CLASSIFICATION:
-		{
-			//クラシフィケーションファイルを読込
-			std::wstring _filepath;
-			_filepath = GetFileName(hWnd, L"クラス分類ファイルを読込", 0);
-			if (!_filepath.empty()) {
-				// クラシフィケーションファイルを読込
-				LoadClassification(_filepath, GP.ClsNames, GP.ClsColors, GP.ClsDashStyles, GP.ClsPenWidths, 0);//0=読み込み、1=書き込み
-			}
-		}
-		break;
-
-        case IDM_ABOUT:
-            DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-            break;
-        case IDM_EXIT:
-            DestroyWindow(hWnd);
+				    }
+                }
+		    }
             break;
 
-        default:
-            return DefWindowProc(hWnd, message, wParam, lParam);
+            case IDM_LOAD_IMAGES:
+            {
+                //GP.imgFolderPath = GetFolderPathIFR(hWnd, L"読込イメージフォルダを選択してください"); // フォルダ選択ダイアログを表示
+                GP.imgFolderPath = GetFolderPathEx(hWnd, L"読込イメージフォルダを選択してください"); // フォルダ選択ダイアログを表示
+
+                if (!GP.imgFolderPath.empty()) {
+				    // 画像ファイルのパスと矩形の配列をクリア
+                    GP.imgObjs.clear();
+                    // フォルダが選択された場合、画像ファイルを取得
+                    LoadImageFilesMP(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
+                    SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size() ); // タイトルバーに画像のパスを表示
+
+                    GP.imgIdx = 0; // インデックスをリセット
+                }
+                // 再描画
+                InvalidateRect(hWnd, NULL, TRUE);
+            }
+            break;
+
+            case IDM_LOAD_CLASSIFICATION:
+		    {
+			    //クラシフィケーションファイルを読込
+			    std::wstring _filepath;
+			    _filepath = GetFileName(hWnd, L"クラス分類ファイルを読込", 0);
+			    if (!_filepath.empty()) {
+				    // クラシフィケーションファイルを読込
+				    LoadClassification(_filepath, GP.ClsNames, GP.ClsColors, GP.ClsDashStyles, GP.ClsPenWidths, 0);//0=読み込み、1=書き込み
+			    }
+		    }
+		    break;
+
+            case IDM_YOLO_PRESETBOX:
+            {
+				cv::Mat _img = cv::imread(WStringToString(GP.imgObjs[GP.imgIdx].path)); // 画像をOpenCVで読み込み
+                DnnParams p;
+                p.opt.backend = cv::dnn::DNN_BACKEND_OPENCV; // or DNN_BACKEND_CUDA
+                p.opt.target = cv::dnn::DNN_TARGET_CPU;     // or DNN_TARGET_CUDA
+                p.yolo.inputW = 640; p.yolo.inputH = 640;
+                p.yolo.confThreshold = 0.25f;
+                p.yolo.nmsThreshold = 0.45f;
+
+				AutoDetctedObjs = DnnInfer(_img, L".\\yolov5s.onnx",p);
+                g_showProposals = true;
+
+                    // 再描画
+				InvalidateRect(hWnd, NULL, TRUE);
+            }
+            break;
+
+            case IDM_ABOUT:
+            {
+                DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+            }
+            break;
+            case IDM_EXIT:
+            {
+                DestroyWindow(hWnd);
+            }
+            break;
+
+            default:
+            {
+                return DefWindowProc(hWnd, message, wParam, lParam);
+            }
         }
     }
     break;
@@ -371,10 +402,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 // 矩形を描画
                 WM_PAINT_DrawLabels(graphics, GP.imgObjs[GP.imgIdx].objs, GP.width, GP.height, GP.font);
             }
+            
+			// YOLOの推論結果を描画
+            if (g_showProposals && !AutoDetctedObjs.empty()) {
+                // 1) 画像を既存ロジックで描画（例：Fit表示）
+                RECT rcClient; 
+                GetClientRect(hWnd, &rcClient);
+                //const int imgW = GP.imgObjs[GP.imgIdx].image->GetWidth(); // ←あなたの構造体の実フィールド名に合わせてください
+                //const int imgH = GP.imgObjs[GP.imgIdx].image->GetHeight(); // 例示
+                //RectF view = FitImageToClientRect(imgW, imgH, rcClient);
+                //DrawLabelObjects(graphics, AutoDetctedObjs, view);
+                DrawLabelObjects(graphics, AutoDetctedObjs, ToRectF(rcClient));
+            }
+            
             // ドラッグ中の矩形を描画
             if(GP.dgMode==DragMode::MakeBox)
                 WM_PAINT_DrawTmpBox(graphics, GP.tmpLabel.rect, GP.width, GP.height);
-           
+         
             // 最後に画面に転送
             BitBlt(hdc, 0, 0, GP.width, GP.height, memDC, 0, 0, SRCCOPY);
 
