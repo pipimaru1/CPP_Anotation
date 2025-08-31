@@ -1464,126 +1464,13 @@ int ShowClassPopupMenu_Core(HWND hWnd, UINT& cmd)
     return 1; // 選択されたコマンドを返す
 }
 
-/*
-///////////////////////////////////////////////////////////////////////
-// ラベルのクラス名をポップアップメニューで表示する関数
-// 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
-void ShowClassPopupMenu(HWND hWnd)
-{
-    const int _perColumn = 20;
 
-    // ポップアップメニューの作成
-    HMENU hPopup = CreatePopupMenu();
-    if (!hPopup) return;
-
-    // カーソル位置を取得（画面→クライアント座標は不要）
-    POINT pt;
-    GetCursorPos(&pt);
-
-    // メニュー項目を追加
-    for (size_t i = 0; i < GP.ClsNames.size(); ++i)
-    {
-        UINT flags = MF_STRING;
-        // 「i が itemsPerColumn の倍数」のときは
-        // この項目から新しい列を始める
-        if (i > 0 && (i % _perColumn) == 0) {
-            flags |= MF_MENUBREAK;
-        }
-        AppendMenuW(hPopup,
-            //MF_STRING,
-            flags,
-            IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
-            GP.ClsNames[i].c_str());
-    }
-    AppendMenuW(hPopup, MF_STRING,
-        IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()),
-        L"CANCEL");
-
-    // ウィンドウを前面にしてから表示
-    SetForegroundWindow(hWnd);
-    UINT cmd = TrackPopupMenuEx(
-        hPopup,
-        TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_RETURNCMD,
-        pt.x, pt.y,
-        hWnd,
-        NULL
-    );
-    DestroyMenu(hPopup);
-
-    // 選択結果を反映
-    if (cmd >= IDM_PMENU_CLSNAME00 &&
-        cmd < IDM_PMENU_CLSNAME00 + GP.ClsNames.size())
-    {
-        GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
-
-        // tmpLabel に選択内容を設定
-        GP.tmpLabel.ClassName = GP.ClsNames[GP.selectedClsIdx];
-        GP.tmpLabel.ClassNum = GP.selectedClsIdx;
-        GP.tmpLabel.color = GP.ClsColors[GP.selectedClsIdx];
-        GP.tmpLabel.dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
-        GP.tmpLabel.penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
-
-        // オブジェクトを登録
-        if (!GP.imgObjs.empty())
-            GP.imgObjs[GP.imgIdx].objs.push_back(GP.tmpLabel);
-    }
-    else if (cmd == 0 || cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size())) // CANCEL
-    {
-        return;
-    }
-    return;
-}
-*/
 ///////////////////////////////////////////////////////////////////////
 // ラベルのクラス名をポップアップメニューで表示する関数
 // 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
 
 int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectIDX)
 {
-    /*
-        const int _perColumn = 20;
-    // ポップアップメニューの作成
-    HMENU hPopup = CreatePopupMenu();
-    if (!hPopup)
-        return -3; // エラー
-
-    // カーソル位置を取得（画面→クライアント座標は不要）
-    POINT pt;
-    GetCursorPos(&pt);
-
-    // メニュー項目を追加
-    for (size_t i = 0; i < GP.ClsNames.size(); ++i)
-    {
-        UINT flags = MF_STRING;
-        // 「i が itemsPerColumn の倍数」のときは
-        // この項目から新しい列を始める
-        if (i > 0 && (i % _perColumn) == 0) {
-            flags |= MF_MENUBREAK;
-        }
-        AppendMenuW(hPopup,
-            flags,
-            IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
-            GP.ClsNames[i].c_str());
-    }
-    AppendMenuW(hPopup, MF_STRING,
-        IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()),
-        L"DELETE");
-
-    AppendMenuW(hPopup, MF_STRING,
-        IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1,
-        L"CANCEL");
-
-    // ウィンドウを前面にしてから表示
-    SetForegroundWindow(hWnd);
-    UINT cmd = TrackPopupMenuEx(
-        hPopup,
-        TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_RETURNCMD,
-        pt.x, pt.y,
-        hWnd,
-        NULL
-    );
-    DestroyMenu(hPopup);
-*/
     // 選択結果を反映
     UINT cmd = 0;
     if (ShowClassPopupMenu_Core(hWnd, cmd))
