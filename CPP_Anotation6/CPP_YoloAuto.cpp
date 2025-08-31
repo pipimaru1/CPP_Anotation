@@ -197,9 +197,22 @@ std::vector<LabelObj> DnnInfer(const cv::Mat& bgr,
             cv::Mat blob; cv::Rect padRect;
             MakeBlobResizeLetterbox(bgr, params.yolo, blob, padRect);
             net.setInput(blob);
+            cv::Mat out;
 
-            // 推論
-            cv::Mat out = net.forward();
+            // 推論 失敗したら空で返す
+            try
+            {
+                out = net.forward();
+            }
+            catch (cv::Exception& e)
+            {
+                // 例外をキャッチしたらエラーメッセージを表示
+                std::cerr << e.what() << std::endl;
+                std::wstring err = L"ONNXモデルの推論に失敗しました。\nモデルが壊れているか、\nモデルの形式が対応していない可能性があります。\n";
+                err += std::wstring(e.what(), e.what() + strlen(e.what()));
+                MessageBoxExW(NULL, err.c_str(), L"Error", MB_OK | MB_ICONERROR, MAKELANGID(LANG_JAPANESE, SUBLANG_JAPANESE_JAPAN));
+                return outLabels;
+            }
 
             // 後処理（YOLO汎用デコード）
             std::vector<cv::Rect> boxesPx;

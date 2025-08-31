@@ -90,6 +90,16 @@ int APIENTRY wWinMain(
             isInitOK = true;
         }
     }
+    if (argc >= 5)
+    {
+        std::wstring _onnxfile = argv[4]; // ラベルフォルダ
+        if (PathFileExistsW(_onnxfile.c_str()))
+        {
+			g_onnxFile = _onnxfile;
+		}
+    }
+
+
     // GDIPlusのスタートの後に フォントを生成
     GP.InitFont();
 

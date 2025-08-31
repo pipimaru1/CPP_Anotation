@@ -1615,7 +1615,7 @@ int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectI
             // オブジェクトを削除
             //GP.imgObjs[GP.imgIdx].objs.erase(GP.imgObjs[GP.imgIdx].objs.begin() + activeObjectIDX);
             _imgobj.objs.erase(_imgobj.objs.begin() + activeObjectIDX);
-            GP.imgObjs[GP.imgIdx].isEdited = true; // 編集フラグを立てる
+            _imgobj.isEdited = true; // 編集フラグを立てる このフラグは使われないが…
 
             return -1; // 削除したことを示す
         }
