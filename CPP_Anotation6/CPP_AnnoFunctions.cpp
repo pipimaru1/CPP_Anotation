@@ -1964,3 +1964,24 @@ void JumpToUnlabeledImage(HWND hWnd)
     }
     MessageBoxW(hWnd, L"ÉâÉxÉãÇÃÇ»Ç¢âÊëúÇÕÇ†ÇËÇ‹ÇπÇÒ", L"èÓïÒ", MB_OK);
 }
+
+void CheckMenues(HWND hWnd)
+{
+    CheckMenu(hWnd, IDM_YOLO_IMGSZE640, false);
+    CheckMenu(hWnd, IDM_YOLO_IMGSZE1280, false);
+    CheckMenu(hWnd, IDM_YOLO_IMGSZE1920, false);
+    CheckMenu(hWnd, IDM_YOLO_SELCTONNX, false);
+       
+
+    if(GDNNP.yolo.inputW == 640)
+        CheckMenu(hWnd, IDM_YOLO_IMGSZE640, true);
+    if (GDNNP.yolo.inputW == 1280)
+        CheckMenu(hWnd, IDM_YOLO_IMGSZE1280, true);
+    if (GDNNP.yolo.inputW == 1920)
+        CheckMenu(hWnd, IDM_YOLO_IMGSZE1920, true);
+
+    if (!g_onnxFile.empty())
+    {
+        CheckMenu(hWnd, IDM_YOLO_SELCTONNX, true);
+    }
+}

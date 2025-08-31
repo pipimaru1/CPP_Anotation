@@ -7,6 +7,7 @@
 #include "CPP_Anotation6.h"
 
 #include "CPP_YoloAuto.h"
+#include "Sliderbox.hpp"
 
 // 必要なライブラリ
 // 修正: cv::imread関数に渡すパスをstd::stringに変換する必要があります。
@@ -251,6 +252,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         //GP.imgObjs.clear(); // 画像ファイルのパスと矩形の配列
         //GP.imgFolderPath = INIT_IMGFOLDER; // フォルダパスを指定
         //LoadImageFiles(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
+        CheckMenues(hWnd);
         SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, 0, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
 
     break;
@@ -465,37 +467,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		    }
 		    break;
 
-            case IDM_YOLO_PRESETBOX:
-            {
-				cv::Mat _img = cv::imread(WStringToString(GP.imgObjs[GP.imgIdx].path)); // 画像をOpenCVで読み込み
-                //DnnParams p;
-                //p.opt.backend = cv::dnn::DNN_BACKEND_OPENCV; // or DNN_BACKEND_CUDA
-                //p.opt.target = cv::dnn::DNN_TARGET_CPU;     // or DNN_TARGET_CUDA
-                //p.yolo.inputW = 640; p.yolo.inputH = 640;
-                //p.yolo.confThreshold = 0.25f;
-                //p.yolo.nmsThreshold = 0.45f;
-				//AutoDetctedObjs.objs = DnnInfer(_img, L".\\yolov5s.onnx",p);
-                //AutoDetctedObjs.objs = DnnInfer(_img, g_onnxFile, p);
-
-                AutoDetctedObjs.objs = DnnInfer(_img, g_onnxFile, GDNNP);
-
-                g_showProposals = true; //これ要るの?
-
-                    // 再描画
-				InvalidateRect(hWnd, NULL, TRUE);
-            }
-            break;
-
-            //case IDM_ABOUT:
-            //{
-            //    DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-            //}
-            //break;
-            //case IDM_EXIT:
-            //{
-            //    DestroyWindow(hWnd);
-            //}
-            //break;
             case ID_ANNOT_JUMP_IGNOREBOX:
             {
                 // startIdx は次の画像から検索したい場合は currentImageIdx+1
@@ -557,6 +528,83 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			    CreatePopupMenuFor_Labels_in_CurrentImage(hWnd);
                 break;
 
+            case IDM_YOLO_PRESETBOX:
+            {
+                AutoDetctedObjs.objs.clear(); // AI推論結果をクリア
+
+                cv::Mat _img = cv::imread(WStringToString(GP.imgObjs[GP.imgIdx].path)); // 画像をOpenCVで読み込み
+                //DnnParams p;
+                //p.opt.backend = cv::dnn::DNN_BACKEND_OPENCV; // or DNN_BACKEND_CUDA
+                //p.opt.target = cv::dnn::DNN_TARGET_CPU;     // or DNN_TARGET_CUDA
+                //p.yolo.inputW = 640; p.yolo.inputH = 640;
+                //p.yolo.confThreshold = 0.25f;
+                //p.yolo.nmsThreshold = 0.45f;
+                //AutoDetctedObjs.objs = DnnInfer(_img, L".\\yolov5s.onnx",p);
+                //AutoDetctedObjs.objs = DnnInfer(_img, g_onnxFile, p);
+
+                AutoDetctedObjs.objs = DnnInfer(_img, g_onnxFile, GDNNP);
+
+                g_showProposals = true; //これ要るの?
+
+                // 再描画
+                InvalidateRect(hWnd, NULL, TRUE);
+            }
+            break;
+
+            case IDM_YOLO_PRESETPARAM:
+            {
+                RECT rcClient;
+                GetClientRect(hWnd, &rcClient);
+                SliderDialogT<float>* pDlgf = nullptr;
+
+                pDlgf = new SliderDialogT<float>(
+                    hInst,
+                    hWnd,
+                    GDNNP.yolo.nmsThreshold,
+                    0.0f, 1.0f,   // min, max
+                    true,          // 横型
+                    L"NMS",   // ラベル文字列
+                    rcClient.right - 60, 0,   // ← 初期位置 x, y 
+                    60, 250                 // ← 初期サイズ width, height
+                );
+                pDlgf->ShowModeless(hWnd);  // ← 即リターンしてメイン処理継続
+
+                pDlgf = new SliderDialogT<float>(
+                    hInst,
+                    hWnd,
+                    GDNNP.yolo.confThreshold,
+                    0.0f, 1.0f,   // min, max
+                    true,          // 横型
+                    L"Conf",   // ラベル文字列
+                    rcClient.right - 60 - 60, 0,   // ← 初期位置 x, y 
+                    60, 250                 // ← 初期サイズ width, height
+                );
+                pDlgf->ShowModeless(hWnd);  // ← 即リターンしてメイン処理継続
+
+            }
+            break;
+
+            case IDM_YOLO_IMGSZE640:
+            {
+                GDNNP.yolo.inputW = 640;
+                GDNNP.yolo.inputH = 640;
+                CheckMenues(hWnd);
+            }
+            break;
+            case IDM_YOLO_IMGSZE1280:
+            {
+                GDNNP.yolo.inputW = 1280;
+                GDNNP.yolo.inputH = 1280;
+                CheckMenues(hWnd);
+            }
+            break;
+            case IDM_YOLO_IMGSZE1920:
+            {
+                GDNNP.yolo.inputW = 1920;
+                GDNNP.yolo.inputH = 1920;
+                CheckMenues(hWnd);
+            }
+            break;
             case IDM_YOLO_SELCTONNX:
             {
                 // DNN ONNXモデルファイルを選択
@@ -574,7 +622,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 if (!_filepath.empty()) {
                     g_onnxFile = _filepath; // ファイルパスを保存
                 }
-			}
+				CheckMenues(hWnd);
+            }
             break;
 
             case IDM_ABOUT:
@@ -794,6 +843,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		   }
 		}
 	}
+    break;
     // マウスの移動中の処理
 	// BOXと重なっているかどうかを判定したり、矩形の編集を行う
     case WM_MOUSEMOVE:
@@ -988,7 +1038,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
             }
             //上と同じ安全措置必要か
-            AutoDetctedObjs.mOverIdx = GetIdxMouseOnRectEdge(pt, AutoDetctedObjs.objs, GP.edMode, GP.Overlap); // マウスカーソルの位置を取得
+			EditMode _dummy; //edModeは矩形の辺の位置を調べるのに必要だが、ここでは使わないのでダミー変数
+            //AutoDetctedObjs.mOverIdx = GetIdxMouseOnRectEdge(pt, AutoDetctedObjs.objs, GP.edMode, GP.Overlap); // マウスカーソルの位置を取得
+            AutoDetctedObjs.mOverIdx = GetIdxMouseOnRectEdge(pt, AutoDetctedObjs.objs, _dummy, GP.Overlap); // マウスカーソルの位置を取得
             InvalidateRect(hWnd, NULL, TRUE);
         }
     }
@@ -1036,6 +1088,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 AutoDetctedObjs.objs.clear(); // AI推論結果をクリア
             }
             break;
+
 		    case 'D': // 次の画像 alt+ctrlならラベル定義のない画像まで移動
             case VK_RIGHT:
             {
@@ -1083,6 +1136,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 //}
             }
             break;
+
             case 'S': //前後画像の比較
             case 's':
             {
@@ -1108,6 +1162,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 {
 					PostMessage(hWnd, WM_COMMAND, ID_ANNOT_JUMP_IGNOREBOX, 0); // ジャンプメニューを呼び出す
                 }
+            }
+			break;
+
+			case 'Q': // 自動アノテーション
+            case 'q': // 自動アノテーション
+            {
+				PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
             }
             break;
         }

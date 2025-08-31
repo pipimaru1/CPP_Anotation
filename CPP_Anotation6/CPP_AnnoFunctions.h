@@ -162,3 +162,7 @@ bool isIgnoreBox(const LabelObj& obj, float minW, float minH);
 ///////////////////////////////////////////////////////////////////////
 std::wstring InsertSubFolder(const std::wstring& folderPath, const std::wstring& _sub);
 
+///////////////////////////////////////////////////////////////////////
+void CheckMenues(HWND hWnd);
+
+
