@@ -1383,8 +1383,88 @@ void DrawCrosshairLines(HWND hWnd)
     ReleaseDC(hWnd, hdc);
 }
 
+///////////////////////////////////////////////////////////////////////
+// ラベルのクラス名をポップアップメニューで表示する関数の共通部分
+int ShowClassPopupMenu_Core(HWND hWnd, UINT& cmd)
+{
+    const int _perColumn = 20;
 
+    // ポップアップメニューの作成
+    HMENU hPopup = CreatePopupMenu();
+    if (!hPopup) return 0;
 
+    // カーソル位置を取得（画面→クライアント座標は不要）
+    POINT pt;
+    GetCursorPos(&pt);
+
+    // 先頭で未使用アクセラレータを管理するセットを用意
+    std::set<wchar_t> usedAccels;
+
+    // メニュー項目を追加 
+    for (size_t i = 0; i < GP.ClsNames.size(); ++i)
+    {
+        const std::wstring& name = GP.ClsNames[i];
+        wchar_t base = name[0];          // 元の頭文字
+#if defined(USE_ACCEL_NUMBER) //9まで使い切ってしまうとnullになり、メニュー表示が異常になる
+        wchar_t accel = 0;               // 最終的に使うアクセラレータ
+        // まだ使われていなければその文字を使う
+        if (usedAccels.insert(base).second) {
+            accel = base;
+        }
+        else {
+            // 重複していたら '1'～'9' から未使用のものを探す
+            for (wchar_t d = L'1'; d <= L'9'; ++d) {
+                if (usedAccels.insert(d).second) {
+                    accel = d;
+                    break;
+                }
+            }
+            // ※9個以上の重複があり得るなら、ここを拡張してください
+        }
+#else
+        wchar_t accel = base; // ショートカットキーは元の頭文字
+#endif
+        // ショートカットキー付き文字列を作成
+        std::wostringstream clsName;
+        clsName << L"(&" << accel << L") " << name;
+
+        // 分類がたくさんあるときの処理
+        UINT flags = MF_STRING;
+        if (i > 0 && (i % _perColumn) == 0) {
+            flags |= MF_MENUBREAK;
+        }
+
+        AppendMenuW(
+            hPopup,
+            flags,
+            IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
+            clsName.str().c_str()
+        );
+    }
+
+    AppendMenuW(hPopup, MF_STRING,
+        IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()),
+        L"DELETE(&1)");
+
+    AppendMenuW(hPopup, MF_STRING,
+        IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1,
+        L"CANCEL");
+
+    // ウィンドウを前面にしてから表示
+    SetForegroundWindow(hWnd);
+    cmd = TrackPopupMenuEx(
+        hPopup,
+        TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_RETURNCMD,
+        pt.x, pt.y,
+        hWnd,
+        NULL
+    );
+    DestroyMenu(hPopup);
+
+    return 1; // 選択されたコマンドを返す
+}
+
+/*
 ///////////////////////////////////////////////////////////////////////
 // ラベルのクラス名をポップアップメニューで表示する関数
 // 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
@@ -1453,15 +1533,15 @@ void ShowClassPopupMenu(HWND hWnd)
     }
     return;
 }
-
+*/
 ///////////////////////////////////////////////////////////////////////
 // ラベルのクラス名をポップアップメニューで表示する関数
 // 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
 
 int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectIDX)
 {
-    const int _perColumn = 20;
-
+    /*
+        const int _perColumn = 20;
     // ポップアップメニューの作成
     HMENU hPopup = CreatePopupMenu();
     if (!hPopup)
@@ -1503,41 +1583,95 @@ int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectI
         NULL
     );
     DestroyMenu(hPopup);
-
+*/
     // 選択結果を反映
-    if (cmd >= IDM_PMENU_CLSNAME00 &&
-        cmd < IDM_PMENU_CLSNAME00 + GP.ClsNames.size())
+    UINT cmd = 0;
+    if (ShowClassPopupMenu_Core(hWnd, cmd))
     {
-        GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
+        if (cmd >= IDM_PMENU_CLSNAME00 &&
+            cmd < IDM_PMENU_CLSNAME00 + GP.ClsNames.size())
+        {
+            GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
 
-        // activeObjectIDXで示すオブジェクトに選択内容を上書き
-        //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].ClassName = GP.ClsNames[GP.selectedClsIdx];
-        //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].ClassNum = GP.selectedClsIdx;
-        //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].color = GP.ClsColors[GP.selectedClsIdx];
-        //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
-        //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
+            // activeObjectIDXで示すオブジェクトに選択内容を上書き
+            //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].ClassName = GP.ClsNames[GP.selectedClsIdx];
+            //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].ClassNum = GP.selectedClsIdx;
+            //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].color = GP.ClsColors[GP.selectedClsIdx];
+            //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
+            //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
 
-        _imgobj.objs[activeObjectIDX].ClassName = GP.ClsNames[GP.selectedClsIdx];
-        _imgobj.objs[activeObjectIDX].ClassNum = GP.selectedClsIdx;
-        _imgobj.objs[activeObjectIDX].color = GP.ClsColors[GP.selectedClsIdx];
-        _imgobj.objs[activeObjectIDX].dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
-        _imgobj.objs[activeObjectIDX].penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
+            _imgobj.objs[activeObjectIDX].ClassName = GP.ClsNames[GP.selectedClsIdx];
+            _imgobj.objs[activeObjectIDX].ClassNum = GP.selectedClsIdx;
+            _imgobj.objs[activeObjectIDX].color = GP.ClsColors[GP.selectedClsIdx];
+            _imgobj.objs[activeObjectIDX].dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
+            _imgobj.objs[activeObjectIDX].penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
 
-		return GP.selectedClsIdx;   // 選択されたクラス番号
+            GP.imgObjs[GP.imgIdx].isEdited = true; // 編集フラグを立てる
+
+            return GP.selectedClsIdx;   // 選択されたクラス番号
+        }
+        else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size())) // DELETE
+        {
+            // オブジェクトを削除
+            //GP.imgObjs[GP.imgIdx].objs.erase(GP.imgObjs[GP.imgIdx].objs.begin() + activeObjectIDX);
+            _imgobj.objs.erase(_imgobj.objs.begin() + activeObjectIDX);
+            GP.imgObjs[GP.imgIdx].isEdited = true; // 編集フラグを立てる
+
+            return -1; // 削除したことを示す
+        }
+        else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1) // CANCEL
+        {
+            return -2; // キャンセルしたことを示す
+        }
     }
-    else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size())) // DELETE
+    else
     {
-        // オブジェクトを削除
-        //GP.imgObjs[GP.imgIdx].objs.erase(GP.imgObjs[GP.imgIdx].objs.begin() + activeObjectIDX);
-        _imgobj.objs.erase(_imgobj.objs.begin() + activeObjectIDX);
-        
-        return -1; // 削除したことを示す
-    }
-    else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1) // CANCEL
-    {
-        return -2; // キャンセルしたことを示す
-    }
+        return -3; // エラー
+	}
 }
+
+///////////////////////////////////////////////////////////////////////
+// ラベルのクラス名をポップアップメニューで表示する関数
+// 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
+void ShowClassPopupMenu(HWND hWnd)
+{
+    //UINT cmd = 0;
+    //int _cmd = ShowClassPopupMenu_Core(hWnd);
+    //if (_cmd != -1) // コマンドが正常に取得できた場合
+    //    cmd = static_cast<UINT>(_cmd); // コマンドをUINTに変換
+    //else
+    //    return; // メニューの表示に失敗した場合は何もしない
+    UINT cmd = 0;
+    if (ShowClassPopupMenu_Core(hWnd, cmd))
+    {
+        // 選択結果を反映
+        if (cmd >= IDM_PMENU_CLSNAME00 &&
+            cmd < IDM_PMENU_CLSNAME00 + GP.ClsNames.size())
+        {
+            GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
+
+            // tmpLabel に選択内容を設定
+            GP.tmpLabel.ClassName = GP.ClsNames[GP.selectedClsIdx];
+            GP.tmpLabel.ClassNum = GP.selectedClsIdx;
+            GP.tmpLabel.color = GP.ClsColors[GP.selectedClsIdx];
+            GP.tmpLabel.dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
+            GP.tmpLabel.penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
+
+            // オブジェクトを登録
+            if (!GP.imgObjs.empty())
+            {
+                GP.imgObjs[GP.imgIdx].objs.push_back(GP.tmpLabel);
+                GP.imgObjs[GP.imgIdx].isEdited = true; // 編集フラグを立てる
+            }
+        }
+        else if (cmd == 0 || cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size())) // CANCEL
+        {
+            return;
+        }
+    }
+    return;
+}
+
 ////////////////////////////////////////////////////////////////////////
 // ラベルのクラス名をポップアップメニューで表示する関数 
 // ラップ
@@ -1588,8 +1722,6 @@ int CreatePopupMenuFor_Labels_in_CurrentImage(HWND hWnd)
 
     return static_cast<int>(cmd);
 }
-
-
 
 
 // _startIdx: 検索開始の画像インデックス（既定は 0）

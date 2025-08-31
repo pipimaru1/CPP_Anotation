@@ -386,3 +386,7 @@ FodyWeavers.xsd
 /yolov5s6.onnx
 /yolov5x6.onnx
 /yolov8x.onnx
+/labels/FILE0000.txt
+/labels/FILE0001.txt
+/yolov5x6.sim.onnx
+/labels/FILE0000.txt

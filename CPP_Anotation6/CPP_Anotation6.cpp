@@ -836,8 +836,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // クラス名をポップアップメニューで表示
             int _ret = ShowClassPopupMenu_for_Edit(hWnd, AutoDetctedObjs, AutoDetctedObjsIdx);
            if(_ret>=0)
-               {
+{
                // 選択された場合、メインの配列に矩形を追加する
+               GP.imgObjs[GP.imgIdx].isEdited = true; // 編集されたことにする
                GP.imgObjs[GP.imgIdx].objs.push_back(AutoDetctedObjs.objs[AutoDetctedObjsIdx]);
                AutoDetctedObjs.objs.erase(AutoDetctedObjs.objs.begin() + AutoDetctedObjsIdx);
 		   }
