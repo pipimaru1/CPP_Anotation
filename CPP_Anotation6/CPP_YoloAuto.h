@@ -123,7 +123,9 @@ RectF NormToViewRect(const RectF& rNorm, const RectF& view);
 void DrawLabelObjects(Graphics& g, const std::vector<LabelObj>& objs, const RectF& view);
 
 
-extern std::vector<LabelObj> AutoDetctedObjs; // 推論の一時表示用
+//extern std::vector<LabelObj> AutoDetctedObjs; // 推論の一時表示用
+extern ImgObject AutoDetctedObjs; // 推論の一時表示用
+
 extern bool g_showProposals;    // = true;       // 表示ON/OFF
 //extern DnnParams GDNNP;
 

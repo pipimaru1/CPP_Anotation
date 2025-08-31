@@ -1028,3 +1028,280 @@ int GetIdxMouseOnRectEdge(
     return _idx; // 矩形がない場合は-1を返す
 }
 
+
+///////////////////////////////////////////////////////////////////////
+// LabelObjを描画する関数
+void WM_PAINT_DrawLabels(
+    Gdiplus::Graphics& graphics,
+    const std::vector<LabelObj>& objs,
+    int clientWidth,
+    int clientHeight,
+    Gdiplus::Font* font
+)
+{
+    for (const auto& obj : objs)
+    {
+        // ペン幅はマウスオーバーで太く
+        int penWidth = obj.penWidth + (obj.mOver ? 2 : 0);
+        Gdiplus::Pen pen(obj.color, static_cast<REAL>(penWidth));
+        pen.SetDashStyle(obj.dashStyle);
+
+        // 矩形の座標をピクセル変換
+        float x0 = obj.rect.X * clientWidth;
+        float y0 = obj.rect.Y * clientHeight;
+        float w = obj.rect.Width * clientWidth;
+        float h = obj.rect.Height * clientHeight;
+
+        // 矩形描画
+        graphics.DrawRectangle(&pen, x0, y0, w, h);
+
+        // ラベル文字描画
+        Gdiplus::SolidBrush textBrush(obj.color);
+        const std::wstring& text = obj.ClassName;
+
+        // 文字高さを測定
+        Gdiplus::RectF textBounds;
+        graphics.MeasureString(
+            text.c_str(), -1,
+            font,
+            Gdiplus::PointF(0, 0),
+            &textBounds
+        );
+        float textHeight = textBounds.Height;
+
+        // 矩形の上部外側にオフセット
+        Gdiplus::PointF textPos(x0, y0 - textHeight - 2.0f);
+        graphics.DrawString(
+            text.c_str(), -1,
+            font,
+            textPos,
+            &textBrush
+        );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// 一時的な矩形を描画する関数
+void WM_PAINT_DrawTmpBox(
+    Gdiplus::Graphics& graphics,
+    const Gdiplus::RectF& normRect,
+    int clientWidth,
+    int clientHeight
+)
+{
+    // ペンは赤・太さ2px
+    Gdiplus::Pen pen(Gdiplus::Color(255, 0, 0), 2.0f);
+
+    // 正規化矩形をローカル変数にコピー
+    float x = normRect.X;
+    float y = normRect.Y;
+    float w = normRect.Width;
+    float h = normRect.Height;
+
+    // 幅・高さが負の場合は方向を反転
+    if (w < 0) { x += w; w = -w; }
+    if (h < 0) { y += h; h = -h; }
+
+    // ピクセル座標に変換して描画
+    graphics.DrawRectangle(
+        &pen,
+        x * clientWidth,
+        y * clientHeight,
+        w * clientWidth,
+        h * clientHeight
+    );
+}
+///////////////////////////////////////////////////////////////////////
+// マウスカーソルの位置に十字線を描画する関数
+void DrawCrosshairLines(HWND hWnd)
+{
+    // マウス位置をクライアント座標で取得
+    POINT pt;
+    GetCursorPos(&pt);
+    ScreenToClient(hWnd, &pt);
+
+    // クライアント領域サイズを取得
+    RECT rect;
+    GetClientRect(hWnd, &rect);
+
+    // GDI で十字線を XOR 描画
+    HDC hdc = GetDC(hWnd);
+    SetROP2(hdc, R2_XORPEN);
+    HPEN hPen = CreatePen(PS_SOLID, 1, RGB(255, 255, 255));
+    HGDIOBJ oldPen = SelectObject(hdc, hPen);
+
+    // 水平線
+    MoveToEx(hdc, 0, pt.y, NULL);
+    LineTo(hdc, rect.right, pt.y);
+    // 垂直線
+    MoveToEx(hdc, pt.x, 0, NULL);
+    LineTo(hdc, pt.x, rect.bottom);
+
+    // 後始末
+    SelectObject(hdc, oldPen);
+    DeleteObject(hPen);
+    ReleaseDC(hWnd, hdc);
+}
+
+
+
+///////////////////////////////////////////////////////////////////////
+// ラベルのクラス名をポップアップメニューで表示する関数
+// 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
+void ShowClassPopupMenu(HWND hWnd)
+{
+    const int _perColumn = 20;
+
+    // ポップアップメニューの作成
+    HMENU hPopup = CreatePopupMenu();
+    if (!hPopup) return;
+
+    // カーソル位置を取得（画面→クライアント座標は不要）
+    POINT pt;
+    GetCursorPos(&pt);
+
+    // メニュー項目を追加
+    for (size_t i = 0; i < GP.ClsNames.size(); ++i)
+    {
+        UINT flags = MF_STRING;
+        // 「i が itemsPerColumn の倍数」のときは
+        // この項目から新しい列を始める
+        if (i > 0 && (i % _perColumn) == 0) {
+            flags |= MF_MENUBREAK;
+        }
+        AppendMenuW(hPopup,
+            //MF_STRING,
+            flags,
+            IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
+            GP.ClsNames[i].c_str());
+    }
+    AppendMenuW(hPopup, MF_STRING,
+        IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()),
+        L"CANCEL");
+
+    // ウィンドウを前面にしてから表示
+    SetForegroundWindow(hWnd);
+    UINT cmd = TrackPopupMenuEx(
+        hPopup,
+        TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_RETURNCMD,
+        pt.x, pt.y,
+        hWnd,
+        NULL
+    );
+    DestroyMenu(hPopup);
+
+    // 選択結果を反映
+    if (cmd >= IDM_PMENU_CLSNAME00 &&
+        cmd < IDM_PMENU_CLSNAME00 + GP.ClsNames.size())
+    {
+        GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
+
+        // tmpLabel に選択内容を設定
+        GP.tmpLabel.ClassName = GP.ClsNames[GP.selectedClsIdx];
+        GP.tmpLabel.ClassNum = GP.selectedClsIdx;
+        GP.tmpLabel.color = GP.ClsColors[GP.selectedClsIdx];
+        GP.tmpLabel.dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
+        GP.tmpLabel.penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
+
+        // オブジェクトを登録
+        if (!GP.imgObjs.empty())
+            GP.imgObjs[GP.imgIdx].objs.push_back(GP.tmpLabel);
+    }
+    else if (cmd == 0 || cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size())) // CANCEL
+    {
+        return;
+    }
+    return;
+}
+
+///////////////////////////////////////////////////////////////////////
+// ラベルのクラス名をポップアップメニューで表示する関数
+// 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
+
+int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectIDX)
+{
+    const int _perColumn = 20;
+
+    // ポップアップメニューの作成
+    HMENU hPopup = CreatePopupMenu();
+    if (!hPopup)
+        return -3; // エラー
+
+    // カーソル位置を取得（画面→クライアント座標は不要）
+    POINT pt;
+    GetCursorPos(&pt);
+
+    // メニュー項目を追加
+    for (size_t i = 0; i < GP.ClsNames.size(); ++i)
+    {
+        UINT flags = MF_STRING;
+        // 「i が itemsPerColumn の倍数」のときは
+        // この項目から新しい列を始める
+        if (i > 0 && (i % _perColumn) == 0) {
+            flags |= MF_MENUBREAK;
+        }
+        AppendMenuW(hPopup,
+            flags,
+            IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
+            GP.ClsNames[i].c_str());
+    }
+    AppendMenuW(hPopup, MF_STRING,
+        IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()),
+        L"DELETE");
+
+    AppendMenuW(hPopup, MF_STRING,
+        IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1,
+        L"CANCEL");
+
+    // ウィンドウを前面にしてから表示
+    SetForegroundWindow(hWnd);
+    UINT cmd = TrackPopupMenuEx(
+        hPopup,
+        TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_RETURNCMD,
+        pt.x, pt.y,
+        hWnd,
+        NULL
+    );
+    DestroyMenu(hPopup);
+
+    // 選択結果を反映
+    if (cmd >= IDM_PMENU_CLSNAME00 &&
+        cmd < IDM_PMENU_CLSNAME00 + GP.ClsNames.size())
+    {
+        GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
+
+        // activeObjectIDXで示すオブジェクトに選択内容を上書き
+        //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].ClassName = GP.ClsNames[GP.selectedClsIdx];
+        //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].ClassNum = GP.selectedClsIdx;
+        //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].color = GP.ClsColors[GP.selectedClsIdx];
+        //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
+        //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
+
+        _imgobj.objs[activeObjectIDX].ClassName = GP.ClsNames[GP.selectedClsIdx];
+        _imgobj.objs[activeObjectIDX].ClassNum = GP.selectedClsIdx;
+        _imgobj.objs[activeObjectIDX].color = GP.ClsColors[GP.selectedClsIdx];
+        _imgobj.objs[activeObjectIDX].dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
+        _imgobj.objs[activeObjectIDX].penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
+
+		return GP.selectedClsIdx;   // 選択されたクラス番号
+    }
+    else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size())) // DELETE
+    {
+        // オブジェクトを削除
+        //GP.imgObjs[GP.imgIdx].objs.erase(GP.imgObjs[GP.imgIdx].objs.begin() + activeObjectIDX);
+        _imgobj.objs.erase(_imgobj.objs.begin() + activeObjectIDX);
+        
+        return -1; // 削除したことを示す
+    }
+    else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1) // CANCEL
+    {
+        return -2; // キャンセルしたことを示す
+    }
+}
+////////////////////////////////////////////////////////////////////////
+// ラベルのクラス名をポップアップメニューで表示する関数 
+// ラップ
+int ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX)
+{
+    return ShowClassPopupMenu_for_Edit(hWnd, GP.imgObjs[GP.imgIdx], activeObjectIDX);
+}

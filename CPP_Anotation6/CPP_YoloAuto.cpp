@@ -11,7 +11,8 @@
 #include <gdiplus.h>
 using namespace Gdiplus;
 
-std::vector<LabelObj> AutoDetctedObjs; // 推論の一時表示用
+//std::vector<LabelObj> AutoDetctedObjs; // 推論の一時表示用
+ImgObject AutoDetctedObjs; // 推論の一時表示用
 bool g_showProposals = false;       // 表示ON/OFF
 
 static std::string WToUtf8(const std::wstring& w)
