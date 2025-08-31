@@ -95,7 +95,7 @@ int APIENTRY wWinMain(
         std::wstring _onnxfile = argv[4]; // ラベルフォルダ
         if (PathFileExistsW(_onnxfile.c_str()))
         {
-			g_onnxFile = _onnxfile;
+            GDNNP.gOnnxPath = _onnxfile;
 		}
     }
 
@@ -552,7 +552,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 //AutoDetctedObjs.objs = DnnInfer(_img, L".\\yolov5s.onnx",p);
                 //AutoDetctedObjs.objs = DnnInfer(_img, g_onnxFile, p);
 
-                AutoDetctedObjs.objs = DnnInfer(_img, g_onnxFile, GDNNP);
+                AutoDetctedObjs.objs = DnnInfer(_img, GDNNP.gOnnxPath, GDNNP);
 
                 g_showProposals = true; //これ要るの?
 
@@ -630,7 +630,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 _filepath = GetFileName(hWnd, L"DNN ONNXモデルファイルを選択", filter, ARRAYSIZE(filter), 0);
 
                 if (!_filepath.empty()) {
-                    g_onnxFile = _filepath; // ファイルパスを保存
+                    GDNNP.gOnnxPath = _filepath; // ファイルパスを保存
                 }
 				CheckMenues(hWnd);
             }

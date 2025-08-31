@@ -16,7 +16,7 @@ using namespace Gdiplus;
 ///////////////////////////////////////////////////////////////////////////////////////////
 ImgObject AutoDetctedObjs; // 推論の一時表示用
 bool g_showProposals = false;       // 表示ON/OFF
-std::wstring g_onnxFile = L""; // ONNXファイルパス
+//std::wstring g_onnxFile = L""; // ONNXファイルパス
 
 DnnParams GDNNP;
 

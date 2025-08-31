@@ -34,6 +34,7 @@ struct YoloConfig {
 struct DnnParams {
     DnnOptions opt;
     YoloConfig yolo;
+    std::wstring gOnnxPath = L".\yolov5s.onnx"; // ONNXファイルパス
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -77,5 +78,5 @@ inline RectF ToRectF(const RECT& rc)
 extern ImgObject AutoDetctedObjs; // 推論の一時表示用
 extern bool g_showProposals;    // = true;       // 表示ON/OFF
 //extern DnnParams GDNNP;
-extern std::wstring g_onnxFile; // ONNXファイルパス
+//extern std::wstring g_onnxFile; // ONNXファイルパス
 extern DnnParams GDNNP; // DNNパラメータ のグローバル変数

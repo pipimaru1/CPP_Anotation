@@ -1999,7 +1999,7 @@ void CheckMenues(HWND hWnd)
     if (GDNNP.yolo.inputW == 1920)
         CheckMenu(hWnd, IDM_YOLO_IMGSZE1920, true);
 
-    if (!g_onnxFile.empty())
+	if (!GDNNP.gOnnxPath.empty())
     {
         CheckMenu(hWnd, IDM_YOLO_SELCTONNX, true);
     }
