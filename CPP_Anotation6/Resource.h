@@ -32,10 +32,14 @@
 
 #define IDM_NOSAVE_OR_CORRECT	216 //小さいオブジェクトラベルをカットせず補正する
 
-#define IDM_LOAD_LABELS		202
+#define IDM_LOAD_LABELS			202
 #define IDM_LOAD_CLASSIFICATION	203
 
-#define IDM_DLETE_IMAGE		300 //画像を削除
+#define IDM_YOLO_PRESETBOX		217 //YOLOのプリセットボックスを使用する
+#define IDM_YOLO_SELCTONNX		218 //プリセットONNXモデルを選択するファイルダイアログを出す(*.onnx)
+#define IDM_YOLO_PRESETPARAM	219 //YOLOのプリセットボックスのパラメータを設定するダイアログを出す
+
+#define IDM_DLETE_IMAGE			300 //画像を削除
 
 //2200まではクラシフィケーション用
 #define IDM_PMENU_CLSNAME00		2000 //動的ポップアップメニューのID 

@@ -4,6 +4,8 @@
 #include "CPP_AnnoFunctions.h"
 #include "CPP_Anotation6.h"
 
+#include "CPP_YoloAuto.h"
+
 #pragma comment(lib, "Pathcch.lib")
 #pragma comment(lib,"winmm.lib")
 
@@ -331,10 +333,13 @@ static int CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPAR
 // _title         : ダイアログのタイトル（空文字なら既定メッセージ）
 std::wstring GetFolderPathEx(
     HWND hWnd,
-    const std::wstring& _currentFolder,
+    //const std::wstring& _currentFolder,
     const std::wstring& _title)
 {
     wchar_t szPath[MAX_PATH] = { 0 };
+    std::wstring _currentFolder;
+	GetFolderPathfromReg(REGSTRY_KEYSTRING_FOLDER, _title, _currentFolder);
+
 
     BROWSEINFO bi = {};
     bi.hwndOwner = hWnd;
@@ -355,67 +360,12 @@ std::wstring GetFolderPathEx(
         if (SHGetPathFromIDList(pidl, szPath))
         {
             CoTaskMemFree(pidl);
+			SaveFolderPathToReg(REGSTRY_KEYSTRING_FOLDER, szPath, szPath);
             return std::wstring(szPath);
         }
         CoTaskMemFree(pidl);
     }
     return L"";  // キャンセル時など
-}
-///////////////////////////////////////////////////////////////////////
-// フォルダ選択ダイアログ（IFileDialog版）
-// hWnd: 親ウィンドウ
-// _currentFolder: 初期表示フォルダのパス（空文字なら既定フォルダ）
-// _title: ダイアログ上部に表示するタイトル（空文字なら既定タイトル）
-std::wstring GetFolderPathIF(
-    HWND hWnd,
-    const std::wstring& _currentFolder,
-    const std::wstring& _title)
-{
-    std::wstring result;
-
-    // COM 初期化
-    HRESULT hr = CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-
-    IFileDialog* pfd = nullptr;
-    hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pfd));
-    if (SUCCEEDED(hr) && pfd)
-    {
-        // フォルダ選択モードにする
-        DWORD dwOptions;
-        pfd->GetOptions(&dwOptions);
-        pfd->SetOptions(dwOptions | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_NOCHANGEDIR);
-
-        // 初期フォルダを設定
-        if (!_currentFolder.empty()){
-            IShellItem* psiInit = nullptr;
-            if (SUCCEEDED(SHCreateItemFromParsingName(_currentFolder.c_str(),
-                nullptr,IID_PPV_ARGS(&psiInit))))
-            {
-                pfd->SetFolder(psiInit);
-                psiInit->Release();
-            }
-        }
-
-        // タイトルを設定
-        if (!_title.empty())
-            pfd->SetTitle(_title.c_str());
-
-        // ダイアログ表示
-        if (SUCCEEDED(pfd->Show(hWnd))){
-            IShellItem* psiResult = nullptr;
-            if (SUCCEEDED(pfd->GetResult(&psiResult))){
-                PWSTR pszPath = nullptr;
-                if (SUCCEEDED(psiResult->GetDisplayName(SIGDN_FILESYSPATH, &pszPath))){
-                    result = pszPath;
-                    CoTaskMemFree(pszPath);
-                }
-                psiResult->Release();
-            }
-        }
-        pfd->Release();
-    }
-    CoUninitialize();
-    return result;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -423,7 +373,6 @@ std::wstring GetFolderPathIF(
 // hWnd: 親ウィンドウ
 // _title: ダイアログ上部に表示するタイトル（空文字なら既定タイトル）
 //レジストリに保存する
-
 std::wstring GetFolderPathIFR(
     HWND hWnd,
     const std::wstring& dlgTitle,
@@ -431,30 +380,12 @@ std::wstring GetFolderPathIFR(
 )
 {
     std::wstring result;
-    //const wchar_t* subKey = L"Software\\YourCompany\\YourApp\\FolderDialog";
-    const wchar_t* subKey = REGSTRY_KEYSTRING_FOLDER;
+    //const wchar_t* subKey = REGSTRY_KEYSTRING_FOLDER;
     std::wstring valueName = regValueName.empty() ? dlgTitle : regValueName;
 
     // 1) レジストリから前回のフォルダを読み出し
     std::wstring initialFolder;
-    HKEY hKey = nullptr;
-    if (RegCreateKeyExW(HKEY_CURRENT_USER, subKey, 0, nullptr,
-        REG_OPTION_NON_VOLATILE, KEY_READ, nullptr,
-        &hKey, nullptr) == ERROR_SUCCESS)
-    {
-        wchar_t buf[MAX_PATH] = { 0 };
-        DWORD bufSize = sizeof(buf), type = REG_SZ;
-        if (RegQueryValueExW(hKey,
-            valueName.c_str(),
-            nullptr,
-            &type,
-            reinterpret_cast<BYTE*>(buf),
-            &bufSize) == ERROR_SUCCESS)
-        {
-            initialFolder = buf;
-        }
-        RegCloseKey(hKey);
-    }
+    GetFolderPathfromReg(REGSTRY_KEYSTRING_FOLDER, valueName, initialFolder);
 
     // 2) COM 初期化 → IFileDialog 作成
     HRESULT hr = CoInitializeEx(nullptr,
@@ -504,19 +435,7 @@ std::wstring GetFolderPathIFR(
                     CoTaskMemFree(pszPath);
 
                     // 3) 結果をレジストリに保存
-                    HKEY hKey2 = nullptr;
-                    if (RegCreateKeyExW(HKEY_CURRENT_USER, subKey, 0, nullptr,
-                        REG_OPTION_NON_VOLATILE, KEY_WRITE,
-                        nullptr, &hKey2, nullptr) == ERROR_SUCCESS)
-                    {
-                        RegSetValueExW(hKey2,
-                            valueName.c_str(),
-                            0,
-                            REG_SZ,
-                            reinterpret_cast<const BYTE*>(result.c_str()),
-                            static_cast<DWORD>((result.size() + 1) * sizeof(wchar_t)));
-                        RegCloseKey(hKey2);
-                    }
+					SaveFolderPathToReg(REGSTRY_KEYSTRING_FOLDER, valueName.c_str(),result.c_str());
                 }
                 psiRes->Release();
             }
@@ -528,6 +447,66 @@ std::wstring GetFolderPathIFR(
     return result;
 }
 
+///////////////////////////////////////////////////////////////////////
+// フォルダーパスをレジストリから取得する関数
+int GetFolderPathfromReg(
+    const std::wstring& _subKey,
+    const std::wstring& _regValueName,
+    std::wstring& _folderPath
+)
+{
+	int _ret = 0;
+    //std::wstring  folderPath;
+	HKEY hKey = nullptr;
+	// レジストリキーを作成またはオープン
+	if (RegCreateKeyExW(HKEY_CURRENT_USER, _subKey.c_str(), 0, nullptr,
+		REG_OPTION_NON_VOLATILE, KEY_READ, nullptr,
+		&hKey, nullptr) == ERROR_SUCCESS)
+	{
+		// フォルダパスをレジストリから取得
+		wchar_t buf[MAX_PATH] = { 0 };
+		DWORD bufSize = sizeof(buf), type = REG_SZ;
+		if (RegQueryValueExW(hKey,
+			_regValueName.c_str(),
+			nullptr,
+			&type,
+			reinterpret_cast<BYTE*>(buf),
+			&bufSize) == ERROR_SUCCESS)
+		{
+            _folderPath = buf;
+			_ret = 1; // 成功
+		}
+        else
+            _ret = 0;
+		RegCloseKey(hKey);
+	}
+    else
+        _ret = 0;
+    return _ret;
+}
+
+///////////////////////////////////////////////////////////////////////
+//フォルダーパスをレジストリに保存する関数
+void SaveFolderPathToReg(
+    const std::wstring _subKey,
+    const std::wstring _regValueName,
+    const std::wstring _folderPath
+){
+	HKEY hKey = nullptr;
+	// レジストリキーを作成またはオープン
+	if (RegCreateKeyExW(HKEY_CURRENT_USER, _subKey.c_str(), 0, nullptr,
+		REG_OPTION_NON_VOLATILE, KEY_WRITE, nullptr,
+		&hKey, nullptr) == ERROR_SUCCESS)
+	{
+		// フォルダパスをレジストリに保存
+		RegSetValueExW(hKey, _regValueName.c_str(), 0, REG_SZ,
+			reinterpret_cast<const BYTE*>(_folderPath.c_str()), 
+			static_cast<DWORD>((wcslen(_folderPath.c_str()) + 1) * sizeof(wchar_t)));
+
+			//static_cast<DWORD>((folderPath.size() + 1) * sizeof(wchar_t)));
+		RegCloseKey(hKey);
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////
 // LabelObjをファイル保存するための文字列生成関数
@@ -760,7 +739,11 @@ std::wstring GetFileName_old(HWND hWnd)
 // 入力値はウィンドウハンドル
 // 出力値はファイル名 std::wstring
 // ファイル選択ダイアログ＋レジストリ保存
-std::wstring GetFileName(HWND hWnd, const std::wstring& title, int _rw)
+std::wstring GetFileName(HWND hWnd, 
+    const std::wstring& title, 
+    COMDLG_FILTERSPEC filter[], 
+    size_t filtersize, 
+    int _rw)
 {
     std::wstring fileName;
 
@@ -802,11 +785,15 @@ std::wstring GetFileName(HWND hWnd, const std::wstring& title, int _rw)
     }
 
     // フィルタ設定
-    COMDLG_FILTERSPEC filter[] = {
-        { L"YOLO",      L"*.txt" },
-        { L"All Files", L"*.*"   }
-    };
-    pFileDialog->SetFileTypes(ARRAYSIZE(filter), filter);
+    //COMDLG_FILTERSPEC filter[] = 
+    //{
+    //    { L"クラシフィケーションファイル",      L"*.txt" },
+    //    { L"プリアノテーションファイル",        L"*.onnx" },
+    //    { L"All Files", L"*.*"   }
+    //};
+
+    //pFileDialog->SetFileTypes(ARRAYSIZE(filter), filter);
+    pFileDialog->SetFileTypes(filtersize, filter);
 
     // ダイアログ表示
     hr = pFileDialog->Show(hWnd);
@@ -1281,54 +1268,337 @@ size_t GetIdxMouseOnRectEdge(
     return _idx; // 矩形がない場合は-1を返す
 }
 
+
 ///////////////////////////////////////////////////////////////////////
-//タイトルバーに画像のパスを表示
-void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labelfolder, int _Idx, int _Total)
+// LabelObjを描画する関数
+void WM_PAINT_DrawLabels(
+    Gdiplus::Graphics& graphics,
+    const std::vector<LabelObj>& objs,
+    int clientWidth,
+    int clientHeight,
+    Gdiplus::Font* font
+)
 {
-    std::wstring title =
-        L"Annotation Tool - " + _imgfolder + L" - " + _labelfolder +
-        L" [ " + std::to_wstring(_Idx) + L" / " + std::to_wstring(_Total) + L"]";
-    SetWindowText(hWnd, title.c_str());
+    for (const auto& obj : objs)
+    {
+        // ペン幅はマウスオーバーで太く
+        int penWidth = obj.penWidth + (obj.mOver ? 2 : 0);
+        Gdiplus::Pen pen(obj.color, static_cast<REAL>(penWidth));
+        pen.SetDashStyle(obj.dashStyle);
+
+        // 矩形の座標をピクセル変換
+        float x0 = obj.Rct.X * clientWidth;
+        float y0 = obj.Rct.Y * clientHeight;
+        float w = obj.Rct.Width * clientWidth;
+        float h = obj.Rct.Height * clientHeight;
+
+        // 矩形描画
+        graphics.DrawRectangle(&pen, x0, y0, w, h);
+
+        // ラベル文字描画
+        Gdiplus::SolidBrush textBrush(obj.color);
+        const std::wstring& text = obj.ClassName;
+
+        // 文字高さを測定
+        Gdiplus::RectF textBounds;
+        graphics.MeasureString(
+            text.c_str(), -1,
+            font,
+            Gdiplus::PointF(0, 0),
+            &textBounds
+        );
+        float textHeight = textBounds.Height;
+
+        // 矩形の上部外側にオフセット
+        Gdiplus::PointF textPos(x0, y0 - textHeight - 2.0f);
+        graphics.DrawString(
+            text.c_str(), -1,
+            font,
+            textPos,
+            &textBrush
+        );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// 一時的な矩形を描画する関数
+void WM_PAINT_DrawTmpBox(
+    Gdiplus::Graphics& graphics,
+    const Gdiplus::RectF& normRect,
+    int clientWidth,
+    int clientHeight
+)
+{
+    // ペンは赤・太さ2px
+    Gdiplus::Pen pen(Gdiplus::Color(255, 0, 0), 2.0f);
+
+    // 正規化矩形をローカル変数にコピー
+    float x = normRect.X;
+    float y = normRect.Y;
+    float w = normRect.Width;
+    float h = normRect.Height;
+
+    // 幅・高さが負の場合は方向を反転
+    if (w < 0) { x += w; w = -w; }
+    if (h < 0) { y += h; h = -h; }
+
+    // ピクセル座標に変換して描画
+    graphics.DrawRectangle(
+        &pen,
+        x * clientWidth,
+        y * clientHeight,
+        w * clientWidth,
+        h * clientHeight
+    );
+}
+///////////////////////////////////////////////////////////////////////
+// マウスカーソルの位置に十字線を描画する関数
+void DrawCrosshairLines(HWND hWnd)
+{
+    // マウス位置をクライアント座標で取得
+    POINT pt;
+    GetCursorPos(&pt);
+    ScreenToClient(hWnd, &pt);
+
+    // クライアント領域サイズを取得
+    RECT rect;
+    GetClientRect(hWnd, &rect);
+
+    // GDI で十字線を XOR 描画
+    HDC hdc = GetDC(hWnd);
+    SetROP2(hdc, R2_XORPEN);
+    HPEN hPen = CreatePen(PS_SOLID, 1, RGB(255, 255, 255));
+    HGDIOBJ oldPen = SelectObject(hdc, hPen);
+
+    // 水平線
+    MoveToEx(hdc, 0, pt.y, NULL);
+    LineTo(hdc, rect.right, pt.y);
+    // 垂直線
+    MoveToEx(hdc, pt.x, 0, NULL);
+    LineTo(hdc, pt.x, rect.bottom);
+
+    // 後始末
+    SelectObject(hdc, oldPen);
+    DeleteObject(hPen);
+    ReleaseDC(hWnd, hdc);
+}
+
+
+
+///////////////////////////////////////////////////////////////////////
+// ラベルのクラス名をポップアップメニューで表示する関数
+// 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
+void ShowClassPopupMenu(HWND hWnd)
+{
+    const int _perColumn = 20;
+
+    // ポップアップメニューの作成
+    HMENU hPopup = CreatePopupMenu();
+    if (!hPopup) return;
+
+    // カーソル位置を取得（画面→クライアント座標は不要）
+    POINT pt;
+    GetCursorPos(&pt);
+
+    // メニュー項目を追加
+    for (size_t i = 0; i < GP.ClsNames.size(); ++i)
+    {
+        UINT flags = MF_STRING;
+        // 「i が itemsPerColumn の倍数」のときは
+        // この項目から新しい列を始める
+        if (i > 0 && (i % _perColumn) == 0) {
+            flags |= MF_MENUBREAK;
+        }
+        AppendMenuW(hPopup,
+            //MF_STRING,
+            flags,
+            IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
+            GP.ClsNames[i].c_str());
+    }
+    AppendMenuW(hPopup, MF_STRING,
+        IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()),
+        L"CANCEL");
+
+    // ウィンドウを前面にしてから表示
+    SetForegroundWindow(hWnd);
+    UINT cmd = TrackPopupMenuEx(
+        hPopup,
+        TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_RETURNCMD,
+        pt.x, pt.y,
+        hWnd,
+        NULL
+    );
+    DestroyMenu(hPopup);
+
+    // 選択結果を反映
+    if (cmd >= IDM_PMENU_CLSNAME00 &&
+        cmd < IDM_PMENU_CLSNAME00 + GP.ClsNames.size())
+    {
+        GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
+
+        // tmpLabel に選択内容を設定
+        GP.tmpLabel.ClassName = GP.ClsNames[GP.selectedClsIdx];
+        GP.tmpLabel.ClassNum = GP.selectedClsIdx;
+        GP.tmpLabel.color = GP.ClsColors[GP.selectedClsIdx];
+        GP.tmpLabel.dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
+        GP.tmpLabel.penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
+
+        // オブジェクトを登録
+        if (!GP.imgObjs.empty())
+            GP.imgObjs[GP.imgIdx].objs.push_back(GP.tmpLabel);
+    }
+    else if (cmd == 0 || cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size())) // CANCEL
+    {
+        return;
+    }
     return;
 }
 
 ///////////////////////////////////////////////////////////////////////
-// TaskDialogIndirectを使ってダイアログボックスを表示する関数
-// Yes/Noボタンと、「次回から表示しない」を持つ
-// 戻り値は、IDYES, IDNO, IDCHECKBOX
-//int ShowDialogWithCheckbox(HWND hwnd, const std::wstring& _message, const std::wstring& _title)
-//{
-//	// ダイアログのボタンの設定
-//	TASKDIALOG_BUTTON buttons[] = {
-//		{ IDYES, L"Yes" },
-//		{ IDNO, L"No" }
-//	};
-//	// ダイアログの設定
-//	TASKDIALOGCONFIG tdc = { sizeof(tdc) };
-//	tdc.hwndParent = hwnd;
-//	tdc.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS;
-//	tdc.pszWindowTitle = _title.c_str();
-//	tdc.pszContent = _message.c_str();
-//	tdc.cButtons = ARRAYSIZE(buttons);
-//	tdc.pButtons = buttons;
-//	tdc.nDefaultButton = IDYES;
-//	// ダイアログを表示
-//	int nButtonPressed = 0;
-//	BOOL bCheckBoxChecked = FALSE;
-//	TaskDialogIndirect(&tdc, &nButtonPressed, nullptr, &bCheckBoxChecked);
-//	return nButtonPressed; // 戻り値は、IDYES, IDNO, IDCHECKBOX
-//}
+// ラベルのクラス名をポップアップメニューで表示する関数
+// 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
 
-// minx, miny は「これ以下なら NG」とみなす最小幅・最小高さ
-// #include "CPP_Anotation6.h"  // ImgObject/LabelObj 定義 :contentReference[oaicite:0]{index=0}
+int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectIDX)
+{
+    const int _perColumn = 20;
+
+    // ポップアップメニューの作成
+    HMENU hPopup = CreatePopupMenu();
+    if (!hPopup)
+        return -3; // エラー
+
+    // カーソル位置を取得（画面→クライアント座標は不要）
+    POINT pt;
+    GetCursorPos(&pt);
+
+    // メニュー項目を追加
+    for (size_t i = 0; i < GP.ClsNames.size(); ++i)
+    {
+        UINT flags = MF_STRING;
+        // 「i が itemsPerColumn の倍数」のときは
+        // この項目から新しい列を始める
+        if (i > 0 && (i % _perColumn) == 0) {
+            flags |= MF_MENUBREAK;
+        }
+        AppendMenuW(hPopup,
+            flags,
+            IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
+            GP.ClsNames[i].c_str());
+    }
+    AppendMenuW(hPopup, MF_STRING,
+        IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()),
+        L"DELETE");
+
+    AppendMenuW(hPopup, MF_STRING,
+        IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1,
+        L"CANCEL");
+
+    // ウィンドウを前面にしてから表示
+    SetForegroundWindow(hWnd);
+    UINT cmd = TrackPopupMenuEx(
+        hPopup,
+        TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_RETURNCMD,
+        pt.x, pt.y,
+        hWnd,
+        NULL
+    );
+    DestroyMenu(hPopup);
+
+    // 選択結果を反映
+    if (cmd >= IDM_PMENU_CLSNAME00 &&
+        cmd < IDM_PMENU_CLSNAME00 + GP.ClsNames.size())
+    {
+        GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
+
+        // activeObjectIDXで示すオブジェクトに選択内容を上書き
+        //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].ClassName = GP.ClsNames[GP.selectedClsIdx];
+        //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].ClassNum = GP.selectedClsIdx;
+        //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].color = GP.ClsColors[GP.selectedClsIdx];
+        //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
+        //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
+
+        _imgobj.objs[activeObjectIDX].ClassName = GP.ClsNames[GP.selectedClsIdx];
+        _imgobj.objs[activeObjectIDX].ClassNum = GP.selectedClsIdx;
+        _imgobj.objs[activeObjectIDX].color = GP.ClsColors[GP.selectedClsIdx];
+        _imgobj.objs[activeObjectIDX].dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
+        _imgobj.objs[activeObjectIDX].penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
+
+		return GP.selectedClsIdx;   // 選択されたクラス番号
+    }
+    else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size())) // DELETE
+    {
+        // オブジェクトを削除
+        //GP.imgObjs[GP.imgIdx].objs.erase(GP.imgObjs[GP.imgIdx].objs.begin() + activeObjectIDX);
+        _imgobj.objs.erase(_imgobj.objs.begin() + activeObjectIDX);
+        
+        return -1; // 削除したことを示す
+    }
+    else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1) // CANCEL
+    {
+        return -2; // キャンセルしたことを示す
+    }
+}
+////////////////////////////////////////////////////////////////////////
+// ラベルのクラス名をポップアップメニューで表示する関数 
+// ラップ
+int ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX)
+{
+    return ShowClassPopupMenu_for_Edit(hWnd, GP.imgObjs[GP.imgIdx], activeObjectIDX);
+}
+
+//////////////////////////////////////////////////////////////////////////
+// 現在のイメージのオブジェクトの一覧のポップアップメニューを作成する
+int CreatePopupMenuFor_Labels_in_CurrentImage(HWND hWnd)
+{
+    HMENU hPopup = CreatePopupMenu();
+    if (!hPopup) return -1;
+
+    POINT pt;
+    GetCursorPos(&pt);
+
+    for (size_t i = 0; i < GP.imgObjs[GP.imgIdx].objs.size(); ++i)
+    {
+        const auto& obj = GP.imgObjs[GP.imgIdx].objs[i];
+        std::wstring menuText = L"(&" + std::to_wstring(i) + L") " + obj.ClassName;
+        AppendMenuW(hPopup, MF_STRING, IDM_PMENU_LABEL00 + static_cast<UINT>(i), menuText.c_str());
+    }
+    AppendMenuW(hPopup, MF_STRING,
+        IDM_PMENU_LABEL00 + static_cast<UINT>(GP.imgObjs[GP.imgIdx].objs.size()),
+        L"(ESC)CANCEL");
+
+    SetForegroundWindow(hWnd);
+    UINT cmd = TrackPopupMenuEx(
+        hPopup,
+        TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_RETURNCMD,
+        pt.x, pt.y,
+        hWnd,
+        NULL
+    );
+    DestroyMenu(hPopup);
+
+    //////////////////////////////////////////////////////////////////////////
+    // ★ 追記部分：ラベルが選択されたら編集メニューを表示する
+    if (cmd >= IDM_PMENU_LABEL00 &&
+        cmd < IDM_PMENU_LABEL00 + GP.imgObjs[GP.imgIdx].objs.size())
+    {
+        int objIdx = static_cast<int>(cmd - IDM_PMENU_LABEL00);
+        ShowClassPopupMenu_for_Edit(hWnd, objIdx);
+    }
+    //////////////////////////////////////////////////////////////////////////
+
+    return static_cast<int>(cmd);
+}
+
+
+
 
 // _startIdx: 検索開始の画像インデックス（既定は 0）
 // minW/minH: 幅・高さの閾値（正規化済み or ピクセルに合わせて）
 std::optional<size_t> jumpImgWithIgnoreBox(
     const std::vector<ImgObject>& imgObjs,
-    size_t _startIdx ,
-    float minW ,
-    float minH )
+    size_t _startIdx,
+    float minW,
+    float minH)
 {
     if (_startIdx >= imgObjs.size())
         return std::nullopt;
@@ -1345,10 +1615,10 @@ std::optional<size_t> jumpImgWithIgnoreBox(
             //const auto& rc = lb.Rct;
             //if (rc.Width <= minW || rc.Height <= minH)
             //    return imgIdx;
-            if(isIgnoreBox(lb, minW, minH))
+            if (isIgnoreBox(lb, minW, minH))
             {
                 return imgIdx; // 最初に見つかった画像インデックスを返す
-			}
+            }
         }
     }
     return std::nullopt;
@@ -1358,8 +1628,8 @@ bool isIgnoreBox(
     const LabelObj& obj,
     float minW,
     float minH)
-{    
-	bool _ret = false;
+{
+    bool _ret = false;
     _ret = (obj.Rct.Width <= minW || obj.Rct.Height <= minH);
     return _ret;
 }
@@ -1435,22 +1705,22 @@ int MoveCurrentImageAndLabel(HWND hWnd, int imgIdx)
     // 移動先のフォルダパスを作成
     std::wstring _tempImagePath = InsertSubFolder(GP.imgFolderPath, L"deleted");
     std::wstring _tempLabelPath = InsertSubFolder(GP.labelFolderPath, L"deleted");
-    
+
     // 移動先のファイルパスを作成
     std::wstring _tempImageFilePath = _tempImagePath + L"\\" + _fn1 + L".jpg";
     std::wstring _tempLabelFilePath = _tempLabelPath + L"\\" + _fn1 + L".txt";
 
-	// 移動先のフォルダが存在しない場合は作成
+    // 移動先のフォルダが存在しない場合は作成
     if (!PathFileExistsW(_tempImagePath.c_str()))
     {
         //if (!CreateDirectoryW(_tempImagePath.c_str(), NULL) && GetLastError() != ERROR_ALREADY_EXISTS) {
-        if(!std::filesystem::create_directories(_tempImagePath))
+        if (!std::filesystem::create_directories(_tempImagePath))
         {
             MessageBox(hWnd, _tempImagePath.c_str(), L"移動先のフォルダの作成に失敗しました", MB_OK | MB_ICONERROR);
             FlushLeftMouseClick();
             return -1; // エラーコード
         }
-	}
+    }
     if (!PathFileExistsW(_tempLabelPath.c_str())) {
         //if (!CreateDirectoryW(_tempLabelPath.c_str(), NULL) && GetLastError() != ERROR_ALREADY_EXISTS)
         if (!std::filesystem::create_directories(_tempLabelPath))
@@ -1460,7 +1730,7 @@ int MoveCurrentImageAndLabel(HWND hWnd, int imgIdx)
             return -1; // エラーコード
         }
     }
-    
+
     // ★ここから存在チェックを追加
     auto FileExists = [](const std::wstring& path) -> bool {
         return GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES;
@@ -1473,11 +1743,11 @@ int MoveCurrentImageAndLabel(HWND hWnd, int imgIdx)
         return -1;
     }
 #ifdef _DEBUG
-     if (!FileExists(_LabelFilePath)) {
+    if (!FileExists(_LabelFilePath)) {
         MessageBox(hWnd, (_LabelFilePath + L"\n(ラベルが見つかりません 続行します)").c_str(),
-			L"警告", MB_OK | MB_ICONWARNING);
+            L"警告", MB_OK | MB_ICONWARNING);
         FlushLeftMouseClick();
-     }
+    }
 #endif   
 
 #ifndef RELEASE_IMAGE
@@ -1513,7 +1783,7 @@ int MoveCurrentImageAndLabel(HWND hWnd, int imgIdx)
     GP.imgObjs.erase(GP.imgObjs.begin() + GP.imgIdx); // 現在の画像とラベルを削除
     //GP.imgIdx = imgIdx;
 
-	//マウスのクリックをフラッシュ
+    //マウスのクリックをフラッシュ
     //FlushLeftMouseClick();
 
     // タイトルバーに新しい画像とラベルのパスを表示
@@ -1525,3 +1795,172 @@ int MoveCurrentImageAndLabel(HWND hWnd, int imgIdx)
     return 0; // 成功
 }
 
+///////////////////////////////////////////////////////////////////////
+// 描画処理を行う関数
+///////////////////////////////////////////////////////////////////////
+void DoPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, size_t _idx)
+{
+    // マウス移動中でない場合は、描画処理を行う
+    if (!GP.isMouseMoving)
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+
+        // メモリDC作成
+        HDC memDC = CreateCompatibleDC(hdc);
+        HBITMAP memBitmap = CreateCompatibleBitmap(hdc, GP.width, GP.height);
+        HBITMAP oldBitmap = (HBITMAP)SelectObject(memDC, memBitmap);
+
+        // GDI+ の Graphics を memDC に結びつける
+        Graphics graphics(memDC);
+        graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+        graphics.SetSmoothingMode(SmoothingModeAntiAlias); // 任意
+
+        // 背景塗りつぶし（必要に応じて）
+        graphics.Clear(Color(0, 0, 0)); // 黒背景
+
+        // 補間品質
+        graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+        if (GP.imgObjs.size() > 0)
+        {
+            //画像の描画
+            if (GP.imgObjs[_idx].image) //配列が空でなければ
+            {
+                //スケーリングしながら描画
+                graphics.DrawImage(GP.imgObjs[_idx].image.get(), 0, 0, GP.width, GP.height);
+                graphics.Flush();
+            }
+            // 矩形を描画
+            WM_PAINT_DrawLabels(graphics, GP.imgObjs[_idx].objs, GP.width, GP.height, GP.font);
+        }
+        // ドラッグ中の矩形を描画
+        if (GP.dgMode == DragMode::MakeBox)
+            WM_PAINT_DrawTmpBox(graphics, GP.tmpLabel.Rct, GP.width, GP.height);
+
+        // YOLOの推論結果を描画
+        if (g_showProposals && !AutoDetctedObjs.objs.empty()) {
+            // 1) 画像を既存ロジックで描画（例：Fit表示）
+            RECT rcClient;
+            GetClientRect(hWnd, &rcClient);
+            //const int imgW = GP.imgObjs[GP.imgIdx].image->GetWidth(); // ←あなたの構造体の実フィールド名に合わせてください
+            //const int imgH = GP.imgObjs[GP.imgIdx].image->GetHeight(); // 例示
+            //RectF view = FitImageToClientRect(imgW, imgH, rcClient);
+            //DrawLabelObjects(graphics, AutoDetctedObjs, view);
+            DrawLabelObjects(graphics, AutoDetctedObjs.objs, ToRectF(rcClient));
+        }
+
+        // 最後に画面に転送
+        BitBlt(hdc, 0, 0, GP.width, GP.height, memDC, 0, 0, SRCCOPY);
+
+        // クリーンアップ
+        SelectObject(memDC, oldBitmap);
+        DeleteObject(memBitmap);
+        DeleteDC(memDC);
+        EndPaint(hWnd, &ps);
+    }
+    //すべての操作 
+    GP.isMouseMoving = false; // フラグをリセット
+    // 十字目盛りを描画
+    DrawCrosshairLines(hWnd);
+}
+
+///////////////////////////////////////////////////////////////////////
+// ファイル保存ダイアログを表示
+// この関数はWinProcの一部という位置づけ
+// GP.minimumLabelSize に注意
+int  SaveAnnotations(HWND hWnd, std::wstring _title, float _sc) // 最小サイズ制限（デフォルトはなし）
+{
+    std::wstring _folderpath;
+
+    //すべてのラベルオブジェクトをスケーリングする
+    if (_sc != 0)
+    {
+        for (auto& _imgObj : GP.imgObjs)
+        {
+            for (auto& _labelObj : _imgObj.objs)
+            {
+                SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, _sc, _sc);
+
+                //if (_sc == 13) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.13, 1.13);
+                //else if (_sc == 25) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.25, 1.25);
+                //else if (_sc == 50) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.5, 1.5);
+                //else if (_sc == 75) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.75, 1.75);
+                //else if (_sc == 100) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 2.0, 2.0);
+            }
+        }
+    }
+
+    //この関数でレジストリにフォルダパスを保存をしている。
+    //_folderpath = GetFolderPathIF(hWnd, GP.labelFolderPath, L"書込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
+    _folderpath = GetFolderPathIFR(hWnd, GP.labelFolderPath, _title); // フォルダ選択ダイアログを表示
+
+    // フォルダ選択ダイアログを表示
+    if (!_folderpath.empty()) {
+        int _saveok = MessageBoxW(hWnd, L"保存しますか？", L"確認", MB_OKCANCEL);
+        if (_saveok == IDOK)
+        {
+            GP.labelFolderPath = _folderpath; // フォルダパスを指定
+            //タイトルバーに編集中の画像とラベルのパスを表示
+            SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.activeIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
+
+            // フォルダが選択された場合、アノテーションデータを保存
+            for (size_t i = 0; i < GP.imgObjs.size(); i++)
+            {
+                // ファイル名
+                std::wstring _fileName1;
+                std::wstring _fileName2;
+
+                _fileName1 = GetOnlyFileNameFormPath(GP.imgObjs[i].path);
+                _fileName2 = _folderpath + L"\\" + _fileName1 + L".txt";
+
+                bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[i].objs, _sc, GP.minimumLabelSize, 1);
+                if (!_ret)
+                {
+                    // 保存失敗
+                    MessageBox(hWnd, L"保存失敗", L"失敗", MB_OK);
+                }
+            }
+            if (GP.minimumLabelSize != 0.0f)
+            {
+                // 最小サイズ制限を設定
+                GP.minimumLabelSize = 0.0f; // 保存後は最小サイズ制限をリセット
+                MessageBox(hWnd, L"最小サイズ制限をリセットしました", L"お知らせ", MB_OK);
+            }
+        }
+    }
+    return 0; // 成功
+}
+
+void CheckMenu(HWND hWnd, int _IDM, bool _sw)
+{
+    HMENU hMenu = GetMenu(hWnd);
+    UINT uState = _sw ? MF_CHECKED : MF_UNCHECKED;
+    // チェック状態をセット
+    CheckMenuItem(
+        hMenu,
+        _IDM,
+        MF_BYCOMMAND |
+        uState
+    );
+}
+
+//未ラベルの画像までジャンプする関数
+void JumpToUnlabeledImage(HWND hWnd)
+{
+    // ラベルのない画像までジャンプ
+    for (size_t i = GP.imgIdx + 1; i < GP.imgObjs.size(); ++i)
+    {
+        if (GP.imgObjs[i].objs.empty())
+        {
+            SaveLabelsToFileSingle(hWnd, GP.imgIdx, 0.0f);
+
+            GP.imgIdx = i; // ジャンプ
+
+
+            SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
+            InvalidateRect(hWnd, NULL, TRUE); // 再描画
+            return;
+        }
+    }
+    MessageBoxW(hWnd, L"ラベルのない画像はありません", L"情報", MB_OK);
+}

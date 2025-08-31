@@ -6,7 +6,14 @@
 #include "CPP_AnnoFunctions.h"
 #include "CPP_Anotation6.h"
 
+#include "CPP_YoloAuto.h"
+
 // 必要なライブラリ
+// 修正: cv::imread関数に渡すパスをstd::stringに変換する必要があります。
+// cv::imreadはstd::string型の引数を受け取るため、std::wstringをstd::stringに変換します。
+//#include <opencv2/opencv.hpp>
+//#include <string>
+
 #pragma comment(lib, "gdiplus.lib")
 #pragma comment(lib, "Shlwapi.lib")
 //#pragma comment(lib, "Shlwapi.lib")
@@ -198,31 +205,15 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 const wchar_t* INIT_IMGFOLDER = L"../images/";  // JPEGまたはPNG
 
 ///////////////////////////////////////////////////////////////////////
-//ラベルの矩形を描画する関数
-void WM_PAINT_DrawLabels(
-    Gdiplus::Graphics& graphics,
-    const std::vector<LabelObj>& objs,
-    int clientWidth,
-    int clientHeight,
-    Gdiplus::Font* font
-);
-///////////////////////////////////////////////////////////////////////
-//ドラッグ中の矩形を描画する関数
-void WM_PAINT_DrawTmpBox(
-    Gdiplus::Graphics& graphics,
-    const Gdiplus::RectF& normRect,
-    int clientWidth,
-    int clientHeight
-);
-///////////////////////////////////////////////////////////////////////
-// WndProc の上部やユーティリティファイルに宣言
-void DrawCrosshairLines(HWND hWnd);
-///////////////////////////////////////////////////////////////////////
-//ラベルのクラス名をポップアップメニューで表示する関数
-void ShowClassPopupMenu(HWND hWnd);
-///////////////////////////////////////////////////////////////////////
-//ラベルのクラス名をポップアップメニューで表示する関数 編集用
-void ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX);
+//タイトルバーに画像のパスを表示
+void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labelfolder, int _Idx, int _Total)
+{
+	std::wstring title = 
+        L"Annotation Tool - " + _imgfolder + L" - " + _labelfolder + 
+        L" [ " + std::to_wstring(_Idx) + L" / " + std::to_wstring(_Total) + L"]";
+    SetWindowText(hWnd, title.c_str());
+    return;
+}
 
 ///////////////////////////////////////////////////////////////////////
 int CreatePopupMenuFor_Labels_in_CurrentImage(HWND hWnd);
@@ -306,6 +297,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			    // ファイルオープンダイアログを表示
                 std::wstring _folderpath;
                 _folderpath = GetFolderPathIFR(hWnd, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
+                //_folderpath = GetFolderPathEx(hWnd, L"読込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
 
                 // フォルダ選択ダイアログを表示
                 if (!_folderpath.empty()) 
@@ -313,6 +305,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     GP.labelFolderPath = _folderpath; // フォルダパスを指定
 
                     // フォルダが選択された場合、アノテーションデータを読み込み
+                    //LoadLabelFiles(GP.imgObjs, GP.labelFolderPath, L".txt", 1);
                     LoadLabelFilesMP(GP.imgObjs, GP.labelFolderPath, L".txt", 1);
 
                     //タイトルバーに編集中の画像とラベルのパスを表示
@@ -444,6 +437,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     LoadImageFilesMP(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
                     SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size() ); // タイトルバーに画像のパスを表示
 
+                    AutoDetctedObjs.objs.clear(); // AI推論結果をクリア
+
                     GP.imgIdx = 0; // インデックスをリセット
                 }
                 // 再描画
@@ -455,14 +450,52 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		    {
 			    //クラシフィケーションファイルを読込
 			    std::wstring _filepath;
-			    _filepath = GetFileName(hWnd, L"クラス分類ファイルを読込", 0);
-			    if (!_filepath.empty()) {
+                // フィルタ設定
+                COMDLG_FILTERSPEC filter[] ={
+                    { L"クラシフィケーションファイル", L"*.txt" },
+                    { L"プリアノテーションファイル",   L"*.onnx" },
+                    { L"All Files",                    L"*.*"   }
+                };
+			    _filepath = GetFileName(hWnd, L"クラス分類ファイルを読込", filter, ARRAYSIZE(filter), 0);
+                //_filepath = GetFileName(hWnd, L"クラス分類ファイルを読込", filter, 2, 0);
+                if (!_filepath.empty()) {
 				    // クラシフィケーションファイルを読込
 				    LoadClassification(_filepath, GP.ClsNames, GP.ClsColors, GP.ClsDashStyles, GP.ClsPenWidths, 0);//0=読み込み、1=書き込み
 			    }
 		    }
 		    break;
 
+            case IDM_YOLO_PRESETBOX:
+            {
+				cv::Mat _img = cv::imread(WStringToString(GP.imgObjs[GP.imgIdx].path)); // 画像をOpenCVで読み込み
+                //DnnParams p;
+                //p.opt.backend = cv::dnn::DNN_BACKEND_OPENCV; // or DNN_BACKEND_CUDA
+                //p.opt.target = cv::dnn::DNN_TARGET_CPU;     // or DNN_TARGET_CUDA
+                //p.yolo.inputW = 640; p.yolo.inputH = 640;
+                //p.yolo.confThreshold = 0.25f;
+                //p.yolo.nmsThreshold = 0.45f;
+				//AutoDetctedObjs.objs = DnnInfer(_img, L".\\yolov5s.onnx",p);
+                //AutoDetctedObjs.objs = DnnInfer(_img, g_onnxFile, p);
+
+                AutoDetctedObjs.objs = DnnInfer(_img, g_onnxFile, GDNNP);
+
+                g_showProposals = true; //これ要るの?
+
+                    // 再描画
+				InvalidateRect(hWnd, NULL, TRUE);
+            }
+            break;
+
+            //case IDM_ABOUT:
+            //{
+            //    DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+            //}
+            //break;
+            //case IDM_EXIT:
+            //{
+            //    DestroyWindow(hWnd);
+            //}
+            //break;
             case ID_ANNOT_JUMP_IGNOREBOX:
             {
                 // startIdx は次の画像から検索したい場合は currentImageIdx+1
@@ -479,6 +512,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     // 
                     GP.imgIdx = result.value() % GP.imgObjs.size();
                     SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
+
+                    AutoDetctedObjs.objs.clear(); // AI推論結果をクリア
                     // 再描画
                     InvalidateRect(hWnd, nullptr, TRUE);
                 }
@@ -503,6 +538,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     
                     // タイトルバーに画像のパスを表示
                     SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size());
+
+                    AutoDetctedObjs.objs.clear(); // AI推論結果をクリア
                     // 再描画
                     InvalidateRect(hWnd, nullptr, TRUE);
                 }
@@ -520,6 +557,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			    CreatePopupMenuFor_Labels_in_CurrentImage(hWnd);
                 break;
 
+            case IDM_YOLO_SELCTONNX:
+            {
+                // DNN ONNXモデルファイルを選択
+                std::wstring _filepath;
+                //_filepath = GetFileName(hWnd, L"DNN ONNXモデルファイルを選択", 0);
+				//_filepath = _ChangeFileExtension( L"DNN ONNXモデルファイルを選択", L"*.onnx"); // フォルダ選択ダイアログを表示
+
+                COMDLG_FILTERSPEC filter[] = {
+                    { L"プリアノテーションファイル",   L"*.onnx" },
+                    { L"クラシフィケーションファイル", L"*.txt" },
+                    { L"All Files",                    L"*.*"   }
+                };
+                _filepath = GetFileName(hWnd, L"DNN ONNXモデルファイルを選択", filter, ARRAYSIZE(filter), 0);
+
+                if (!_filepath.empty()) {
+                    g_onnxFile = _filepath; // ファイルパスを保存
+                }
+			}
+            break;
+
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
                 break;
@@ -528,7 +585,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
 
             default:
+            {
                 return DefWindowProc(hWnd, message, wParam, lParam);
+            }
         }
     }
     break;
@@ -579,10 +638,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 // 矩形を描画
                 WM_PAINT_DrawLabels(graphics, GP.imgObjs[GP.imgIdx].objs, GP.width, GP.height, GP.font);
             }
+            
+			// YOLOの推論結果を描画
+            if (g_showProposals && !AutoDetctedObjs.objs.empty()) {
+                // 1) 画像を既存ロジックで描画（例：Fit表示）
+                RECT rcClient; 
+                GetClientRect(hWnd, &rcClient);
+                //const int imgW = GP.imgObjs[GP.imgIdx].image->GetWidth(); // ←あなたの構造体の実フィールド名に合わせてください
+                //const int imgH = GP.imgObjs[GP.imgIdx].image->GetHeight(); // 例示
+                //RectF view = FitImageToClientRect(imgW, imgH, rcClient);
+                //DrawLabelObjects(graphics, AutoDetctedObjs, view);
+                DrawLabelObjects(graphics, AutoDetctedObjs.objs, ToRectF(rcClient));
+            }
+            
             // ドラッグ中の矩形を描画
             if(GP.dgMode==DragMode::MakeBox)
-                WM_PAINT_DrawTmpBox(graphics, GP.tmpLabel.Rct, GP.width, GP.height);
-           
+                WM_PAINT_DrawTmpBox(graphics, GP.tmpLabel.rect, GP.width, GP.height);
+         
             // 最後に画面に転送
             BitBlt(hdc, 0, 0, GP.width, GP.height, memDC, 0, 0, SRCCOPY);
 
@@ -690,6 +762,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         GP.dgMode = DragMode::None;
 	}
 	break;
+    ////////////////////////////////////////////////////
+	// マウスの右ボタンが押されたときの処理
+    ////////////////////////////////////////////////////
 	case WM_RBUTTONDOWN:
 	{
 		// マウスの位置を取得
@@ -698,13 +773,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		ScreenToClient(hWnd, &pt);
 		// ヒット中の矩形のインデックスを保存
 		GP.activeIdx = GP.imgObjs[GP.imgIdx].mOverIdx;
-		if (GP.activeIdx != -1)
+        // YOLOの推論結果のバウンディングボックスの場合
+        int AutoDetctedObjsIdx = AutoDetctedObjs.mOverIdx;
+
+		// AI推定で無い方を優先 両方ヒットする可能性もあるので
+        if (GP.activeIdx != -1)
 		{
 			// クラス名をポップアップメニューで表示
 			ShowClassPopupMenu_for_Edit(hWnd, GP.activeIdx);
 		}
+        else if(AutoDetctedObjsIdx != -1)
+        {
+            // クラス名をポップアップメニューで表示
+            int _ret = ShowClassPopupMenu_for_Edit(hWnd, AutoDetctedObjs, AutoDetctedObjsIdx);
+           if(_ret>=0)
+               {
+               // 選択された場合、メインの配列に矩形を追加する
+               GP.imgObjs[GP.imgIdx].objs.push_back(AutoDetctedObjs.objs[AutoDetctedObjsIdx]);
+               AutoDetctedObjs.objs.erase(AutoDetctedObjs.objs.begin() + AutoDetctedObjsIdx);
+		   }
+		}
 	}
     // マウスの移動中の処理
+	// BOXと重なっているかどうかを判定したり、矩形の編集を行う
     case WM_MOUSEMOVE:
     {
         // マウスの位置を取得
@@ -884,7 +975,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // 再描画
             InvalidateRect(hWnd, NULL, TRUE);
         }
-        else
+		else // BOXと重なっているかどうかを判定
         {
 			// マウスカーソルと矩形が重なっていないかどうかを調べて、
             // 重なっていたらそのインデックスを取得し、現在アクティブな画像のmOverIdxに格納
@@ -896,7 +987,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                             GP.edMode, GP.Overlap);
                 }
             }
-
+            //上と同じ安全措置必要か
+            AutoDetctedObjs.mOverIdx = GetIdxMouseOnRectEdge(pt, AutoDetctedObjs.objs, GP.edMode, GP.Overlap); // マウスカーソルの位置を取得
             InvalidateRect(hWnd, NULL, TRUE);
         }
     }
@@ -933,12 +1025,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case 'A': // 前の画像
             case VK_LEFT:
             if (GP.imgObjs.size() > 0) {
+
 				// 前の画像に移動する前に、現在のラベルを保存
                 // 自動保存の場合は全て保存
                 SaveLabelsToFileSingle(hWnd, GP.imgIdx, 0.0f);
                 // 次の画像に移動 stepの値分だけ移動する
                 GP.imgIdx = (GP.imgIdx + GP.imgObjs.size() - step) % GP.imgObjs.size();
                 SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
+
+                AutoDetctedObjs.objs.clear(); // AI推論結果をクリア
             }
             break;
 		    case 'D': // 次の画像 alt+ctrlならラベル定義のない画像まで移動
@@ -964,6 +1059,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     // 次の画像に移動 stepの値分だけ移動する
                     GP.imgIdx = (GP.imgIdx + step) % GP.imgObjs.size();
                     SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
+
+                    AutoDetctedObjs.objs.clear(); // AI推論結果をクリア
                 }
             }
             break;
@@ -1062,494 +1159,3 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
-///////////////////////////////////////////////////////////////////////
-// LabelObjを描画する関数
-void WM_PAINT_DrawLabels(
-    Gdiplus::Graphics& graphics,
-    const std::vector<LabelObj>& objs,
-    int clientWidth,
-    int clientHeight,
-    Gdiplus::Font* font
-)
-{
-    int _idx = 0;
-    for (const auto& obj : objs)
-    {
-        // ペン幅はマウスオーバーで太く
-        int penWidth = obj.penWidth + (obj.mOver ? 2 : 0);
-        Gdiplus::Pen pen(obj.color, static_cast<REAL>(penWidth));
-        pen.SetDashStyle(obj.dashStyle);
-
-        if (isIgnoreBox(obj, GP.MINSIZEW / GP.IMGSIZEW, GP.MINSIZEH / GP.IMGSIZEH))
-        {
-            //太く、さらにマウスオーバーで太く
-            int penWidth = obj.penWidth + 2 + (obj.mOver ? 2 : 0);
-            pen.SetWidth(static_cast<REAL>(penWidth));
-            //色は赤にする
-			pen.SetColor(Gdiplus::Color(255, 0, 0)); // 赤色
-			//ソリッド
-			pen.SetDashStyle(Gdiplus::DashStyleSolid); // ソリッド
-        }
-
-        // 矩形の座標をピクセル変換
-		float x0 = obj.Rct.X * clientWidth;
-        float y0 = obj.Rct.Y * clientHeight;
-        float w = obj.Rct.Width * clientWidth;
-        float h = obj.Rct.Height * clientHeight;
-
-        // 矩形描画
-        graphics.DrawRectangle(&pen, x0, y0, w, h);
-
-        // ラベル文字描画
-        Gdiplus::SolidBrush textBrush(obj.color);
-        const std::wstring& text = L"(" + std::to_wstring(_idx) + L")" + obj.ClassName;
-
-        // 文字高さを測定
-        Gdiplus::RectF textBounds;
-        graphics.MeasureString(
-            text.c_str(), -1,
-            font,
-            Gdiplus::PointF(0, 0),
-            &textBounds
-        );
-        float textHeight = textBounds.Height;
-
-        // 矩形の上部外側にオフセット
-        Gdiplus::PointF textPos(x0, y0 - textHeight - 2.0f);
-        graphics.DrawString(
-            text.c_str(), -1,
-            font,
-            textPos,
-            &textBrush
-        );
-        _idx++;
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// 一時的な矩形を描画する関数
-void WM_PAINT_DrawTmpBox(
-    Gdiplus::Graphics& graphics,
-    const Gdiplus::RectF& normRect,
-    int clientWidth,
-    int clientHeight
-)
-{
-    // ペンは赤・太さ2px
-    Gdiplus::Pen pen(Gdiplus::Color(255, 0, 0), 2.0f);
-
-    // 正規化矩形をローカル変数にコピー
-    float x = normRect.X;
-    float y = normRect.Y;
-    float w = normRect.Width;
-    float h = normRect.Height;
-
-    // 幅・高さが負の場合は方向を反転
-    if (w < 0) { x += w; w = -w; }
-    if (h < 0) { y += h; h = -h; }
-
-    // ピクセル座標に変換して描画
-    graphics.DrawRectangle(
-        &pen,
-        x * clientWidth,
-        y * clientHeight,
-        w * clientWidth,
-        h * clientHeight
-    );
-}
-///////////////////////////////////////////////////////////////////////
-// マウスカーソルの位置に十字線を描画する関数
-void DrawCrosshairLines(HWND hWnd)
-{
-    // マウス位置をクライアント座標で取得
-    POINT pt;
-    GetCursorPos(&pt);
-    ScreenToClient(hWnd, &pt);
-
-    // クライアント領域サイズを取得
-    RECT rect;
-    GetClientRect(hWnd, &rect);
-
-    // GDI で十字線を XOR 描画
-    HDC hdc = GetDC(hWnd);
-    SetROP2(hdc, R2_XORPEN);
-    HPEN hPen = CreatePen(PS_SOLID, 1, RGB(255, 255, 255));
-    HGDIOBJ oldPen = SelectObject(hdc, hPen);
-
-    // 水平線
-    MoveToEx(hdc, 0, pt.y, NULL);
-    LineTo(hdc, rect.right, pt.y);
-    // 垂直線
-    MoveToEx(hdc, pt.x, 0, NULL);
-    LineTo(hdc, pt.x, rect.bottom);
-
-    // 後始末
-    SelectObject(hdc, oldPen);
-    DeleteObject(hPen);
-    ReleaseDC(hWnd, hdc);
-}
-
-
-///////////////////////////////////////////////////////////////////////
-// ラベルのクラス名をポップアップメニューで表示する関数の共通部分
-int ShowClassPopupMenu_Core(HWND hWnd, UINT& cmd)
-{
-    const int _perColumn = 20;
-
-    // ポップアップメニューの作成
-    HMENU hPopup = CreatePopupMenu();
-    if (!hPopup) return 0;
-
-    // カーソル位置を取得（画面→クライアント座標は不要）
-    POINT pt;
-    GetCursorPos(&pt);
-
-    // 先頭で未使用アクセラレータを管理するセットを用意
-    std::set<wchar_t> usedAccels;
-
-    // メニュー項目を追加 
-    for (size_t i = 0; i < GP.ClsNames.size(); ++i)
-    {
-        const std::wstring& name = GP.ClsNames[i];
-        wchar_t base = name[0];          // 元の頭文字
-#if defined(USE_ACCEL_NUMBER) //9まで使い切ってしまうとnullになり、メニュー表示が異常になる
-        wchar_t accel = 0;               // 最終的に使うアクセラレータ
-        // まだ使われていなければその文字を使う
-        if (usedAccels.insert(base).second) {
-            accel = base;
-        }
-        else {
-            // 重複していたら '1'～'9' から未使用のものを探す
-            for (wchar_t d = L'1'; d <= L'9'; ++d) {
-                if (usedAccels.insert(d).second) {
-                    accel = d;
-                    break;
-                }
-            }
-            // ※9個以上の重複があり得るなら、ここを拡張してください
-        }
-#else
-        wchar_t accel = base; // ショートカットキーは元の頭文字
-#endif
-        // ショートカットキー付き文字列を作成
-        std::wostringstream clsName;
-        clsName << L"(&" << accel << L") " << name;
-
-        // 分類がたくさんあるときの処理
-        UINT flags = MF_STRING;
-        if (i > 0 && (i % _perColumn) == 0) {
-            flags |= MF_MENUBREAK;
-        }
-
-        AppendMenuW(
-            hPopup,
-            flags,
-            IDM_PMENU_CLSNAME00 + static_cast<UINT>(i),
-            clsName.str().c_str()
-        );
-    }
-
-    AppendMenuW(hPopup, MF_STRING,
-        IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()),
-        L"DELETE(&1)");
-
-    AppendMenuW(hPopup, MF_STRING,
-        IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1,
-        L"CANCEL");
-
-    // ウィンドウを前面にしてから表示
-    SetForegroundWindow(hWnd);
-    cmd = TrackPopupMenuEx(
-        hPopup,
-        TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_RETURNCMD,
-        pt.x, pt.y,
-        hWnd,
-        NULL
-    );
-    DestroyMenu(hPopup);
-
-    return 1; // 選択されたコマンドを返す
-}
-
-
-///////////////////////////////////////////////////////////////////////
-// ラベルのクラス名をポップアップメニューで表示する関数
-// 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
-void ShowClassPopupMenu(HWND hWnd)
-{
-    //UINT cmd = 0;
-    //int _cmd = ShowClassPopupMenu_Core(hWnd);
-    //if (_cmd != -1) // コマンドが正常に取得できた場合
-    //    cmd = static_cast<UINT>(_cmd); // コマンドをUINTに変換
-    //else
-    //    return; // メニューの表示に失敗した場合は何もしない
-    UINT cmd = 0;
-    if(ShowClassPopupMenu_Core(hWnd,cmd))
-    {
-        // 選択結果を反映
-        if (cmd >= IDM_PMENU_CLSNAME00 &&
-            cmd < IDM_PMENU_CLSNAME00 + GP.ClsNames.size())
-        {
-            GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
-
-            // tmpLabel に選択内容を設定
-            GP.tmpLabel.ClassName = GP.ClsNames[GP.selectedClsIdx];
-            GP.tmpLabel.ClassNum = GP.selectedClsIdx;
-            GP.tmpLabel.color = GP.ClsColors[GP.selectedClsIdx];
-            GP.tmpLabel.dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
-            GP.tmpLabel.penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
-
-            // オブジェクトを登録
-            if (!GP.imgObjs.empty())
-            {
-                GP.imgObjs[GP.imgIdx].objs.push_back(GP.tmpLabel);
-                GP.imgObjs[GP.imgIdx].isEdited = true; // 編集フラグを立てる
-            }
-        }
-        else if (cmd == 0 || cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size())) // CANCEL
-        {
-            return;
-        }
-    }
-    return;
-}
-
-///////////////////////////////////////////////////////////////////////
-// ラベルのクラス名をポップアップメニューで表示する関数
-// 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
-void ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX )
-{
-    UINT cmd = 0;
-    if (ShowClassPopupMenu_Core(hWnd, cmd))
-    {
-        // 選択結果を反映
-        if (cmd >= IDM_PMENU_CLSNAME00 &&
-            cmd < IDM_PMENU_CLSNAME00 + GP.ClsNames.size())
-        {
-            GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
-
-            // activeObjectIDXで示すオブジェクトに選択内容を上書き
-            GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].ClassName = GP.ClsNames[GP.selectedClsIdx];
-            GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].ClassNum = GP.selectedClsIdx;
-            GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].color = GP.ClsColors[GP.selectedClsIdx];
-            GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
-            GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
-
-            GP.imgObjs[GP.imgIdx].isEdited = true; // 編集フラグを立てる
-        }
-        else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size())) // DELETE
-        {
-            // オブジェクトを削除
-            GP.imgObjs[GP.imgIdx].objs.erase(GP.imgObjs[GP.imgIdx].objs.begin() + activeObjectIDX);
-            GP.imgObjs[GP.imgIdx].isEdited = true; // 編集フラグを立てる
-        }
-        else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1) // CANCEL
-            return;
-    }
-
-    return;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-// 現在のイメージのオブジェクトの一覧のポップアップメニューを作成する
-int CreatePopupMenuFor_Labels_in_CurrentImage(HWND hWnd)
-{
-    HMENU hPopup = CreatePopupMenu();
-    if (!hPopup) return -1;
-
-    POINT pt;
-    GetCursorPos(&pt);
-
-    for (size_t i = 0; i < GP.imgObjs[GP.imgIdx].objs.size(); ++i)
-    {
-        const auto& obj = GP.imgObjs[GP.imgIdx].objs[i];
-        std::wstring menuText = L"(&" + std::to_wstring(i) + L") " + obj.ClassName;
-        AppendMenuW(hPopup, MF_STRING, IDM_PMENU_LABEL00 + static_cast<UINT>(i), menuText.c_str());
-    }
-    AppendMenuW(hPopup, MF_STRING,
-        IDM_PMENU_LABEL00 + static_cast<UINT>(GP.imgObjs[GP.imgIdx].objs.size()),
-        L"(ESC)CANCEL");
-
-    SetForegroundWindow(hWnd);
-    UINT cmd = TrackPopupMenuEx(
-        hPopup,
-        TPM_LEFTBUTTON | TPM_RIGHTBUTTON | TPM_RETURNCMD,
-        pt.x, pt.y,
-        hWnd,
-        NULL
-    );
-    DestroyMenu(hPopup);
-
-    //////////////////////////////////////////////////////////////////////////
-    // ★ 追記部分：ラベルが選択されたら編集メニューを表示する
-    if (cmd >= IDM_PMENU_LABEL00 &&
-        cmd < IDM_PMENU_LABEL00 + GP.imgObjs[GP.imgIdx].objs.size())
-    {
-        int objIdx = static_cast<int>(cmd - IDM_PMENU_LABEL00);
-        ShowClassPopupMenu_for_Edit(hWnd, objIdx);
-    }
-    //////////////////////////////////////////////////////////////////////////
-
-    return static_cast<int>(cmd);
-}
-
-
-
-///////////////////////////////////////////////////////////////////////
-// 描画処理を行う関数
-///////////////////////////////////////////////////////////////////////
-void DoPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, size_t _idx)
-{ 
-    // マウス移動中でない場合は、描画処理を行う
-    if (!GP.isMouseMoving)
-    {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hWnd, &ps);
-
-        // メモリDC作成
-        HDC memDC = CreateCompatibleDC(hdc);
-        HBITMAP memBitmap = CreateCompatibleBitmap(hdc, GP.width, GP.height);
-        HBITMAP oldBitmap = (HBITMAP)SelectObject(memDC, memBitmap);
-
-        // GDI+ の Graphics を memDC に結びつける
-        Graphics graphics(memDC);
-        graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
-        graphics.SetSmoothingMode(SmoothingModeAntiAlias); // 任意
-
-        // 背景塗りつぶし（必要に応じて）
-        graphics.Clear(Color(0, 0, 0)); // 黒背景
-
-        // 補間品質
-        graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
-        if (GP.imgObjs.size() > 0)
-        {
-            //画像の描画
-            if (GP.imgObjs[_idx].image) //配列が空でなければ
-            {
-                //スケーリングしながら描画
-                graphics.DrawImage(GP.imgObjs[_idx].image.get(), 0, 0, GP.width, GP.height);
-                graphics.Flush();
-            }
-            // 矩形を描画
-            WM_PAINT_DrawLabels(graphics, GP.imgObjs[_idx].objs, GP.width, GP.height, GP.font);
-        }
-        // ドラッグ中の矩形を描画
-        if (GP.dgMode == DragMode::MakeBox)
-            WM_PAINT_DrawTmpBox(graphics, GP.tmpLabel.Rct, GP.width, GP.height);
-
-        // 最後に画面に転送
-        BitBlt(hdc, 0, 0, GP.width, GP.height, memDC, 0, 0, SRCCOPY);
-
-        // クリーンアップ
-        SelectObject(memDC, oldBitmap);
-        DeleteObject(memBitmap);
-        DeleteDC(memDC);
-        EndPaint(hWnd, &ps);
-    }
-    //すべての操作 
-    GP.isMouseMoving = false; // フラグをリセット
-    // 十字目盛りを描画
-    DrawCrosshairLines(hWnd);
-}
-
-///////////////////////////////////////////////////////////////////////
-// ファイル保存ダイアログを表示
-// この関数はWinProcの一部という位置づけ
-// GP.minimumLabelSize に注意
-int  SaveAnnotations(HWND hWnd, std::wstring _title, float _sc) // 最小サイズ制限（デフォルトはなし）
-{
-    std::wstring _folderpath;
-
-    //すべてのラベルオブジェクトをスケーリングする
-    if (_sc != 0)
-    {
-        for (auto& _imgObj : GP.imgObjs)
-        {
-            for (auto& _labelObj : _imgObj.objs)
-            {
-                SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, _sc, _sc);
-
-                //if (_sc == 13) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.13, 1.13);
-                //else if (_sc == 25) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.25, 1.25);
-                //else if (_sc == 50) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.5, 1.5);
-                //else if (_sc == 75) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 1.75, 1.75);
-                //else if (_sc == 100) SscalingRect(_labelObj.Rct, _labelObj.Rct_Scale, 2.0, 2.0);
-            }
-        }
-    }
-
-    //この関数でレジストリにフォルダパスを保存をしている。
-    //_folderpath = GetFolderPathIF(hWnd, GP.labelFolderPath, L"書込ラベルフォルダを選択してください"); // フォルダ選択ダイアログを表示
-    _folderpath = GetFolderPathIFR(hWnd, GP.labelFolderPath, _title); // フォルダ選択ダイアログを表示
-
-    // フォルダ選択ダイアログを表示
-    if (!_folderpath.empty()) {
-        int _saveok = MessageBoxW(hWnd, L"保存しますか？", L"確認", MB_OKCANCEL);
-        if (_saveok == IDOK)
-        {
-            GP.labelFolderPath = _folderpath; // フォルダパスを指定
-            //タイトルバーに編集中の画像とラベルのパスを表示
-            SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.activeIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
-
-            // フォルダが選択された場合、アノテーションデータを保存
-            for (size_t i = 0; i < GP.imgObjs.size(); i++)
-            {
-                // ファイル名
-                std::wstring _fileName1;
-                std::wstring _fileName2;
-
-                _fileName1 = GetOnlyFileNameFormPath(GP.imgObjs[i].path);
-                _fileName2 = _folderpath + L"\\" + _fileName1 + L".txt";
-
-                bool _ret = SaveLabelsToFile(_fileName2, GP.imgObjs[i].objs, _sc, GP.minimumLabelSize, 1);
-                if (!_ret)
-                {
-                    // 保存失敗
-                    MessageBox(hWnd, L"保存失敗", L"失敗", MB_OK);
-                }
-            }
-			if (GP.minimumLabelSize != 0.0f)
-			{
-				// 最小サイズ制限を設定
-				GP.minimumLabelSize = 0.0f; // 保存後は最小サイズ制限をリセット
-                MessageBox(hWnd, L"最小サイズ制限をリセットしました", L"お知らせ", MB_OK);
-			}
-        }
-    }
-    return 0; // 成功
-}
-
-void CheckMenu(HWND hWnd, int _IDM, bool _sw)
-{
-    HMENU hMenu = GetMenu(hWnd);
-    UINT uState = _sw ? MF_CHECKED : MF_UNCHECKED;
-    // チェック状態をセット
-    CheckMenuItem(
-        hMenu,
-        _IDM,
-        MF_BYCOMMAND |
-        uState
-    );
-}
-
-//未ラベルの画像までジャンプする関数
-void JumpToUnlabeledImage(HWND hWnd)
-{
-    // ラベルのない画像までジャンプ
-    for (size_t i = GP.imgIdx + 1; i < GP.imgObjs.size(); ++i)
-    {
-        if (GP.imgObjs[i].objs.empty())
-        {
-            SaveLabelsToFileSingle(hWnd, GP.imgIdx, 0.0f);
-
-            GP.imgIdx = i; // ジャンプ
-
-
-            SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
-            InvalidateRect(hWnd, NULL, TRUE); // 再描画
-            return;
-        }
-    }
-    MessageBoxW(hWnd, L"ラベルのない画像はありません", L"情報", MB_OK);
-}
