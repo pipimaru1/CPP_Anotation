@@ -28,6 +28,10 @@ struct YoloConfig {
     float nmsThreshold = 0.45f;
     // 返却するLabelObjの描画：提案は破線で表示（true推奨）
     bool  proposalDashed = true;
+
+    int   numClasses = -1;      // 未指定なら自動推定
+    bool  hasObjness = false;   // v5/v7ならtrue、v8ならfalse。未確定なら numClasses=-1 で自動に任せる
+    bool  applySigmoid = false; // ONNXにSigmoidが残っていなければ true
 };
 
 // 関数全体のパラメータ
