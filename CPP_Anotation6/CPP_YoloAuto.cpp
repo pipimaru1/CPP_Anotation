@@ -608,7 +608,11 @@ void DrawLabelObjects(Graphics& g, const std::vector<LabelObj>& objs, const Rect
             SolidBrush br(Color(200, _color.GetR(), _color.GetG(), _color.GetB())); // ”¼“§–¾
 
             Font font(L"Segoe UI", 12, FontStyleBold, UnitPixel);
-            g.DrawString(L.ClassName.c_str(), -1, &font, PointF(r.X + 2, r.Y + 2), &br);
+
+			const int txtoffset_x = 0;
+            const int txtoffset_y = -18;
+
+            g.DrawString(L.ClassName.c_str(), -1, &font, PointF(r.X + txtoffset_x, r.Y + txtoffset_y), &br);
         }
     }
 }

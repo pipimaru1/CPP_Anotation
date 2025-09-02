@@ -1,11 +1,11 @@
 0, Work, 255, 255, 0, DashStyleDash, 2
-1, SubWork, 255, 0, 0, DashStyleSolid, 1
+1, SubWork, 255, 0, 0, DashStyleSolid, 2
 2, Bring_Handling_Parts, 0, 255, 0, DashStyleSolid, 3
 3, Move, 0, 0, 255, DashStyleDash, 2
 4, Stand, 255, 0, 255, DashStyleDash, 2
-5, Others, 0, 255, 255, DashStyleSolid, 1
+5, Others, 0, 255, 255, DashStyleSolid, 2
 6, ManWelding, 255, 128, 0, DashStyleDash, 2
 7, RobotWelding ,128, 255, 0, DashStyleDash, 2
-8, Picking, 255, 128, 0, DashStyleSolid, 1
+8, Picking, 255, 128, 0, DashStyleSolid, 2
 9, Crane_Operation, 128, 255, 128, DashStyleDash, 2
 10,Push, 128, 255, 0, DashStyleDash, 3
