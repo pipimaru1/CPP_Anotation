@@ -83,11 +83,45 @@ static void MakeBlobResizeLetterbox(const cv::Mat& bgr, const YoloConfig& yc,
         yc.mean, yc.swapRB, false);
 }
 
-// YOLO(v5/v8) 汎用デコード（forward出力が(1,N,85) or (1,85,N) or (1,84,N)想定）
-inline float Sigmoid(float x) { return 1.f / (1.f + std::exp(-x)); }
 
+// YOLO(v5/v8) 汎用デコード（forward出力が(1,N,85) or (1,85,N) or (1,84,N)想定）
+// cocoの640モデル、1280モデルで成功
+// V5,V8で成功
+// 独自モデルでは640、1280ともにダメ
+static void DecodeYoloGeneric_coco(const cv::Mat& out, const YoloConfig& yc,
+    const cv::Size& orig, const cv::Rect& padRect,
+    std::vector<cv::Rect>& boxesPx,
+    std::vector<float>& scores,
+    std::vector<int>& classIds);
+
+// COCO V5,V8 x640で成功       NMS効かない
+// COCO V5,V8 x1280で成功      NMS効かない
+// オリジナルのV5モデル x640 で成功  NMS効かない
+// オリジナルのV5モデル x1280 何も出ない
+static void DecodeYoloGeneric_awz(const cv::Mat& out, const YoloConfig& yc,
+    const cv::Size& orig, const cv::Rect& padRect,
+    std::vector<cv::Rect>& boxesPx,
+    std::vector<float>& scores,
+    std::vector<int>& classIds);
 
 static void DecodeYoloGeneric(const cv::Mat& out, const YoloConfig& yc,
+    const cv::Size& orig, const cv::Rect& padRect,
+    std::vector<cv::Rect>& boxesPx,
+    std::vector<float>& scores,
+    std::vector<int>& classIds)
+{ 
+	//return DecodeYoloGeneric_coco(out, yc, orig, padRect, boxesPx, scores, classIds);
+    return DecodeYoloGeneric_awz(out, yc, orig, padRect, boxesPx, scores, classIds);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+inline float Sigmoid(float x) { return 1.f / (1.f + std::exp(-x)); }
+
+////////////////////////////////////////////////////////////////////////////////////////////
+// YOLO(v5/v8) 汎用デコード（forward出力が(1,N,85) or (1,85,N) or (1,84,N)想定）
+// cocoの640モデル、1280モデルで成功
+// 独自モデルでは640、1280ともに成功 (/・ω・)/
+static void DecodeYoloGeneric_coco(const cv::Mat& out, const YoloConfig& yc,
     const cv::Size& orig, const cv::Rect& padRect,
     std::vector<cv::Rect>& boxesPx,
     std::vector<float>& scores,
@@ -274,96 +308,129 @@ static void DecodeYoloGeneric(const cv::Mat& out, const YoloConfig& yc,
 }
 */
 
-//static void DecodeYoloGeneric(const cv::Mat& out, const YoloConfig& yc,
-//    const cv::Size& orig, const cv::Rect& padRect,
-//    std::vector<cv::Rect>& boxesPx,
-//    std::vector<float>& scores,
-//    std::vector<int>& classIds)
-//{
-//    CV_Assert(out.dims == 3);
-//    const int A = out.size[1];
-//    const int B = out.size[2];
-//
-//    // 属性数は通常「候補数」より小さいので、A<B なら [C(属性), N(候補)] とみなす
-//    const bool channels_first = (A < B);
-//    const int  C = channels_first ? A : B; // 属性数 = 4(+1) + nc
-//    const int  N = channels_first ? B : A; // 候補数
-//
-//    const float* p = (const float*)out.data;
-//
-//    // ---- クラス数 / objness の自動推定（明示指定があれば優先）----
-//    int  nc = (yc.numClasses > 0) ? yc.numClasses : -1;
-//    bool hasObj = yc.hasObjness;           // -1 的な「不明」フラグがなければ、false/trueのどちらかを入れておく
-//
-//    if (nc <= 0) {
-//        // C が 4+nc（v8系: objness無し） または 5+nc（v5/7系: objness有り）であることが多い
-//        if (C - 5 >= 1 && C - 5 <= 1024) { nc = C - 5; hasObj = true; }
-//        else if (C - 4 >= 1 && C - 4 <= 1024) { nc = C - 4; hasObj = false; }
-//        else {
-//            // 想定外形状（ナス等）→安全に終了
-//            return;
-//        }
-//    }
-//    const int clsStart = hasObj ? 5 : 4;
-//
-//    const bool doSigmoid = yc.applySigmoid; // ONNXにSigmoidが残っていればfalse, ロジットならtrue
-//
-//    const float gain = std::min(yc.inputW / (float)orig.width, yc.inputH / (float)orig.height);
-//    const float padX = (float)padRect.x, padY = (float)padRect.y;
-//
-//    boxesPx.clear(); scores.clear(); classIds.clear();
-//    boxesPx.reserve(N); scores.reserve(N); classIds.reserve(N);
-//
-//    auto idx = [&](int attr, int i)->int {
-//        // channels_first: [C, N] なので attr*N + i
-//        // channels_last : [N, C] なので i*C + attr
-//        return channels_first ? (attr * N + i) : (i * C + attr);
-//        };
-//
-//    for (int i = 0; i < N; ++i) {
-//        float cx = p[idx(0, i)];
-//        float cy = p[idx(1, i)];
-//        float w = p[idx(2, i)];
-//        float h = p[idx(3, i)];
-//
-//        float obj = 1.f;
-//        if (hasObj) {
-//            obj = p[idx(4, i)];
-//            if (doSigmoid) obj = Sigmoid(obj);
-//        }
-//
-//        int   bestId = -1;
-//        float bestScore = -1.f;
-//
-//        for (int c = 0; c < nc; ++c) {
-//            float s = p[idx(clsStart + c, i)];
-//            if (doSigmoid) s = Sigmoid(s);
-//            const float conf = s * obj;  // v8系（objなし）の場合は obj=1 なのでそのまま
-//            if (conf > bestScore) { bestScore = conf; bestId = c; }
-//        }
-//        if (bestScore < yc.confThreshold) continue;
-//
-//        // xywh(center) -> xyxy, letterboxを除いて元画像座標へ
-//        float x = cx - w * 0.5f, y = cy - h * 0.5f;
-//        float x0 = (x - padX) / gain;
-//        float y0 = (y - padY) / gain;
-//        float x1 = (x + w - padX) / gain;
-//        float y1 = (y + h - padY) / gain;
-//
-//        x0 = std::max(0.f, std::min(x0, (float)orig.width - 1));
-//        y0 = std::max(0.f, std::min(y0, (float)orig.height - 1));
-//        x1 = std::max(0.f, std::min(x1, (float)orig.width - 1));
-//        y1 = std::max(0.f, std::min(y1, (float)orig.height - 1));
-//
-//        const int ix0 = (int)std::round(x0), iy0 = (int)std::round(y0);
-//        const int iw = (int)std::round(x1 - x0), ih = (int)std::round(y1 - y0);
-//        if (iw <= 0 || ih <= 0) continue;
-//
-//        boxesPx.push_back(cv::Rect(ix0, iy0, iw, ih));
-//        scores.push_back(bestScore);
-//        classIds.push_back(bestId);
-//    }
-//}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+// YOLO(v5/v8) 汎用デコード（forward出力が(1,N,85) or (1,85,N) or (1,84,N)想定）
+// cocoの640モデル、1280モデルで成功
+// 独自モデルでは640、1280ともに成功 (/・ω・)/
+static void DecodeYoloGeneric_awz(const cv::Mat& out, const YoloConfig& yc,
+    const cv::Size& orig, const cv::Rect& padRect,
+    std::vector<cv::Rect>& boxesPx,
+    std::vector<float>& scores,
+    std::vector<int>& classIds)
+{
+    CV_Assert(out.dims == 3);
+    const int A = out.size[1];
+    const int B = out.size[2];
+
+    // 属性数は通常「候補数」より小さいので、A<B なら [C(属性), N(候補)] とみなす
+    const bool channels_first = (A < B);
+    const int  C = channels_first ? A : B; // 属性数 = 4(+1) + nc
+    const int  N = channels_first ? B : A; // 候補数
+
+    const float* p = (const float*)out.data;
+
+    // ---- クラス数 / objness の自動推定（明示指定があれば優先）----
+    int  nc = (yc.numClasses > 0) ? yc.numClasses : -1;
+    bool hasObj = yc.hasObjness;           // -1 的な「不明」フラグがなければ、false/trueのどちらかを入れておく
+
+    if (nc <= 0) {
+        // C が 4+nc（v8系: objness無し） または 5+nc（v5/7系: objness有り）であることが多い
+        if (C - 5 >= 1 && C - 5 <= 1024) { nc = C - 5; hasObj = true; }
+        else if (C - 4 >= 1 && C - 4 <= 1024) { nc = C - 4; hasObj = false; }
+        else {
+            // 想定外形状（ナス等）→安全に終了
+            return;
+        }
+    }
+    const int clsStart = hasObj ? 5 : 4;
+        const bool doSigmoid = yc.applySigmoid; // ONNXにSigmoidが残っていればfalse, ロジットならtrue
+
+    const float gain = std::min(yc.inputW / (float)orig.width, yc.inputH / (float)orig.height);
+    const float padX = (float)padRect.x, padY = (float)padRect.y;
+
+    std::vector<cv::Rect>  tmpBoxes; tmpBoxes.reserve(N);
+    std::vector<float>     tmpScores; tmpScores.reserve(N);
+    std::vector<int>       tmpCls; tmpCls.reserve(N);
+
+    boxesPx.clear(); 
+    scores.clear(); 
+    classIds.clear();
+    boxesPx.reserve(N); 
+    scores.reserve(N); 
+    classIds.reserve(N);
+
+    auto idx = [&](int attr, int i)->int {
+        // channels_first: [C, N] なので attr*N + i
+        // channels_last : [N, C] なので i*C + attr
+        return channels_first ? (attr * N + i) : (i * C + attr);
+        };
+
+    for (int i = 0; i < N; ++i) {
+        float cx = p[idx(0, i)];
+        float cy = p[idx(1, i)];
+        float w = p[idx(2, i)];
+        float h = p[idx(3, i)];
+
+        float obj = 1.f;
+        if (hasObj) {
+            obj = p[idx(4, i)];
+            if (doSigmoid) obj = Sigmoid(obj);
+        }
+
+        int   bestId = -1;
+        float bestScore = -1.f;
+
+        for (int c = 0; c < nc; ++c) {
+            float s = p[idx(clsStart + c, i)];
+            if (doSigmoid) s = Sigmoid(s);
+            const float conf = s * obj;  // v8系（objなし）の場合は obj=1 なのでそのまま
+            if (conf > bestScore) { bestScore = conf; bestId = c; }
+        }
+        if (bestScore < yc.confThreshold) continue;
+
+        // xywh(center) -> xyxy, letterboxを除いて元画像座標へ
+        float x = cx - w * 0.5f, y = cy - h * 0.5f;
+        float x0 = (x - padX) / gain;
+        float y0 = (y - padY) / gain;
+        float x1 = (x + w - padX) / gain;
+        float y1 = (y + h - padY) / gain;
+
+        x0 = std::max(0.f, std::min(x0, (float)orig.width - 1));
+        y0 = std::max(0.f, std::min(y0, (float)orig.height - 1));
+        x1 = std::max(0.f, std::min(x1, (float)orig.width - 1));
+        y1 = std::max(0.f, std::min(y1, (float)orig.height - 1));
+
+        const int ix0 = (int)std::round(x0), iy0 = (int)std::round(y0);
+        const int iw = (int)std::round(x1 - x0), ih = (int)std::round(y1 - y0);
+        if (iw <= 0 || ih <= 0) continue;
+
+        //boxesPx.push_back(cv::Rect(ix0, iy0, iw, ih));
+        //scores.push_back(bestScore);
+        //classIds.push_back(bestId);
+
+        cv::Rect box((int)std::round(x0), (int)std::round(y0),
+            (int)std::round(x1 - x0), (int)std::round(y1 - y0));
+        if (box.width <= 0 || box.height <= 0) 
+            continue;
+
+        tmpBoxes.push_back(box);
+        tmpScores.push_back(bestScore);
+        tmpCls.push_back(bestId);
+
+    }
+
+    std::vector<int> idx2;
+    cv::dnn::NMSBoxes(tmpBoxes, tmpScores, yc.confThreshold, yc.nmsThreshold, idx2);
+
+    boxesPx.reserve(idx2.size()); scores.reserve(idx2.size()); classIds.reserve(idx2.size());
+    for (int k : idx2) 
+    {
+        boxesPx.push_back(tmpBoxes[k]);
+        scores.push_back(tmpScores[k]);
+        classIds.push_back(tmpCls[k]);
+    }
+}
 
 static inline Gdiplus::RectF PxToNormXYWH_RectF(const cv::Rect& r, const cv::Size& sz)
 {
