@@ -158,7 +158,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 
     wcex.cbSize = sizeof(WNDCLASSEX);
 
-    wcex.style = CS_HREDRAW | CS_VREDRAW;
+    wcex.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
     wcex.lpfnWndProc = WndProc;
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = 0;
@@ -227,6 +227,7 @@ void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labe
 }
 
 ///////////////////////////////////////////////////////////////////////
+// メニューのチェック状態を更新する関数
 int CreatePopupMenuFor_Labels_in_CurrentImage(HWND hWnd);
 
 /////////////////////////////////////////////////////////////////////////
@@ -745,6 +746,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // 画像をウィンドウのサイズに合わせて描画する場合は、ここで処理を追加
     }
     break;
+
+    ////////////////////////////////////////////////////
+    // マウスの左ボタンでダブルクリックしたときの処理
+    ////////////////////////////////////////////////////
+    case WM_LBUTTONDBLCLK:
+    {
+		//バグりそうなので無効化
+    }
+    break;
+
 	// マウスの左ボタンが押されたときの処理
 	case WM_LBUTTONDOWN:
 	{
@@ -792,7 +803,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             NormalizeRect(GP.tmpLabel.Rct); // 矩形の座標を正規化
 
 			//クラス名をポップアップメニューで表示
-            ShowClassPopupMenu(hWnd);
+            ShowClassPopupMenu(hWnd, false);
 
             ReleaseCapture();
         }
@@ -821,6 +832,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         GP.dgMode = DragMode::None;
 	}
 	break;
+    
+
     ////////////////////////////////////////////////////
 	// マウスの右ボタンが押されたときの処理
     ////////////////////////////////////////////////////
@@ -839,14 +852,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (GP.activeIdx != -1)
 		{
 			// クラス名をポップアップメニューで表示
-			ShowClassPopupMenu_for_Edit(hWnd, GP.activeIdx);
+			ShowClassPopupMenu_for_Edit(hWnd, GP.activeIdx, false);
 		}
         else if(AutoDetctedObjsIdx != -1)
         {
             // クラス名をポップアップメニューで表示
-            int _ret = ShowClassPopupMenu_for_Edit(hWnd, AutoDetctedObjs, AutoDetctedObjsIdx);
-           if(_ret>=0)
-{
+            int _ret = ShowClassPopupMenu_for_Edit(hWnd, AutoDetctedObjs, AutoDetctedObjsIdx, true);
+           if(_ret>=0 || _ret==-10)
+            {
                // 選択された場合、メインの配列に矩形を追加する
                GP.imgObjs[GP.imgIdx].isEdited = true; // 編集されたことにする
                GP.imgObjs[GP.imgIdx].objs.push_back(AutoDetctedObjs.objs[AutoDetctedObjsIdx]);
@@ -854,6 +867,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		   }
 		}
 	}
+
+
     break;
     // マウスの移動中の処理
 	// BOXと重なっているかどうかを判定したり、矩形の編集を行う

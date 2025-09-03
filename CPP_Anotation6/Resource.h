@@ -46,6 +46,7 @@
 #define IDM_DLETE_IMAGE			300 //画像を削除
 
 //2200まではクラシフィケーション用
+#define IDM_PMENU_CONFIRM		1999   // 先頭「確定」
 #define IDM_PMENU_CLSNAME00		2000 //動的ポップアップメニューのID 
 #define IDM_PMENU_CLSNAME01		2001
 #define IDM_PMENU_CLSNAME02		2002

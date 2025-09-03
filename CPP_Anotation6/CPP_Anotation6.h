@@ -24,8 +24,8 @@ void WM_PAINT_DrawTmpBox(
 void DrawCrosshairLines(HWND hWnd);
 ///////////////////////////////////////////////////////////////////////
 //ラベルのクラス名をポップアップメニューで表示する関数
-void ShowClassPopupMenu(HWND hWnd);
+void ShowClassPopupMenu(HWND hWnd, bool _autoannotation);
 ///////////////////////////////////////////////////////////////////////
 //ラベルのクラス名をポップアップメニューで表示する関数 編集用
-int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectIDX);
-int ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX);
+int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectIDX, bool _autoannotation);
+int ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX, bool _autoannotation);

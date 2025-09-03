@@ -1385,7 +1385,7 @@ void DrawCrosshairLines(HWND hWnd)
 
 ///////////////////////////////////////////////////////////////////////
 // ラベルのクラス名をポップアップメニューで表示する関数の共通部分
-int ShowClassPopupMenu_Core(HWND hWnd, UINT& cmd)
+int ShowClassPopupMenu_Core(HWND hWnd, UINT& cmd, bool _autoannotaion)
 {
     const int _perColumn = 20;
 
@@ -1401,6 +1401,13 @@ int ShowClassPopupMenu_Core(HWND hWnd, UINT& cmd)
     std::set<wchar_t> usedAccels;
 
     // メニュー項目を追加 
+    if(_autoannotaion)
+    {
+        // 先頭に「確定」
+        AppendMenuW(hPopup, MF_STRING, IDM_PMENU_CONFIRM, L"確定(&C)");
+        AppendMenuW(hPopup, MF_SEPARATOR, 0, nullptr);
+    }
+
     for (size_t i = 0; i < GP.ClsNames.size(); ++i)
     {
         const std::wstring& name = GP.ClsNames[i];
@@ -1469,23 +1476,16 @@ int ShowClassPopupMenu_Core(HWND hWnd, UINT& cmd)
 // ラベルのクラス名をポップアップメニューで表示する関数
 // 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
 
-int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectIDX)
+int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectIDX, bool _autoannotation)
 {
     // 選択結果を反映
     UINT cmd = 0;
-    if (ShowClassPopupMenu_Core(hWnd, cmd))
+    if (ShowClassPopupMenu_Core(hWnd, cmd, _autoannotation))
     {
         if (cmd >= IDM_PMENU_CLSNAME00 &&
             cmd < IDM_PMENU_CLSNAME00 + GP.ClsNames.size())
         {
             GP.selectedClsIdx = cmd - IDM_PMENU_CLSNAME00;
-
-            // activeObjectIDXで示すオブジェクトに選択内容を上書き
-            //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].ClassName = GP.ClsNames[GP.selectedClsIdx];
-            //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].ClassNum = GP.selectedClsIdx;
-            //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].color = GP.ClsColors[GP.selectedClsIdx];
-            //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].dashStyle = GP.ClsDashStyles[GP.selectedClsIdx];
-            //GP.imgObjs[GP.imgIdx].objs[activeObjectIDX].penWidth = GP.ClsPenWidths[GP.selectedClsIdx];
 
             _imgobj.objs[activeObjectIDX].ClassName = GP.ClsNames[GP.selectedClsIdx];
             _imgobj.objs[activeObjectIDX].ClassNum = GP.selectedClsIdx;
@@ -1510,6 +1510,11 @@ int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectI
         {
             return -2; // キャンセルしたことを示す
         }
+        else if (cmd == IDM_PMENU_CONFIRM) {
+            // 本当はここで、自動アノテーションのクラスIDをactiveObjectIDXにセットしなければいけない
+            // activeObjectIDX =　
+            return -10; // ← 明示
+        }
     }
     else
     {
@@ -1520,7 +1525,7 @@ int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectI
 ///////////////////////////////////////////////////////////////////////
 // ラベルのクラス名をポップアップメニューで表示する関数
 // 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
-void ShowClassPopupMenu(HWND hWnd)
+void ShowClassPopupMenu(HWND hWnd, bool _autoannotation)
 {
     //UINT cmd = 0;
     //int _cmd = ShowClassPopupMenu_Core(hWnd);
@@ -1529,7 +1534,7 @@ void ShowClassPopupMenu(HWND hWnd)
     //else
     //    return; // メニューの表示に失敗した場合は何もしない
     UINT cmd = 0;
-    if (ShowClassPopupMenu_Core(hWnd, cmd))
+    if (ShowClassPopupMenu_Core(hWnd, cmd, _autoannotation))
     {
         // 選択結果を反映
         if (cmd >= IDM_PMENU_CLSNAME00 &&
@@ -1562,9 +1567,9 @@ void ShowClassPopupMenu(HWND hWnd)
 ////////////////////////////////////////////////////////////////////////
 // ラベルのクラス名をポップアップメニューで表示する関数 
 // ラップ
-int ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX)
+int ShowClassPopupMenu_for_Edit(HWND hWnd, int activeObjectIDX, bool _autoannotation)
 {
-    return ShowClassPopupMenu_for_Edit(hWnd, GP.imgObjs[GP.imgIdx], activeObjectIDX);
+    return ShowClassPopupMenu_for_Edit(hWnd, GP.imgObjs[GP.imgIdx], activeObjectIDX, _autoannotation);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1603,7 +1608,7 @@ int CreatePopupMenuFor_Labels_in_CurrentImage(HWND hWnd)
         cmd < IDM_PMENU_LABEL00 + GP.imgObjs[GP.imgIdx].objs.size())
     {
         int objIdx = static_cast<int>(cmd - IDM_PMENU_LABEL00);
-        ShowClassPopupMenu_for_Edit(hWnd, objIdx);
+        ShowClassPopupMenu_for_Edit(hWnd, objIdx, false);
     }
     //////////////////////////////////////////////////////////////////////////
 
