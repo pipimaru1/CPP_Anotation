@@ -495,6 +495,10 @@ static inline void SetupStyleForProposal(LabelObj& L, int classId, const YoloCon
 //    }
 //}
 
+//グローバル化してONNXの再読み込み回数を減らす
+cv::dnn::Net g_net;
+std::wstring _g_onnxPath;
+
 std::vector<LabelObj> DnnInfer(const cv::Mat& bgr,
     const std::wstring& onnxPath,
     const DnnParams& params)
@@ -511,17 +515,32 @@ std::vector<LabelObj> DnnInfer(const cv::Mat& bgr,
             return outLabels;
         else
         {
-            cv::dnn::Net net = LoadOrGetNet(onnxPath, params.opt);
+            if(g_net.empty())
+            {
+                // ONNXモデルの読み込み
+                g_net = LoadOrGetNet(onnxPath, params.opt);
+				_g_onnxPath = onnxPath; // パスを保存
+			}
+            else if (_g_onnxPath != onnxPath)
+            {
+                //g_net.delete();
+                // ONNXモデルの読み込み
+                g_net = LoadOrGetNet(onnxPath, params.opt);
+                _g_onnxPath = onnxPath; // パスを保存
+            }
+            //cv::dnn::Net net = LoadOrGetNet(onnxPath, params.opt);
+            //net = LoadOrGetNet(onnxPath, params.opt);
+
             // 前処理
             cv::Mat blob; cv::Rect padRect;
             MakeBlobResizeLetterbox(bgr, params.yolo, blob, padRect);
-            net.setInput(blob);
+            g_net.setInput(blob);
             cv::Mat out;
 
             // 推論 失敗したら空で返す
             try
             {
-                out = net.forward();
+                out = g_net.forward();
             }
             catch (cv::Exception& e)
             {

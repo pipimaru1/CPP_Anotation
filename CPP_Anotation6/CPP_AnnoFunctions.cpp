@@ -1843,7 +1843,7 @@ void DoPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, size_t _idx)
         // 背景塗りつぶし（必要に応じて）
         graphics.Clear(Color(0, 0, 0)); // 黒背景
 
-        // 補間品質
+        // 補間品質 スケーリング
         graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
         if (GP.imgObjs.size() > 0)
         {
@@ -1855,23 +1855,23 @@ void DoPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, size_t _idx)
                 graphics.Flush();
             }
             // 矩形を描画
-            WM_PAINT_DrawLabels(graphics, GP.imgObjs[_idx].objs, GP.width, GP.height, GP.font);
+            if(GP.isShowBbox)
+            {
+                WM_PAINT_DrawLabels(graphics, GP.imgObjs[_idx].objs, GP.width, GP.height, GP.font);
+
+                // YOLOの推論結果を描画
+                if (g_showProposals && !AutoDetctedObjs.objs.empty()) {
+                    RECT rcClient;
+                    GetClientRect(hWnd, &rcClient);
+                    DrawLabelObjects(graphics, AutoDetctedObjs.objs, ToRectF(rcClient));
+                }
+            }
         }
+
         // ドラッグ中の矩形を描画
         if (GP.dgMode == DragMode::MakeBox)
             WM_PAINT_DrawTmpBox(graphics, GP.tmpLabel.Rct, GP.width, GP.height);
 
-        // YOLOの推論結果を描画
-        if (g_showProposals && !AutoDetctedObjs.objs.empty()) {
-            // 1) 画像を既存ロジックで描画（例：Fit表示）
-            RECT rcClient;
-            GetClientRect(hWnd, &rcClient);
-            //const int imgW = GP.imgObjs[GP.imgIdx].image->GetWidth(); // ←あなたの構造体の実フィールド名に合わせてください
-            //const int imgH = GP.imgObjs[GP.imgIdx].image->GetHeight(); // 例示
-            //RectF view = FitImageToClientRect(imgW, imgH, rcClient);
-            //DrawLabelObjects(graphics, AutoDetctedObjs, view);
-            DrawLabelObjects(graphics, AutoDetctedObjs.objs, ToRectF(rcClient));
-        }
 
         // 最後に画面に転送
         BitBlt(hdc, 0, 0, GP.width, GP.height, memDC, 0, 0, SRCCOPY);

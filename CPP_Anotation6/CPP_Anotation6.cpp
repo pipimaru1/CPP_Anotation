@@ -62,7 +62,9 @@ int APIENTRY wWinMain(
 
     // TODO: ここにコードを挿入してください。
     
-    //コマンドライン引数
+    //　コマンドライン引数
+	// Cpp_Anotation.exe <分類ファイル> <画像フォルダ> <ラベルフォルダ> [<onnxファイル>] [onnxサイズ:640/1280/1920]
+
     int argc = 0;
     LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
     bool isInitOK = false;
@@ -98,6 +100,15 @@ int APIENTRY wWinMain(
             GDNNP.gOnnxPath = _onnxfile;
 		}
     }
+    if (argc >= 6)
+    { 
+        int _onnxsize = _wtoi(argv[5]); // ラベルフォルダ
+        if (_onnxsize == 640 || _onnxsize == 1280 || _onnxsize == 1920)
+        {
+            GDNNP.yolo.inputW = _onnxsize;
+            GDNNP.yolo.inputH = _onnxsize;
+		}
+	}
 
 
     // GDIPlusのスタートの後に フォントを生成
@@ -854,17 +865,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			// クラス名をポップアップメニューで表示
 			ShowClassPopupMenu_for_Edit(hWnd, GP.activeIdx, false);
 		}
+        //自動アノテーションのバウンディングボックスの場合
         else if(AutoDetctedObjsIdx != -1)
         {
             // クラス名をポップアップメニューで表示
             int _ret = ShowClassPopupMenu_for_Edit(hWnd, AutoDetctedObjs, AutoDetctedObjsIdx, true);
-           if(_ret>=0 || _ret==-10)
+           if(_ret>=0)
             {
                // 選択された場合、メインの配列に矩形を追加する
                GP.imgObjs[GP.imgIdx].isEdited = true; // 編集されたことにする
                GP.imgObjs[GP.imgIdx].objs.push_back(AutoDetctedObjs.objs[AutoDetctedObjsIdx]);
                AutoDetctedObjs.objs.erase(AutoDetctedObjs.objs.begin() + AutoDetctedObjsIdx);
 		   }
+           else if ( _ret == -10) //そのまま確定
+           {
+               //★上と同じ処理
+               // 選択された場合、メインの配列に矩形を追加する
+               GP.imgObjs[GP.imgIdx].isEdited = true; // 編集されたことにする
+               GP.imgObjs[GP.imgIdx].objs.push_back(AutoDetctedObjs.objs[AutoDetctedObjsIdx]);
+               AutoDetctedObjs.objs.erase(AutoDetctedObjs.objs.begin() + AutoDetctedObjsIdx);
+           }
+
 		}
 	}
 
@@ -1178,8 +1199,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                         SetTimer(hWnd, IDT_COMPARE, 30, nullptr);
                     }
                 }
-            }
-            break;
+            }break;
 
             case 'i': // 異常なラベルのある画像までジャンプ 
             case 'I':
@@ -1188,15 +1208,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 {
 					PostMessage(hWnd, WM_COMMAND, ID_ANNOT_JUMP_IGNOREBOX, 0); // ジャンプメニューを呼び出す
                 }
-            }
-			break;
+            }break;
 
 			case 'Q': // 自動アノテーション
             case 'q': // 自動アノテーション
             {
 				PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
-            }
-            break;
+            }break;
+            
+            case 'W': // バウンディングボックスの表示を切り替え
+            case 'w':
+            {
+                if(GP.isShowBbox)
+					GP.isShowBbox = false;
+                else
+					GP.isShowBbox = true;
+            }break;
         }
         InvalidateRect(hWnd, NULL, TRUE); // 再描画
     }

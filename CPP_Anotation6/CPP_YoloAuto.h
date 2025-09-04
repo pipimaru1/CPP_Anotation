@@ -24,8 +24,10 @@ struct YoloConfig {
     float scale = 1.0f / 255.0f;
     cv::Scalar mean = cv::Scalar(0, 0, 0);
     bool  letterbox = true;
-    float confThreshold = 0.25f;
-    float nmsThreshold = 0.45f;
+
+    //自動アノテーション 最高感度にしておく
+    float confThreshold = 0.001f;
+    float nmsThreshold = 0.30f;
     // 返却するLabelObjの描画：提案は破線で表示（true推奨）
     bool  proposalDashed = true;
 
@@ -53,7 +55,10 @@ std::vector<LabelObj> DnnInfer(const cv::Mat& bgr,
 ///////////////////////////////////////////////////////////////////////////////////////////
 RectF FitImageToClientRect(int imgW, int imgH, const RECT& rcClient);
 RectF NormToViewRect(const RectF& rNorm, const RectF& view);
-void DrawLabelObjects(Graphics& g, const std::vector<LabelObj>& objs, const RectF& view, Gdiplus::Color _color = Gdiplus::Color::LightGray, int _penwidth = 2);
+void DrawLabelObjects(Graphics& g, const std::vector<LabelObj>& objs, const RectF& view, 
+    //Gdiplus::Color _color = Gdiplus::Color::LightGray, 
+    Gdiplus::Color _color = Gdiplus::Color::White,
+    int _penwidth = 2);
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////

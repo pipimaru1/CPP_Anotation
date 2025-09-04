@@ -123,8 +123,9 @@ struct GlobalParams
     float IMGSIZEW = 640.0f; // 画像の幅
     float IMGSIZEH = 640.0f; // 画像の高さ
 
+	//バウンディングボックスの表示/非表示
+	bool isShowBbox = true; // バウンディングボックスの表示/非表示
+
 };
-
-
 
 extern GlobalParams GP;
