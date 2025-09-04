@@ -606,6 +606,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             break;
 
+            case IDM_YOLO_MAXSENCE1:
+            {
+				GDNNP.yolo.confThreshold = 0.01f;
+                CheckMenues(hWnd);
+            }
+            break;
+            case IDM_YOLO_MAXSENCE2:
+            {
+                GDNNP.yolo.confThreshold = 0.005f;
+                CheckMenues(hWnd);
+            }
+            break;
+            case IDM_YOLO_MAXSENCE3:
+            {
+                GDNNP.yolo.confThreshold = 0.001f;
+                CheckMenues(hWnd);
+            }
+            break;
+
             case IDM_YOLO_IMGSZE640:
             {
                 GDNNP.yolo.inputW = 640;
@@ -1210,14 +1229,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
             }break;
 
-			case 'Q': // 自動アノテーション
-            case 'q': // 自動アノテーション
+			case '1': // 自動アノテーション
             {
-				PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+                GDNNP.yolo.confThreshold = 0.1f;
+                PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
             }break;
-            
-            case 'W': // バウンディングボックスの表示を切り替え
-            case 'w':
+
+            case '2': // 自動アノテーション 高感度
+            {
+                GDNNP.yolo.confThreshold = 0.01f;
+                PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+            }break;
+			case '3': // 自動アノテーション 超高感度
+            {
+                GDNNP.yolo.confThreshold = 0.005f;
+                PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+            }break;
+			case '4': // 自動アノテーション 超々高感度
+            {
+                GDNNP.yolo.confThreshold = 0.001f;
+                PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+            }break;
+
+
+
+            case 'Q': // バウンディングボックスの表示を切り替え
+            case 'q':
             {
                 if(GP.isShowBbox)
 					GP.isShowBbox = false;

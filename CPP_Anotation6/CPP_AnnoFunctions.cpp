@@ -1857,14 +1857,15 @@ void DoPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, size_t _idx)
             // 矩形を描画
             if(GP.isShowBbox)
             {
-                WM_PAINT_DrawLabels(graphics, GP.imgObjs[_idx].objs, GP.width, GP.height, GP.font);
-
                 // YOLOの推論結果を描画
                 if (g_showProposals && !AutoDetctedObjs.objs.empty()) {
                     RECT rcClient;
                     GetClientRect(hWnd, &rcClient);
                     DrawLabelObjects(graphics, AutoDetctedObjs.objs, ToRectF(rcClient));
                 }
+                //確定したバウンディングボックスを描画
+                WM_PAINT_DrawLabels(graphics, GP.imgObjs[_idx].objs, GP.width, GP.height, GP.font);
+
             }
         }
 
@@ -2003,6 +2004,18 @@ void CheckMenues(HWND hWnd)
         CheckMenu(hWnd, IDM_YOLO_IMGSZE1280, true);
     if (GDNNP.yolo.inputW == 1920)
         CheckMenu(hWnd, IDM_YOLO_IMGSZE1920, true);
+
+    CheckMenu(hWnd, IDM_YOLO_MAXSENCE1, false);
+    CheckMenu(hWnd, IDM_YOLO_MAXSENCE2, false);
+    CheckMenu(hWnd, IDM_YOLO_MAXSENCE3, false);
+
+    if (GDNNP.yolo.confThreshold <= 0.0011f)
+        CheckMenu(hWnd, IDM_YOLO_MAXSENCE3, true);
+    else if (GDNNP.yolo.confThreshold <= 0.0051f)
+        CheckMenu(hWnd, IDM_YOLO_MAXSENCE2, true);
+    else if (GDNNP.yolo.confThreshold <= 0.011f)
+        CheckMenu(hWnd, IDM_YOLO_MAXSENCE1, true);
+
 
 	if (!GDNNP.gOnnxPath.empty())
     {

@@ -25,8 +25,8 @@ struct YoloConfig {
     cv::Scalar mean = cv::Scalar(0, 0, 0);
     bool  letterbox = true;
 
-    //自動アノテーション 最高感度にしておく
-    float confThreshold = 0.001f;
+    //自動アノテーション 最高感度にしておく 超好感度はメニューで設定
+    float confThreshold = 0.1f;
     float nmsThreshold = 0.30f;
     // 返却するLabelObjの描画：提案は破線で表示（true推奨）
     bool  proposalDashed = true;
@@ -41,6 +41,10 @@ struct DnnParams {
     DnnOptions opt;
     YoloConfig yolo;
     std::wstring gOnnxPath = L".\yolov5s.onnx"; // ONNXファイルパス
+
+    cv::dnn::Net net;
+    std::wstring PregOnnxPath;
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////

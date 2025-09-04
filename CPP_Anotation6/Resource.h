@@ -42,6 +42,9 @@
 #define IDM_YOLO_IMGSZE1280		221 //YOLOの画像サイズを1280
 #define IDM_YOLO_IMGSZE1920		222 //YOLOの画像サイズを1920
 #define IDM_YOLO_MAINMENU		223 //自動アノテーションのメインメニューID
+#define IDM_YOLO_MAXSENCE1		224 //高感度 conf=0.01
+#define IDM_YOLO_MAXSENCE2		225 //超高感度 conf=0.005
+#define IDM_YOLO_MAXSENCE3		226 //超々高感度 conf=0.001
 
 #define IDM_DLETE_IMAGE			300 //画像を削除
 
