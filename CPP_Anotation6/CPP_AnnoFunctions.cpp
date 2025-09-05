@@ -2008,14 +2008,16 @@ void CheckMenues(HWND hWnd)
     CheckMenu(hWnd, IDM_YOLO_MAXSENCE1, false);
     CheckMenu(hWnd, IDM_YOLO_MAXSENCE2, false);
     CheckMenu(hWnd, IDM_YOLO_MAXSENCE3, false);
+    CheckMenu(hWnd, IDM_YOLO_MAXSENCE4, false);
 
-    if (GDNNP.yolo.confThreshold <= 0.0011f)
+    if (GDNNP.yolo.confThreshold == 0.0f)
+        CheckMenu(hWnd, IDM_YOLO_MAXSENCE4, true);
+    else if (GDNNP.yolo.confThreshold <= 0.0011f)
         CheckMenu(hWnd, IDM_YOLO_MAXSENCE3, true);
     else if (GDNNP.yolo.confThreshold <= 0.0051f)
         CheckMenu(hWnd, IDM_YOLO_MAXSENCE2, true);
     else if (GDNNP.yolo.confThreshold <= 0.011f)
         CheckMenu(hWnd, IDM_YOLO_MAXSENCE1, true);
-
 
 	if (!GDNNP.gOnnxPath.empty())
     {

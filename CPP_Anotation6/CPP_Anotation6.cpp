@@ -625,6 +625,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             break;
 
+            case IDM_YOLO_MAXSENCE4:
+            {
+                GDNNP.yolo.confThreshold = 0.0f;
+                CheckMenues(hWnd);
+            }
+            break;
+
             case IDM_YOLO_IMGSZE640:
             {
                 GDNNP.yolo.inputW = 640;
@@ -1248,6 +1255,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case '4': // 自動アノテーション 超々高感度
             {
                 GDNNP.yolo.confThreshold = 0.001f;
+                PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+            }break;
+            case '5': // 自動アノテーション 超々々高感度
+            {
+                GDNNP.yolo.confThreshold = 0.0f;
                 PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
             }break;
 

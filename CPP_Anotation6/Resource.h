@@ -45,6 +45,9 @@
 #define IDM_YOLO_MAXSENCE1		224 //高感度 conf=0.01
 #define IDM_YOLO_MAXSENCE2		225 //超高感度 conf=0.005
 #define IDM_YOLO_MAXSENCE3		226 //超々高感度 conf=0.001
+#define IDM_YOLO_MAXSENCE4		227 //超々々高感度 conf=0.000
+#define IDM_YOLO_V5_V7			228 //YOLOのバージョン
+#define IDM_YOLO_V8_V11			229 //YOLOのバージョン
 
 #define IDM_DLETE_IMAGE			300 //画像を削除
 
