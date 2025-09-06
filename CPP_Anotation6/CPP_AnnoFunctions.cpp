@@ -2030,6 +2030,7 @@ void CheckMenues(HWND hWnd)
         CheckMenu(hWnd, IDM_YOLO_SELCTONNX, true);
     }
 
+	// ONNXモデル
     if (GP.select_onnx_num != -1)
     {
         //まずチェックを解除
