@@ -34,14 +34,14 @@ struct YoloConfig {
     int   numClasses = -1;      // 未指定なら自動推定
     bool  hasObjness = false;   // v5/v7ならtrue、v8ならfalse。未確定なら numClasses=-1 で自動に任せる
     bool  applySigmoid = false; // ONNXにSigmoidが残っていなければ true
-    int   YoloVersion = 5;      // 5, 6, 7, 8
+    std::wstring   YoloVersion = L"v5"; // 5, 6, 7, 8
 };
 
 // 関数全体のパラメータ
 struct DnnParams {
     DnnOptions opt;
     YoloConfig yolo;
-    std::wstring gOnnxPath = L".\yolov5s.onnx"; // ONNXファイルパス
+    std::wstring gOnnxPath = L".\\yolov5s.onnx"; // ONNXファイルパス
 
     cv::dnn::Net net;
     std::wstring PregOnnxPath;
@@ -51,7 +51,7 @@ struct DnnParams {
 // 画像(Mat)とONNXファイルから、推論済みLabelObj配列を返す（正規化xywh）
 ///////////////////////////////////////////////////////////////////////////////////////////
 std::vector<LabelObj> DnnInfer(
-    int yolo_version,
+    const std::wstring yolo_version,
     const cv::Mat& bgr,
     const std::wstring& onnxPath,
     const DnnParams& params = DnnParams());

@@ -108,7 +108,7 @@ static void DecodeYoloGeneric_awz(
 
 // y11モデルでテスト中
 static void DecodeYoloGeneric_y11(
-	int yolo_version,
+    const std::wstring yolo_version,
     const cv::Mat& out, const YoloConfig& yc,
     const cv::Size& orig, const cv::Rect& padRect,
     std::vector<cv::Rect>& boxesPx,
@@ -116,7 +116,7 @@ static void DecodeYoloGeneric_y11(
 	std::vector<int>& classIds);
 
 static void DecodeYoloGeneric(
-    int yolo_version,
+    const std::wstring yolo_version,
     const cv::Mat& out, const YoloConfig& yc,
     const cv::Size& orig, const cv::Rect& padRect,
     std::vector<cv::Rect>& boxesPx,
@@ -685,7 +685,7 @@ static void DecodeYoloGeneric_y11(const cv::Mat& out, const YoloConfig& yc,
 // 独自モデルでは640、1280ともに成功 (/・ω・)/
 // yolo_version : 5, 8, 11
 static void DecodeYoloGeneric_y11(
-	int yolo_version,
+    const std::wstring yolo_version,
     const cv::Mat& out, 
     const YoloConfig& yc, 
     const cv::Size& orig, 
@@ -710,7 +710,7 @@ static void DecodeYoloGeneric_y11(
     bool hasObj = yc.hasObjness;           // -1 的な「不明」フラグがなければ、false/trueのどちらかを入れておく
 
     if (nc <= 0) {
-        if(yolo_version==8 || yolo_version == 11)
+        if(yolo_version==L"v8" || yolo_version == L"v11")
         {
             // 新：v8/v11優先（順番が重要）
             if (C - 4 >= 1 && C - 4 <= 2048) {
@@ -722,7 +722,7 @@ static void DecodeYoloGeneric_y11(
                 hasObj = true;
             }  // v5/7
         }
-        else if (yolo_version == 5 || yolo_version == 7)
+        else if (yolo_version == L"v5" || yolo_version == L"v7")
         {
             // C が 4+nc（v8系: objness無し） または 5+nc（v5/7系: objness有り）であることが多い
             // AWZ  5x6: C = 16
@@ -959,7 +959,7 @@ static inline void SetupStyleForProposal(LabelObj& L, int classId, const YoloCon
 //std::wstring _g_onnxPath;
 
 std::vector<LabelObj> DnnInfer(
-	int yolo_version,
+	const std::wstring yolo_version,
     const cv::Mat& bgr,
     const std::wstring& onnxPath,
     const DnnParams& params)

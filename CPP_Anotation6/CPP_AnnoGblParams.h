@@ -126,7 +126,7 @@ struct GlobalParams
 	//バウンディングボックスの表示/非表示
 	bool isShowBbox = true; // バウンディングボックスの表示/非表示
 
-
+	int select_onnx_num = -1; // 選択されたONNXモデルのインデックス メニューにチェックを入れるために必要
 };
 
 extern GlobalParams GP;

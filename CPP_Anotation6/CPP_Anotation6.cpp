@@ -4,6 +4,7 @@
 #include "framework.h"
 #include "CPP_AnnoGblParams.h"
 #include "CPP_AnnoFunctions.h"
+#include "CPP_Menu.hpp"
 #include "CPP_Anotation6.h"
 
 #include "CPP_YoloAuto.h"
@@ -37,6 +38,8 @@ GdiplusRAII gdi;
 
 // グローバル変数のインスタンスを作成
 GlobalParams GP;
+
+std::vector<MenuItemOnnx> g_menu_onnx;
 
 // グローバル変数:
 HINSTANCE hInst;                                // 現在のインターフェイス
@@ -237,12 +240,27 @@ void SetStringToTitlleBar(HWND hWnd, std::wstring _imgfolder, std::wstring _labe
     return;
 }
 
+/////////////////////////////////////////////////////////////////////////
+void CheckMenu(HWND hWnd, int _IDM, bool _sw);
+
+//////////////////////////////////////////////////////////////////////////
+void set_onnx_files_in_menu(int _num)
+{ 
+	if (_num < g_menu_onnx.size())
+    {
+		GP.select_onnx_num = _num; //メニューにチェック入れるため
+        GDNNP.gOnnxPath = g_menu_onnx[_num].OnnxPath; // ファイルパスを保存
+        GDNNP.yolo.YoloVersion = g_menu_onnx[_num].YoloType; // YOLOバージョンを保存
+        GDNNP.yolo.inputW = g_menu_onnx[_num].Resolution; // 入力画像幅を保存
+        GDNNP.yolo.inputH = g_menu_onnx[_num].Resolution; // 入力画像幅を保存
+        LoadClassification(g_menu_onnx[_num].ClsNamePath, GP.ClsNames, GP.ClsColors, GP.ClsDashStyles, GP.ClsPenWidths, 0);//0=読み込み、1=書き込み
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 // メニューのチェック状態を更新する関数
 int CreatePopupMenuFor_Labels_in_CurrentImage(HWND hWnd);
 
-/////////////////////////////////////////////////////////////////////////
-void CheckMenu(HWND hWnd, int _IDM, bool _sw);
 
 /////////////////////////////////////////////////////////////////////////
 //未ラベルの画像までジャンプする関数
@@ -266,6 +284,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message)
     {
     case WM_CREATE:
+    {
         if (GP.imgFolderPath.empty()) {
             GP.imgObjs.clear(); // 画像ファイルのパスと矩形の配列
             GP.imgFolderPath = INIT_IMGFOLDER;
@@ -277,6 +296,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         CheckMenues(hWnd);
         SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, 0, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
 
+        //std::vector<MenuItemOnnx> menu_onnx;
+        loadmenu_onnx(DEF_MENU_FILE, g_menu_onnx);
+		make_onnx_menus_by_id(hWnd, IDM_ONNX000, g_menu_onnx, IDM_ONNX000, L"ONNXファイル選択");
+
+    }
     break;
     case WM_INITMENUPOPUP:
 	{	
@@ -684,6 +708,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 GDNNP.yolo.YoloVersion = 8;
 				CheckMenues(hWnd);
 			}break;
+
+            case IDM_ONNX000 + 1:  { set_onnx_files_in_menu(0);  CheckMenues(hWnd);}  break;
+            case IDM_ONNX000 + 2:  { set_onnx_files_in_menu(1);  CheckMenues(hWnd);}  break;
+			case IDM_ONNX000 + 3:  { set_onnx_files_in_menu(2);  CheckMenues(hWnd);}  break;
+			case IDM_ONNX000 + 4:  { set_onnx_files_in_menu(3);  CheckMenues(hWnd);}  break;
+			case IDM_ONNX000 + 5:  { set_onnx_files_in_menu(4);  CheckMenues(hWnd);}  break;
+            case IDM_ONNX000 + 6:  { set_onnx_files_in_menu(5);  CheckMenues(hWnd);}  break;
+            case IDM_ONNX000 + 7:  { set_onnx_files_in_menu(6);  CheckMenues(hWnd);}  break;
+            case IDM_ONNX000 + 8:  { set_onnx_files_in_menu(7);  CheckMenues(hWnd);}  break;
+			case IDM_ONNX000 + 9:  { set_onnx_files_in_menu(8);  CheckMenues(hWnd);}  break;
+            case IDM_ONNX000 + 10: { set_onnx_files_in_menu(9);  CheckMenues(hWnd);}  break;
+            case IDM_ONNX000 + 11: { set_onnx_files_in_menu(10); CheckMenues(hWnd);}  break;
+            case IDM_ONNX000 + 12: { set_onnx_files_in_menu(11); CheckMenues(hWnd);}  break;
+			case IDM_ONNX000 + 13: { set_onnx_files_in_menu(12); CheckMenues(hWnd);}  break;
+            case IDM_ONNX000 + 14: { set_onnx_files_in_menu(13); CheckMenues(hWnd);}  break;
+            case IDM_ONNX000 + 15: { set_onnx_files_in_menu(14); CheckMenues(hWnd);}  break;
+            case IDM_ONNX000 + 16: { set_onnx_files_in_menu(15); CheckMenues(hWnd);}  break;
+            case IDM_ONNX000 + 17: { set_onnx_files_in_menu(16); CheckMenues(hWnd);}  break;
+            case IDM_ONNX000 + 18: { set_onnx_files_in_menu(17); CheckMenues(hWnd);}  break;
+            case IDM_ONNX000 + 19: { set_onnx_files_in_menu(18); CheckMenues(hWnd);}  break;
+            case IDM_ONNX000 + 20: { set_onnx_files_in_menu(19); CheckMenues(hWnd);}  break;
 
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);

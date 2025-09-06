@@ -36,6 +36,9 @@
     <ClInclude Include="CPP_YoloAuto.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="CPP_Menu.hpp">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CPP_Anotation6.cpp">

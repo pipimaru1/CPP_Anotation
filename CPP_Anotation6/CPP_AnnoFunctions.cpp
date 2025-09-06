@@ -1995,9 +1995,9 @@ void CheckMenues(HWND hWnd)
     CheckMenu(hWnd, IDM_YOLO_IMGSZE1280, false);
     CheckMenu(hWnd, IDM_YOLO_IMGSZE1920, false);
     CheckMenu(hWnd, IDM_YOLO_SELCTONNX, false);
-       
 
-    if(GDNNP.yolo.inputW == 640)
+
+    if (GDNNP.yolo.inputW == 640)
         CheckMenu(hWnd, IDM_YOLO_IMGSZE640, true);
     if (GDNNP.yolo.inputW == 1280)
         CheckMenu(hWnd, IDM_YOLO_IMGSZE1280, true);
@@ -2020,13 +2020,24 @@ void CheckMenues(HWND hWnd)
 
     CheckMenu(hWnd, IDM_YOLO_V5_V7, false);
     CheckMenu(hWnd, IDM_YOLO_V8_V11, false);
-    if (GDNNP.yolo.YoloVersion == 5 || GDNNP.yolo.YoloVersion == 7)
-		CheckMenu(hWnd, IDM_YOLO_V5_V7, true);
-	else if (GDNNP.yolo.YoloVersion == 8 || GDNNP.yolo.YoloVersion == 11)   
-		CheckMenu(hWnd, IDM_YOLO_V8_V11, true);
+    if (GDNNP.yolo.YoloVersion == L"v5" || GDNNP.yolo.YoloVersion == L"v7")
+        CheckMenu(hWnd, IDM_YOLO_V5_V7, true);
+    else if (GDNNP.yolo.YoloVersion == L"v8" || GDNNP.yolo.YoloVersion == L"v11")
+        CheckMenu(hWnd, IDM_YOLO_V8_V11, true);
 
-	if (!GDNNP.gOnnxPath.empty())
+    if (!GDNNP.gOnnxPath.empty())
     {
         CheckMenu(hWnd, IDM_YOLO_SELCTONNX, true);
+    }
+
+    if (GP.select_onnx_num != -1)
+    {
+        //まずチェックを解除
+		int MAX_ONNX_FILES = 20; // 最大数を定義
+        for(int i = 0; i < MAX_ONNX_FILES; i++)
+        {
+            CheckMenu(hWnd, IDM_ONNX000 + 1 + i, false);
+		}
+        CheckMenu(hWnd, IDM_ONNX000 + 1 + GP.select_onnx_num, true);
     }
 }

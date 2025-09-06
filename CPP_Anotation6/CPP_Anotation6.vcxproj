@@ -160,6 +160,7 @@
   <ItemGroup>
     <ClInclude Include="CPP_Anotation6.h" />
     <ClInclude Include="CPP_AnnoGblParams.h" />
+    <ClInclude Include="CPP_Menu.hpp" />
     <ClInclude Include="CPP_YoloAuto.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
