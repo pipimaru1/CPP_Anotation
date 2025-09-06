@@ -1981,7 +1981,6 @@ void JumpToUnlabeledImage(HWND hWnd)
 
             GP.imgIdx = i; // ジャンプ
 
-
             SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, GP.imgIdx, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
             InvalidateRect(hWnd, NULL, TRUE); // 再描画
             return;
@@ -2018,6 +2017,13 @@ void CheckMenues(HWND hWnd)
         CheckMenu(hWnd, IDM_YOLO_MAXSENCE2, true);
     else if (GDNNP.yolo.confThreshold <= 0.011f)
         CheckMenu(hWnd, IDM_YOLO_MAXSENCE1, true);
+
+    CheckMenu(hWnd, IDM_YOLO_V5_V7, false);
+    CheckMenu(hWnd, IDM_YOLO_V8_V11, false);
+    if (GDNNP.yolo.YoloVersion == 5 || GDNNP.yolo.YoloVersion == 7)
+		CheckMenu(hWnd, IDM_YOLO_V5_V7, true);
+	else if (GDNNP.yolo.YoloVersion == 8 || GDNNP.yolo.YoloVersion == 11)   
+		CheckMenu(hWnd, IDM_YOLO_V8_V11, true);
 
 	if (!GDNNP.gOnnxPath.empty())
     {

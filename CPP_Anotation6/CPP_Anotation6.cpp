@@ -564,7 +564,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 //AutoDetctedObjs.objs = DnnInfer(_img, L".\\yolov5s.onnx",p);
                 //AutoDetctedObjs.objs = DnnInfer(_img, g_onnxFile, p);
 
-                AutoDetctedObjs.objs = DnnInfer(_img, GDNNP.gOnnxPath, GDNNP);
+                AutoDetctedObjs.objs = DnnInfer(GDNNP.yolo.YoloVersion, _img, GDNNP.gOnnxPath, GDNNP);
 
                 g_showProposals = true; //これ要るの?
 
@@ -671,8 +671,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     GDNNP.gOnnxPath = _filepath; // ファイルパスを保存
                 }
 				CheckMenues(hWnd);
-            }
-            break;
+            }break;
+
+            case IDM_YOLO_V5_V7:
+            {
+                GDNNP.yolo.YoloVersion = 5;
+                CheckMenues(hWnd);
+            }break;
+
+            case IDM_YOLO_V8_V11:
+            {
+                GDNNP.yolo.YoloVersion = 8;
+				CheckMenues(hWnd);
+			}break;
 
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);

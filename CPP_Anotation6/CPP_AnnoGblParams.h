@@ -126,6 +126,7 @@ struct GlobalParams
 	//バウンディングボックスの表示/非表示
 	bool isShowBbox = true; // バウンディングボックスの表示/非表示
 
+
 };
 
 extern GlobalParams GP;
