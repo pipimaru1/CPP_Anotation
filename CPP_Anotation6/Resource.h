@@ -49,12 +49,13 @@
 #define IDM_YOLO_V5_V7			228 //YOLOのバージョン
 #define IDM_YOLO_V8_V11			229 //YOLOのバージョン
 
+
 #define IDM_ONNX000				240 //ONNXファイルセレクトメニューのスタートID 240-259まで使用可能
 #define IDM_ONNXEND				259 //ONNXファイルセレクトメニュー(最後)
 
-
-
 #define IDM_DLETE_IMAGE			300 //画像を削除
+#define IDN_FIX_LABELS_IMAGE	301 //画像のラベルを修正する
+#define IDN_FIX_LABELS_ALLIMAGE	302 //画像のラベルを修正する
 
 //2200まではクラシフィケーション用
 #define IDM_PMENU_CONFIRM		1999   // 先頭「確定」

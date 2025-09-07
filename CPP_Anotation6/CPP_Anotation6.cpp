@@ -583,6 +583,50 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
             break;
 
+			case IDN_FIX_LABELS_IMAGE: // 異常なラベルを修正(小さすぎるラベルを修正)
+            {
+				//現在の画像のラベルを画像サイズに合わせて修正
+                float minW = float(GP.MINSIZEW) / float(GP.IMGSIZEW);
+				float minH =float(GP.MINSIZEH) / float(GP.IMGSIZEH);
+				int ret = FixLabelBox_in_ImgObj(GP.imgObjs[GP.imgIdx], minW, minH);
+                
+                if (ret > 0) {
+                    // 再描画
+                    InvalidateRect(hWnd, NULL, TRUE);
+                    std::wstring msg = L"異常なラベルを修正しました。\n修正したラベル数: " + std::to_wstring(ret);
+                    MessageBox(hWnd, msg.c_str(), L"情報", MB_OK | MB_ICONINFORMATION);
+                }
+                else {
+                    MessageBox(hWnd, L"異常なラベルはありません。", L"情報", MB_OK | MB_ICONINFORMATION);
+				}
+			}
+            break;
+
+            case IDN_FIX_LABELS_ALLIMAGE: // 異常なラベルを修正(小さすぎるラベルを修正)
+			{  
+                //全ての画像のラベルを画像サイズに合わせて修正
+				float minW = float(GP.MINSIZEW) / float(GP.IMGSIZEW);
+				float minH = float(GP.MINSIZEH) / float(GP.IMGSIZEH);
+				int total = 0;
+				for (size_t i = 0; i < GP.imgObjs.size(); i++) {
+					int ret = FixLabelBox_in_ImgObj(GP.imgObjs[i], minW, minH);
+					total += ret;
+				}
+                if (total > 0) {
+                    // 再描画
+                    InvalidateRect(hWnd, NULL, TRUE);
+                    std::wstring msg = L"異常なラベルを修正しました。\n修正したラベル数: " + std::to_wstring(total);
+                    MessageBox(hWnd, msg.c_str(), L"情報", MB_OK | MB_ICONINFORMATION);
+
+					//ラベル保存の処理をPostする
+					PostMessage(hWnd, WM_COMMAND, IDM_SAVE_LABELS, 0);
+                }
+                else {
+					MessageBox(hWnd, L"異常なラベルはありません。", L"情報", MB_OK | MB_ICONINFORMATION);
+				}
+			}
+			break;
+
             // 現在のイメージのラベリングされたオブジェクトの一覧のポップアップメニューを作成する
             case IDM_PMENU_LABEL_BASE:
 			    CreatePopupMenuFor_Labels_in_CurrentImage(hWnd);
@@ -1302,7 +1346,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
                 if (ctrl) 
                 {
-					PostMessage(hWnd, WM_COMMAND, ID_ANNOT_JUMP_IGNOREBOX, 0); // ジャンプメニューを呼び出す
+                    SaveLabelsToFileSingle(hWnd, GP.imgIdx, 0.0f);
+                    PostMessage(hWnd, WM_COMMAND, ID_ANNOT_JUMP_IGNOREBOX, 0); // ジャンプメニューを呼び出す
                 }
             }break;
 

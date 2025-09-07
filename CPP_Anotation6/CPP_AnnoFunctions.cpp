@@ -1497,7 +1497,6 @@ int ShowClassPopupMenu_Core(HWND hWnd, UINT& cmd, bool _autoannotaion)
 // 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
 int FixLabelBox(LabelObj& obj, float minW, float minH);
 
-
 int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectIDX, bool _autoannotation)
 {
     // 選択結果を反映
@@ -1524,8 +1523,12 @@ int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectI
             int _ret=FixLabelBox(_imgobj.objs[activeObjectIDX],
                 float(GP.MINSIZEW) / float(GP.IMGSIZEW),
                 float(GP.MINSIZEH) / float(GP.IMGSIZEH)); // 無視ボックスかどうかを更新
-
-            if(_ret==0)
+            if(_ret==1)
+            {
+                //編集フラグを立てる
+				GP.imgObjs[GP.imgIdx].isEdited = true;
+            }
+			else if(_ret==0)
             {
                 MessageBoxW(hWnd, L"異常ボックスではありません。", L"Info", MB_OK);
 			}
@@ -1715,6 +1718,19 @@ int FixLabelBox(LabelObj& obj, float minW, float minH)
     }
     return 0;
 }
+
+int FixLabelBox_in_ImgObj(ImgObject& imgObj, float minW, float minH)
+{
+    int fixCount = 0;
+    for (size_t i = 0; i < imgObj.objs.size(); i++)
+    {
+        int _ret = FixLabelBox(imgObj.objs[i], minW, minH);
+        if (_ret == 1)
+            fixCount++;
+    }
+    return fixCount;
+}
+
 
 /// @brief フォルダパスの末尾ディレクトリ名の直前に"deleted"フォルダを挿入する
 /// @param folderPath 元のフォルダパス（例: L"C:\\hoge1\\hoge2\\labels"）

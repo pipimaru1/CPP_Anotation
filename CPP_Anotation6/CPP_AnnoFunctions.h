@@ -166,3 +166,5 @@ std::wstring InsertSubFolder(const std::wstring& folderPath, const std::wstring&
 void CheckMenues(HWND hWnd);
 
 
+///////////////////////////////////////////////////////////////////////
+int FixLabelBox_in_ImgObj(ImgObject& imgObj, float minW, float minH);
