@@ -1281,10 +1281,26 @@ void WM_PAINT_DrawLabels(
 {
     for (const auto& obj : objs)
     {
+        auto result = jumpImgWithIgnoreBox(GP.imgObjs,
+            static_cast<size_t>(GP.imgIdx + 1),
+            float(GP.MINSIZEW) / float(GP.IMGSIZEW),
+            float(GP.MINSIZEH) / float(GP.IMGSIZEH));
+
+        bool _isogno=isIgnoreBox(obj,
+            float(GP.MINSIZEW) / float(GP.IMGSIZEW),
+            float(GP.MINSIZEH) / float(GP.IMGSIZEH));
+
         // ペン幅はマウスオーバーで太く
         int penWidth = obj.penWidth + (obj.mOver ? 2 : 0);
         Gdiplus::Pen pen(obj.color, static_cast<REAL>(penWidth));
         pen.SetDashStyle(obj.dashStyle);
+        
+		if (_isogno)
+        {   
+            //赤で表示
+            pen.SetColor(Gdiplus::Color::Red);
+            pen.SetWidth(static_cast<REAL>(3));
+        }
 
         // 矩形の座標をピクセル変換
         float x0 = obj.Rct.X * clientWidth;
@@ -1451,11 +1467,16 @@ int ShowClassPopupMenu_Core(HWND hWnd, UINT& cmd, bool _autoannotaion)
 
     AppendMenuW(hPopup, MF_STRING,
         IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()),
-        L"DELETE(&1)");
+        L"FIX(&X)");
 
     AppendMenuW(hPopup, MF_STRING,
         IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1,
+        L"DELETE(&1)");
+
+    AppendMenuW(hPopup, MF_STRING,
+        IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 2,
         L"CANCEL");
+
 
     // ウィンドウを前面にしてから表示
     SetForegroundWindow(hWnd);
@@ -1471,10 +1492,11 @@ int ShowClassPopupMenu_Core(HWND hWnd, UINT& cmd, bool _autoannotaion)
     return 1; // 選択されたコマンドを返す
 }
 
-
 ///////////////////////////////////////////////////////////////////////
 // ラベルのクラス名をポップアップメニューで表示する関数
 // 関数定義（例えば DrawingHelpers.cpp などにまとめてもOK）
+int FixLabelBox(LabelObj& obj, float minW, float minH);
+
 
 int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectIDX, bool _autoannotation)
 {
@@ -1497,7 +1519,19 @@ int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectI
 
             return GP.selectedClsIdx;   // 選択されたクラス番号
         }
-        else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size())) // DELETE
+        else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 0) // バウンディングボックスのサイズを正しくする
+        {
+            int _ret=FixLabelBox(_imgobj.objs[activeObjectIDX],
+                float(GP.MINSIZEW) / float(GP.IMGSIZEW),
+                float(GP.MINSIZEH) / float(GP.IMGSIZEH)); // 無視ボックスかどうかを更新
+
+            if(_ret==0)
+            {
+                MessageBoxW(hWnd, L"異常ボックスではありません。", L"Info", MB_OK);
+			}
+            return -4;                  // 正規化したことを示す 
+        }
+        else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1) // DELETE
         {
             // オブジェクトを削除
             //GP.imgObjs[GP.imgIdx].objs.erase(GP.imgObjs[GP.imgIdx].objs.begin() + activeObjectIDX);
@@ -1506,7 +1540,7 @@ int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectI
 
             return -1; // 削除したことを示す
         }
-        else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1) // CANCEL
+        else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 2) // CANCEL
         {
             return -2; // キャンセルしたことを示す
         }
@@ -1654,8 +1688,32 @@ bool isIgnoreBox(
     float minH)
 {
     bool _ret = false;
-    _ret = (obj.Rct.Width <= minW || obj.Rct.Height <= minH);
+    _ret = (obj.Rct.Width < minW || obj.Rct.Height < minH);
     return _ret;
+}
+
+int FixLabelBox(LabelObj& obj, float minW, float minH)
+{
+    if (isIgnoreBox(obj,minW,minH)) // 無視ボックスかどうかを更新
+    {
+        if (obj.Rct.Width < minW)
+        {
+			float dW = minW - obj.Rct.Width; // 足りない分
+            obj.Rct.Width = minW;
+			obj.Rct.X -= dW / 2; // 中心を保つようにXを移動
+        }
+		if (obj.Rct.Height < minH)
+        {
+            float dH = minH - obj.Rct.Height; // 足りない分
+			obj.Rct.Height = minH;
+			obj.Rct.Y -= dH / 2; // 中心を保つようにYを移動
+        }
+
+        //はみだし修正
+        NormalizeRect(obj.Rct);
+        return 1; // 修正したことを示す
+    }
+    return 0;
 }
 
 /// @brief フォルダパスの末尾ディレクトリ名の直前に"deleted"フォルダを挿入する

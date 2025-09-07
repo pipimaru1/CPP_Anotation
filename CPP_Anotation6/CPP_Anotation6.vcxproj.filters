@@ -36,7 +36,7 @@
     <ClInclude Include="CPP_YoloAuto.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="CPP_Menu.hpp">
+    <ClInclude Include="CPP_Menu.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
@@ -62,6 +62,9 @@
     <ClCompile Include="CPP_YoloAuto.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="CPP_Menu.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="small.ico">
@@ -80,5 +83,8 @@
     <ResourceCompile Include="CPP_Anotation.rc">
       <Filter>リソース ファイル</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="default.ini" />
   </ItemGroup>
 </Project>

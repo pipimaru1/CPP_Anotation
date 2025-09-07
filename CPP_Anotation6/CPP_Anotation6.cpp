@@ -4,7 +4,7 @@
 #include "framework.h"
 #include "CPP_AnnoGblParams.h"
 #include "CPP_AnnoFunctions.h"
-#include "CPP_Menu.hpp"
+#include "CPP_Menu.h"
 #include "CPP_Anotation6.h"
 
 #include "CPP_YoloAuto.h"
@@ -101,7 +101,8 @@ int APIENTRY wWinMain(
         if (PathFileExistsW(_onnxfile.c_str()))
         {
             GDNNP.gOnnxPath = _onnxfile;
-		}
+            isInitOK = true;
+        }
     }
     if (argc >= 6)
     { 
@@ -110,7 +111,8 @@ int APIENTRY wWinMain(
         {
             GDNNP.yolo.inputW = _onnxsize;
             GDNNP.yolo.inputH = _onnxsize;
-		}
+            isInitOK = true;
+        }
 	}
 
 
@@ -253,7 +255,16 @@ void set_onnx_files_in_menu(int _num)
         GDNNP.yolo.YoloVersion = g_menu_onnx[_num].YoloType; // YOLOバージョンを保存
         GDNNP.yolo.inputW = g_menu_onnx[_num].Resolution; // 入力画像幅を保存
         GDNNP.yolo.inputH = g_menu_onnx[_num].Resolution; // 入力画像幅を保存
-        LoadClassification(g_menu_onnx[_num].ClsNamePath, GP.ClsNames, GP.ClsColors, GP.ClsDashStyles, GP.ClsPenWidths, 0);//0=読み込み、1=書き込み
+
+        //ファイルの存在確認
+        //if (PathFileExistsW(g_menu_onnx[_num].ClsNamePath.c_str()))
+		if (std::filesystem::exists(g_menu_onnx[_num].ClsNamePath))
+        {
+            LoadClassification(g_menu_onnx[_num].ClsNamePath, GP.ClsNames, GP.ClsColors, GP.ClsDashStyles, GP.ClsPenWidths, 0);//0=読み込み、1=書き込み
+        }else{
+            MessageBox(NULL, (g_menu_onnx[_num].ClsNamePath + L"\n(クラス定義ファイルがありません)").c_str(),
+                L"警告", MB_OK | MB_ICONWARNING);
+		}
     }
 }
 
@@ -290,15 +301,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             GP.imgFolderPath = INIT_IMGFOLDER;
             LoadImageFiles(GP.imgFolderPath, GP.imgObjs);
         }
-        //GP.imgObjs.clear(); // 画像ファイルのパスと矩形の配列
-        //GP.imgFolderPath = INIT_IMGFOLDER; // フォルダパスを指定
-        //LoadImageFiles(GP.imgFolderPath, GP.imgObjs); // フォルダ内の画像ファイルを取得
         CheckMenues(hWnd);
         SetStringToTitlleBar(hWnd, GP.imgFolderPath, GP.labelFolderPath, 0, (int)GP.imgObjs.size()); // タイトルバーに画像のパスを表示
 
-        //std::vector<MenuItemOnnx> menu_onnx;
-        loadmenu_onnx(DEF_MENU_FILE, g_menu_onnx);
-		make_onnx_menus_by_id(hWnd, IDM_ONNX000, g_menu_onnx, IDM_ONNX000, L"ONNXファイル選択");
+		//iniファイルからONNXメニューを読み込む
+        std::wstring _inifile = L"default.ini";
+		//ファイルの存在確認
+		//if (PathFileExistsW(_inifile.c_str()))
+        if (std::filesystem::exists(_inifile))
+        {
+            loadmenu_onnx(_inifile, g_menu_onnx);
+            make_onnx_menus_by_id(hWnd, IDM_ONNX000, g_menu_onnx, IDM_ONNX000, L"ONNXファイル選択");
+        }
 
     }
     break;

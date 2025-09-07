@@ -26,7 +26,7 @@ using namespace Gdiplus;
 #include <sstream> // Ensure this is included for std::wostringstream
 #include <fstream> // std::wofstream を使用するために必要
 #include <locale>
-#include <codecvt> // Add this header for codecvt_utf8
+//#include <codecvt> // Add this header for codecvt_utf8
 #include <shobjidl.h>
 #include <pathcch.h>      // Windows 8 SDK 以降
 #include <commctrl.h>
