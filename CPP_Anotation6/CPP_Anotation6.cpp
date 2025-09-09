@@ -532,8 +532,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 // startIdx は次の画像から検索したい場合は currentImageIdx+1
                 auto result = jumpImgWithIgnoreBox(GP.imgObjs,
                     static_cast<size_t>(GP.imgIdx + 1),
-					float(GP.MINSIZEW) / float(GP.IMGSIZEW),
-                    float(GP.MINSIZEH) / float(GP.IMGSIZEH));
+					GDNNP.yolo.MINSIZEW / GDNNP.yolo.inputW,
+                    GDNNP.yolo.MINSIZEH / GDNNP.yolo.inputH);
 
                 if (result.has_value())
                 {
@@ -585,45 +585,75 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDN_FIX_LABELS_IMAGE: // 異常なラベルを修正(小さすぎるラベルを修正)
             {
-				//現在の画像のラベルを画像サイズに合わせて修正
-                float minW = float(GP.MINSIZEW) / float(GP.IMGSIZEW);
-				float minH =float(GP.MINSIZEH) / float(GP.IMGSIZEH);
-				int ret = FixLabelBox_in_ImgObj(GP.imgObjs[GP.imgIdx], minW, minH);
-                
-                if (ret > 0) {
-                    // 再描画
-                    InvalidateRect(hWnd, NULL, TRUE);
-                    std::wstring msg = L"異常なラベルを修正しました。\n修正したラベル数: " + std::to_wstring(ret);
-                    MessageBox(hWnd, msg.c_str(), L"情報", MB_OK | MB_ICONINFORMATION);
+                //警告 画像解像度の確認
+                std::wstring _inputW = std::to_wstring(GDNNP.yolo.inputW);
+                std::wstring _inputH = std::to_wstring(GDNNP.yolo.inputH);
+                std::wostringstream _msg;
+                _msg << L"全ての画像のラベルを修正します。\n"
+                    << L"画像解像度が異なる場合、意図しない修正になる場合があります。\n"
+                    << L"現在の設定解像度: "
+                    << _inputW + L" x " << _inputH << L"\n"
+                    << L"よろしいですか？";
+
+                int ret = MessageBoxW(hWnd, _msg.str().c_str(),
+                    L"確認", MB_OKCANCEL | MB_ICONWARNING);
+                if (ret != IDCANCEL)
+                {
+                    //現在の画像のラベルを画像サイズに合わせて修正
+                    float minW = GDNNP.yolo.MINSIZEW / GDNNP.yolo.inputW;
+                    float minH = GDNNP.yolo.MINSIZEH / GDNNP.yolo.inputH;
+                    int ret = FixLabelBox_in_ImgObj(GP.imgObjs[GP.imgIdx], minW, minH);
+
+                    if (ret > 0) {
+                        // 再描画
+                        InvalidateRect(hWnd, NULL, TRUE);
+                        std::wstring msg = L"異常なラベルを修正しました。\n修正したラベル数: " + std::to_wstring(ret);
+                        MessageBox(hWnd, msg.c_str(), L"情報", MB_OK | MB_ICONINFORMATION);
+                    }
+                    else {
+                        MessageBox(hWnd, L"異常なラベルはありません。", L"情報", MB_OK | MB_ICONINFORMATION);
+                    }
                 }
-                else {
-                    MessageBox(hWnd, L"異常なラベルはありません。", L"情報", MB_OK | MB_ICONINFORMATION);
-				}
 			}
             break;
 
             case IDN_FIX_LABELS_ALLIMAGE: // 異常なラベルを修正(小さすぎるラベルを修正)
 			{  
-                //全ての画像のラベルを画像サイズに合わせて修正
-				float minW = float(GP.MINSIZEW) / float(GP.IMGSIZEW);
-				float minH = float(GP.MINSIZEH) / float(GP.IMGSIZEH);
-				int total = 0;
-				for (size_t i = 0; i < GP.imgObjs.size(); i++) {
-					int ret = FixLabelBox_in_ImgObj(GP.imgObjs[i], minW, minH);
-					total += ret;
-				}
-                if (total > 0) {
-                    // 再描画
-                    InvalidateRect(hWnd, NULL, TRUE);
-                    std::wstring msg = L"異常なラベルを修正しました。\n修正したラベル数: " + std::to_wstring(total);
-                    MessageBox(hWnd, msg.c_str(), L"情報", MB_OK | MB_ICONINFORMATION);
+                //警告 画像解像度の確認
+				std::wstring _inputW = std::to_wstring(GDNNP.yolo.inputW);
+                std::wstring _inputH = std::to_wstring(GDNNP.yolo.inputH);
+                std::wostringstream _msg;
+                _msg << L"全ての画像のラベルを修正します。\n"
+                     <<L"画像解像度が異なる場合、意図しない修正になる場合があります。\n"
+                     <<L"現在の設定解像度: "
+                     << _inputW + L" x " << _inputH << L"\n"
+                     << L"よろしいですか？";
 
-					//ラベル保存の処理をPostする
-					PostMessage(hWnd, WM_COMMAND, IDM_SAVE_LABELS, 0);
+                int ret = MessageBoxW(hWnd, _msg.str().c_str(),
+                    L"確認", MB_OKCANCEL | MB_ICONWARNING);
+				if (ret != IDCANCEL)
+                {
+                    //全ての画像のラベルを画像サイズに合わせて修正
+                    float minW = GDNNP.yolo.MINSIZEW / GDNNP.yolo.inputW;
+                    float minH = GDNNP.yolo.MINSIZEH / GDNNP.yolo.inputH;
+                    int total = 0;
+                    for (size_t i = 0; i < GP.imgObjs.size(); i++) {
+                        int ret = FixLabelBox_in_ImgObj(GP.imgObjs[i], minW, minH);
+                        total += ret;
+                    }
+                    if (total > 0) {
+                        // 再描画
+                        InvalidateRect(hWnd, NULL, TRUE);
+                        std::wstring msg = L"異常なラベルを修正しました。\n修正したラベル数: " + std::to_wstring(total);
+                        MessageBox(hWnd, msg.c_str(), L"情報", MB_OK | MB_ICONINFORMATION);
+
+                        //ラベル保存の処理をPostする
+                        PostMessage(hWnd, WM_COMMAND, IDM_SAVE_LABELS, 0);
+                    }
+                    else {
+                        MessageBox(hWnd, L"異常なラベルはありません。", L"情報", MB_OK | MB_ICONINFORMATION);
+                    }
                 }
-                else {
-					MessageBox(hWnd, L"異常なラベルはありません。", L"情報", MB_OK | MB_ICONINFORMATION);
-				}
 			}
 			break;
 

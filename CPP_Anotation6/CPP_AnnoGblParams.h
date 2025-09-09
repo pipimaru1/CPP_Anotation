@@ -115,13 +115,10 @@ struct GlobalParams
 
     //最小保存ラベルサイズ
 	float minimumLabelSize = 0.0f; // 最小サイズ制限 メニューで指定したときのみ
-	bool isMinimumLabelCrrect = true; // 最小サイズ補正
+	bool isMinimumLabelCrrect = false; // 最小サイズ補正
 
-	float MINSIZEW = 8.0f; // 最小幅
-    float MINSIZEH = 8.0f; // 最小高さ
-
-    float IMGSIZEW = 640.0f; // 画像の幅
-    float IMGSIZEH = 640.0f; // 画像の高さ
+//    float IMGSIZEW = 640.0f; // 画像の幅
+//    float IMGSIZEH = 640.0f; // 画像の高さ
 
 	//バウンディングボックスの表示/非表示
 	bool isShowBbox = true; // バウンディングボックスの表示/非表示

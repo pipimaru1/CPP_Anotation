@@ -18,8 +18,12 @@ struct DnnOptions {
 
 // YOLO前後処理パラメータ
 struct YoloConfig {
-    int   inputW = 640;
-    int   inputH = 640;
+    float   inputW = 640;
+    float   inputH = 640;
+
+    float MINSIZEW = 8.0f; // 最小幅
+    float MINSIZEH = 8.0f; // 最小高さ
+
     bool  swapRB = true;
     float scale = 1.0f / 255.0f;
     cv::Scalar mean = cv::Scalar(0, 0, 0);

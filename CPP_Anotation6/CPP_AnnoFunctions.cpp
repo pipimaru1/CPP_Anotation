@@ -1283,12 +1283,12 @@ void WM_PAINT_DrawLabels(
     {
         auto result = jumpImgWithIgnoreBox(GP.imgObjs,
             static_cast<size_t>(GP.imgIdx + 1),
-            float(GP.MINSIZEW) / float(GP.IMGSIZEW),
-            float(GP.MINSIZEH) / float(GP.IMGSIZEH));
+            GDNNP.yolo.MINSIZEW / GDNNP.yolo.inputW,
+            GDNNP.yolo.MINSIZEH / GDNNP.yolo.inputH);
 
         bool _isogno=isIgnoreBox(obj,
-            float(GP.MINSIZEW) / float(GP.IMGSIZEW),
-            float(GP.MINSIZEH) / float(GP.IMGSIZEH));
+            GDNNP.yolo.MINSIZEW / GDNNP.yolo.inputW,
+            GDNNP.yolo.MINSIZEH / GDNNP.yolo.inputH);
 
         // ペン幅はマウスオーバーで太く
         int penWidth = obj.penWidth + (obj.mOver ? 2 : 0);
@@ -1521,8 +1521,8 @@ int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectI
         else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 0) // バウンディングボックスのサイズを正しくする
         {
             int _ret=FixLabelBox(_imgobj.objs[activeObjectIDX],
-                float(GP.MINSIZEW) / float(GP.IMGSIZEW),
-                float(GP.MINSIZEH) / float(GP.IMGSIZEH)); // 無視ボックスかどうかを更新
+                GDNNP.yolo.MINSIZEW / GDNNP.yolo.inputW,
+                GDNNP.yolo.MINSIZEH / GDNNP.yolo.inputH); // 無視ボックスかどうかを更新
             if(_ret==1)
             {
                 //編集フラグを立てる
