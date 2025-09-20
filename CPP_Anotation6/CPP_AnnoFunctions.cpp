@@ -2127,14 +2127,13 @@ void DoPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, size_t _idx)
         //    bmp = GP.imgObjs[_idx].image.get();
 
 		//if (bmp) // 画像が存在する場合
+		if (GP.imgObjs.size() > 0) // 画像が存在する場合
         {
-
             UINT imgW = GP.imgObjs[_idx].image.get()->GetWidth();
             UINT imgH = GP.imgObjs[_idx].image.get()->GetHeight();
             // [拡大縮小] ビューポート計算
             RECT rc; GetClientRect(hWnd, &rc);
             Viewport vp = ComputeViewport(rc, imgW, imgH);
-
 
             // 補間品質 スケーリング
             graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
