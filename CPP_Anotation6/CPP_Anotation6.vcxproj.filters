@@ -86,5 +86,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="default.ini" />
+    <None Include="default_k.ini" />
+    <None Include="default_home.ini" />
   </ItemGroup>
 </Project>

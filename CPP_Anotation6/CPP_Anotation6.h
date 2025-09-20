@@ -4,13 +4,13 @@
 
 ///////////////////////////////////////////////////////////////////////
 //ラベルの矩形を描画する関数
-void WM_PAINT_DrawLabels(
-    Gdiplus::Graphics& graphics,
-    const std::vector<LabelObj>& objs,
-    int clientWidth,
-    int clientHeight,
-    Gdiplus::Font* font
-);
+//void WM_PAINT_DrawLabels(
+//    Gdiplus::Graphics& graphics,
+//    const std::vector<LabelObj>& objs,
+//    int clientWidth,
+//    int clientHeight,
+//    Gdiplus::Font* font
+//);
 ///////////////////////////////////////////////////////////////////////
 //ドラッグ中の矩形を描画する関数
 void WM_PAINT_DrawTmpBox(

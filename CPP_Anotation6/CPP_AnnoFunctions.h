@@ -100,11 +100,11 @@ bool SaveLabelsToFileSingle(
 
 ///////////////////////////////////////////////////////////////////////
 //矩形の線上にマウスカーソルがあるかどうかを判定する関数
-EditMode IsMouseOnRectEdge(
-	const POINT& pt,
-	const LabelObj& obj,
-	int overlap
-);
+//EditMode IsMouseOnRectEdge(
+//	const POINT& pt,
+//	const LabelObj& obj,
+//	int overlap
+//);
 ///////////////////////////////////////////////////////////////////////
 //マウスカーソルと重なる矩形のインデックスを取得する関数
 // 戻り値はマウスカーソルと重なる矩形のインデックス
@@ -167,3 +167,45 @@ void CheckMenues(HWND hWnd);
 
 ///////////////////////////////////////////////////////////////////////
 int FixLabelBox_in_ImgObj(ImgObject& imgObj, float minW, float minH);
+
+/////////////////////////////////////////////////////////////////////////
+// 画像をクライアントにフィットさせた基準スケールと原点（左上）を返す
+struct Viewport {
+	float scale;           // 画像→画面のスケール（Fit×zoom）
+	Gdiplus::PointF origin;// 画像(0,0)が画面上のどこに来るか
+	Gdiplus::RectF dest;   // 描画先矩形（origin と画像サイズ×scale）
+};
+
+Viewport ComputeViewport(const RECT& rcClient, UINT imgW, UINT imgH);
+// 正規化矩形(画像座標0..1) → 画面座標（ビューポート内）に変換
+Gdiplus::RectF NormRectToScreen(const Gdiplus::RectF& r01,
+	const Viewport& vp, UINT imgW, UINT imgH);
+
+// 画面座標 → 画像正規化座標（0..1）に変換（ヒットテスト用）
+Gdiplus::PointF ScreenPtToNorm(float sx, float sy,
+	const Viewport& vp, UINT imgW, UINT imgH);
+
+size_t GetIdxMouseOnRectEdgeVP(const POINT& pt,
+	std::vector<LabelObj>& objs,
+	EditMode& editMode,
+	int overlap,
+	const Gdiplus::RectF& view);
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// 表示用ユーティリティ関数
+///////////////////////////////////////////////////////////////////////////////////////////
+RectF FitImageToClientRect(int imgW, int imgH, const RECT& rcClient);
+RectF NormToViewRect(const RectF& rNorm, const RectF& view);
+void DrawLabelObjects(Graphics& g, const std::vector<LabelObj>& objs,
+	const RectF& view,
+	//Gdiplus::Color _color,// = Gdiplus::Color::White,
+	//int _penwidth,
+	Gdiplus::Font* font
+);
+void DrawLabelObject(Graphics& g, const LabelObj& _obj, const RectF& view,
+	//Gdiplus::Color _color,// = Gdiplus::Color(255, 0, 0),
+	//int _penwidth,
+	Gdiplus::Font* font
+);
+
+

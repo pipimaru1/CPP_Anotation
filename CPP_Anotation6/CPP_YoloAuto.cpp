@@ -44,7 +44,8 @@ static cv::dnn::Net LoadOrGetNet(const std::wstring& onnxPath, const DnnOptions&
     if (opt.reuse_net) {
         std::lock_guard<std::mutex> lk(mtx);
         auto it = cache.find(onnxPath);
-        if (it != cache.end()) return it->second;
+        if (it != cache.end()) 
+            return it->second;
         cv::dnn::Net net = cv::dnn::readNetFromONNX(WToUtf8(onnxPath));
         net.setPreferableBackend(opt.backend);
         net.setPreferableTarget(opt.target);
@@ -976,64 +977,71 @@ std::vector<LabelObj> DnnInfer(
             return outLabels;
         else
         {
-            if(GDNNP.net.empty())
-            {
-                // ONNXモデルの読み込み
-                GDNNP.net = LoadOrGetNet(onnxPath, params.opt);
-                GDNNP.PregOnnxPath = onnxPath; // パスを保存
-			}
-            else if (GDNNP.PregOnnxPath != onnxPath)
-            {
-                //g_net.delete();
-                // ONNXモデルの読み込み
-                GDNNP.net = LoadOrGetNet(onnxPath, params.opt);
-                GDNNP.PregOnnxPath = onnxPath; // パスを保存
+            //onnxPath ファイルの存在チェック
+            if (!std::filesystem::exists(onnxPath)) {
+                MessageBoxW(nullptr, (L"ONNXファイルが存在しません。\n" + onnxPath).c_str(), L"エラー", MB_ICONERROR);
             }
-            //cv::dnn::Net net = LoadOrGetNet(onnxPath, params.opt);
-            //net = LoadOrGetNet(onnxPath, params.opt);
-
-            // 前処理
-            cv::Mat blob; cv::Rect padRect;
-            MakeBlobResizeLetterbox(bgr, params.yolo, blob, padRect);
-            GDNNP.net.setInput(blob);
-            cv::Mat out;
-
-            // 推論 失敗したら空で返す
-            try
+            else
             {
-                out = GDNNP.net.forward();
-            }
-            catch (cv::Exception& e)
-            {
-                // 例外をキャッチしたらエラーメッセージを表示
-                std::cerr << e.what() << std::endl;
-                std::wstring err = L"ONNXモデルの推論に失敗しました。\nモデルが壊れているか、\nモデルの形式が対応していない可能性があります。\n";
-                err += std::wstring(e.what(), e.what() + strlen(e.what()));
-                MessageBoxExW(NULL, err.c_str(), L"Error", MB_OK | MB_ICONERROR, MAKELANGID(LANG_JAPANESE, SUBLANG_JAPANESE_JAPAN));
-                return outLabels;
-            }
+                if (GDNNP.net.empty())
+                {
+                    // ONNXモデルの読み込み
+                    GDNNP.net = LoadOrGetNet(onnxPath, params.opt);
+                    GDNNP.PregOnnxPath = onnxPath; // パスを保存
+                }
+                else if (GDNNP.PregOnnxPath != onnxPath)
+                {
+                    //g_net.delete();
+                    // ONNXモデルの読み込み
+                    GDNNP.net = LoadOrGetNet(onnxPath, params.opt);
+                    GDNNP.PregOnnxPath = onnxPath; // パスを保存
+                }
+                //cv::dnn::Net net = LoadOrGetNet(onnxPath, params.opt);
+                //net = LoadOrGetNet(onnxPath, params.opt);
 
-            // 後処理（YOLO汎用デコード）
-            std::vector<cv::Rect> boxesPx;
-            std::vector<float>    scores;
-            std::vector<int>      classIds;
-            DecodeYoloGeneric(yolo_version, out, params.yolo, bgr.size(), padRect, boxesPx, scores, classIds);
+                // 前処理
+                cv::Mat blob; cv::Rect padRect;
+                MakeBlobResizeLetterbox(bgr, params.yolo, blob, padRect);
+                GDNNP.net.setInput(blob);
+                cv::Mat out;
 
-            //NMS(params, boxesPx, classIds, scores);
+                // 推論 失敗したら空で返す
+                try
+                {
+                    out = GDNNP.net.forward();
+                }
+                catch (cv::Exception& e)
+                {
+                    // 例外をキャッチしたらエラーメッセージを表示
+                    std::cerr << e.what() << std::endl;
+                    std::wstring err = L"ONNXモデルの推論に失敗しました。\nモデルが壊れているか、\nモデルの形式が対応していない可能性があります。\n";
+                    err += std::wstring(e.what(), e.what() + strlen(e.what()));
+                    MessageBoxExW(NULL, err.c_str(), L"Error", MB_OK | MB_ICONERROR, MAKELANGID(LANG_JAPANESE, SUBLANG_JAPANESE_JAPAN));
+                    return outLabels;
+                }
 
-            // LabelObjに変換（正規化xywh）
-            outLabels.reserve(boxesPx.size());
-            for (size_t i = 0; i < boxesPx.size(); ++i) {
-                LabelObj L;
-                L.Rct = PxToNormXYWH_RectF(boxesPx[i], bgr.size());
+                // 後処理（YOLO汎用デコード）
+                std::vector<cv::Rect> boxesPx;
+                std::vector<float>    scores;
+                std::vector<int>      classIds;
+                DecodeYoloGeneric(yolo_version, out, params.yolo, bgr.size(), padRect, boxesPx, scores, classIds);
 
-                //L.Rct_Scale = L.rect; // 必要なら描画時に再計算
+                //NMS(params, boxesPx, classIds, scores);
 
-                L.ClassNum = classIds[i];
-                if (L.ClassNum >= 0 && L.ClassNum < (int)GP.ClsNames.size())
-                    L.ClassName = GP.ClsNames[L.ClassNum];
-                SetupStyleForProposal(L, L.ClassNum, params.yolo);
-                outLabels.push_back(L);
+                // LabelObjに変換（正規化xywh）
+                outLabels.reserve(boxesPx.size());
+                for (size_t i = 0; i < boxesPx.size(); ++i) {
+                    LabelObj L;
+                    L.Rct = PxToNormXYWH_RectF(boxesPx[i], bgr.size());
+
+                    //L.Rct_Scale = L.rect; // 必要なら描画時に再計算
+
+                    L.ClassNum = classIds[i];
+                    if (L.ClassNum >= 0 && L.ClassNum < (int)GP.ClsNames.size())
+                        L.ClassName = GP.ClsNames[L.ClassNum];
+                    SetupStyleForProposal(L, L.ClassNum, params.yolo);
+                    outLabels.push_back(L);
+                }
             }
         }
     }
@@ -1060,42 +1068,34 @@ RectF FitImageToClientRect(int imgW, int imgH, const RECT& rcClient)
 ///////////////////////////////////////////////////////////////////////////////////////////
 RectF NormToViewRect(const RectF& rNorm, const RectF& view)
 {
-    return RectF(
+    RectF _rect0=RectF(
         view.X + rNorm.X * view.Width,
         view.Y + rNorm.Y * view.Height,
         rNorm.Width * view.Width,
         rNorm.Height * view.Height
     );
+	//width/heightが負の場合の補正
+    RectF _rect1;
+	if (_rect0.Width < 0) {
+		_rect1.X = _rect0.X + _rect0.Width;
+		_rect1.Width = -_rect0.Width;
+	}
+	else {
+		_rect1.X = _rect0.X;
+		_rect1.Width = _rect0.Width;
+	}
+	if (_rect0.Height < 0) {
+		_rect1.Y = _rect0.Y + _rect0.Height;
+		_rect1.Height = -_rect0.Height;
+	}
+	else {
+		_rect1.Y = _rect0.Y;
+		_rect1.Height = _rect0.Height;
+	}
+    
+    return _rect1;
 }
 
-
-///////////////////////////////////////////////////////////////////////////////////////////
-// LabelObj配列を描画（破線・色・太さはLabelObjの値を使用）
-///////////////////////////////////////////////////////////////////////////////////////////
-void DrawLabelObjects(Graphics& g, const std::vector<LabelObj>& objs, const RectF& view, Gdiplus::Color _color, int _penwidth )
-{
-    for (const auto& L : objs) {
-        RectF r = NormToViewRect(L.Rct, view);
-
-        //Pen pen(L.color, (REAL)(L.penWidth > 0 ? L.penWidth : 2));
-        Pen pen(_color, (REAL)(_penwidth > 0 ? _penwidth : 2));
-
-        pen.SetDashStyle(L.dashStyle);                         // 破線で「提案」感
-        g.DrawRectangle(&pen, r.X, r.Y, r.Width, r.Height);
-
-        if (!L.ClassName.empty()) {
-            //SolidBrush br(Color(200, L.color.GetR(), L.color.GetG(), L.color.GetB())); // 半透明
-            SolidBrush br(Color(200, _color.GetR(), _color.GetG(), _color.GetB())); // 半透明
-
-            Font font(L"Segoe UI", 12, FontStyleBold, UnitPixel);
-
-			const int txtoffset_x = 0;
-            const int txtoffset_y = -18;
-
-            g.DrawString(L.ClassName.c_str(), -1, &font, PointF(r.X + txtoffset_x, r.Y + txtoffset_y), &br);
-        }
-    }
-}
 
 
 

@@ -10,6 +10,7 @@
 // プリコンパイルするヘッダーをここに追加します
 // 先に記述
 #include <windows.h>
+#include <windowsx.h>  // ← これが必要
 #include <gdiplus.h>
 using namespace Gdiplus;
 

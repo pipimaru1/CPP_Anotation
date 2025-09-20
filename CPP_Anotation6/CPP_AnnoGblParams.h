@@ -1,6 +1,6 @@
 #pragma once
 
-enum class DragMode { None, MakeBox, ReBox, dummy};
+enum class DragMode { None, MakeBox, ReBox, Pan, dummy};
 enum class EditMode { None, Left, Right, Top, Bottom, LeftTop, RightTop, LeftBottom, RightBottom };
 
 ///////////////////////////////////////////////////////
@@ -122,8 +122,18 @@ struct GlobalParams
 
 	//バウンディングボックスの表示/非表示
 	bool isShowBbox = true; // バウンディングボックスの表示/非表示
-
 	int select_onnx_num = -1; // 選択されたONNXモデルのインデックス メニューにチェックを入れるために必要
+
+    // --- Zoom / Pan ---
+    float zoom      = 1.0f;                   // 拡大率（Fitに対する倍率）
+    float minZoom = 0.1f;
+    float maxZoom = 8.0f;
+    Gdiplus::PointF viewOffset{ 0.f, 0.f }; // 画面内での画像原点オフセット（ピクセル）
+    bool zoomToCursor = true;               // ホイール位置を不動点にする
+
+	// 中ボタンドラッグによるパン
+	//bool    isPanning = false; dragModeで代用
+    POINT   panLast{};
 };
 
 extern GlobalParams GP;

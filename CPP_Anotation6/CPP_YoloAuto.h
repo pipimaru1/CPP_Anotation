@@ -61,17 +61,6 @@ std::vector<LabelObj> DnnInfer(
     const DnnParams& params = DnnParams());
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-// 表示用ユーティリティ関数
-///////////////////////////////////////////////////////////////////////////////////////////
-RectF FitImageToClientRect(int imgW, int imgH, const RECT& rcClient);
-RectF NormToViewRect(const RectF& rNorm, const RectF& view);
-void DrawLabelObjects(Graphics& g, const std::vector<LabelObj>& objs, const RectF& view, 
-    //Gdiplus::Color _color = Gdiplus::Color::LightGray, 
-    Gdiplus::Color _color = Gdiplus::Color::White,
-    int _penwidth = 2);
-
-
-///////////////////////////////////////////////////////////////////////////////////////////
 // ユーティリティ関数: std::wstringをstd::stringに変換
 ///////////////////////////////////////////////////////////////////////////////////////////
 inline std::string WStringToString(const std::wstring& wstr)

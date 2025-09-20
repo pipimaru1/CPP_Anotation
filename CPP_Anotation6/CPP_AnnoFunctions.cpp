@@ -1142,7 +1142,7 @@ int LoadLabelFilesMP(
 
     return loadCount;
 }
-
+/*
 ///////////////////////////////////////////////////////////////////////
 //矩形の線上にマウスカーソルがあるかどうかを判定する関数
 EditMode IsMouseOnRectEdge(
@@ -1198,8 +1198,10 @@ EditMode IsMouseOnRectEdge(
 
 	return EditMode::None; // 外 
 }
+*/
 ///////////////////////////////////////////////////////////////////////
 //矩形の線上にマウスカーソルがあるかどうかを判定する関数
+/*
 int IsMouseOnRectEdge_old(
     const POINT& pt,
     const LabelObj& obj,
@@ -1231,11 +1233,81 @@ int IsMouseOnRectEdge_old(
 
     return 0; // 外
 }
+*/
+///////////////////////////////////////////////////////////////////////
+// 画像表示先（ビューポート）でのヒットテスト
+// view : 画面上の画像描画矩形（X,Y,Width,Height）＝ComputeViewport(...).dest
+static EditMode IsMouseOnRectEdgeVP(const POINT& pt, const LabelObj& obj, int overlap,
+    const Gdiplus::RectF& view)
+{
+    // 正規化BBox → 画面座標（ビューポート）に変換
+    const float x0 = view.X + obj.Rct.X * view.Width;
+    const float y0 = view.Y + obj.Rct.Y * view.Height;
+    const float w = obj.Rct.Width * view.Width;
+    const float h = obj.Rct.Height * view.Height;
+
+    const bool Top = (pt.y >= y0 - overlap) && (pt.y <= y0 + overlap) &&
+        (pt.x >= x0 - overlap) && (pt.x <= x0 + w + overlap);
+    const bool Bottom = (pt.y >= y0 + h - overlap) && (pt.y <= y0 + h + overlap) &&
+        (pt.x >= x0 - overlap) && (pt.x <= x0 + w + overlap);
+    const bool Left = (pt.x >= x0 - overlap) && (pt.x <= x0 + overlap) &&
+        (pt.y >= y0 - overlap) && (pt.y <= y0 + h + overlap);
+    const bool Right = (pt.x >= x0 + w - overlap) && (pt.x <= x0 + w + overlap) &&
+        (pt.y >= y0 - overlap) && (pt.y <= y0 + h + overlap);
+
+    if (Top && Left)    return EditMode::LeftTop;
+    if (Bottom && Left) return EditMode::LeftBottom;
+    if (Top && Right)   return EditMode::RightTop;
+    if (Bottom && Right)return EditMode::RightBottom;
+    if (Top)    return EditMode::Top;
+    if (Bottom) return EditMode::Bottom;
+    if (Left)   return EditMode::Left;
+    if (Right)  return EditMode::Right;
+    return EditMode::None;
+}
+
+///////////////////////////////////////////////////////////////////////
+// 置き換え版：ビューポートを渡す
+// 最初の一つだけを返す
+// 重なった矩形のオブジェクトには_mOverに1～8の値が入る
+size_t GetIdxMouseOnRectEdgeVP(const POINT& pt,
+    std::vector<LabelObj>& objs,
+    EditMode& editMode,
+    int overlap,
+    const Gdiplus::RectF& view)
+{
+    //size_t idx = size_t(-1);
+    //for (auto& o : objs) o.mOver = false;
+
+    int _idx = -1;
+    //全部の矩形のマウスオーバー状態を解除
+    for (size_t i = 0; i < objs.size(); i++)
+        objs[i].mOver = false;
+
+    for (size_t i = 0; i < objs.size(); ++i) {
+        EditMode em = IsMouseOnRectEdgeVP(pt, objs[i], overlap, view);
+        if (em != EditMode::None) {
+            objs[i].mOver = true;
+            editMode = em;
+            _idx = i;
+            break;
+        }
+        else
+        {
+            editMode = EditMode::None; // 選択状態を解除
+        }
+    }
+
+    //if (idx == size_t(-1)) editMode = EditMode::None;
+    return _idx;
+}
+
 
 ///////////////////////////////////////////////////////////////////////
 //マウスカーソルと重なる矩形のインデックスを取得する関数
 //最初の一つだけを返す
 //重なった矩形のオブジェクトには_mOverに1～8の値が入る
+/*
 size_t GetIdxMouseOnRectEdge(
     const POINT& pt,
     std::vector<LabelObj>& objs,
@@ -1267,8 +1339,8 @@ size_t GetIdxMouseOnRectEdge(
     }
     return _idx; // 矩形がない場合は-1を返す
 }
-
-
+*/
+/*
 ///////////////////////////////////////////////////////////////////////
 // LabelObjを描画する関数
 void WM_PAINT_DrawLabels(
@@ -1333,6 +1405,90 @@ void WM_PAINT_DrawLabels(
             textPos,
             &textBrush
         );
+    }
+}
+*/
+///////////////////////////////////////////////////////////////////////////////////////////
+// LabelObj配列を描画（破線・色・太さはLabelObjの値を使用） WM_PAINT_DrawLabelsの置き換え
+///////////////////////////////////////////////////////////////////////////////////////////
+void DrawLabelObjects(Graphics& g, 
+    const std::vector<LabelObj>& objs, 
+    const RectF& view, 
+    //Gdiplus::Color _color, 
+    //int _penwidth,
+    Gdiplus::Font* font)
+{
+    for (const auto& L : objs)
+    {
+        //DrawLabelObject(g, L, view, _color, _penwidth, font);
+        DrawLabelObject(g, L, view, font);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// LabelObj 一つ を描画（破線・色・太さはLabelObjの値を使用）
+///////////////////////////////////////////////////////////////////////////////////////////
+void DrawLabelObject(Graphics& g, 
+    const LabelObj& _obj, 
+    const RectF& view, 
+    //Gdiplus::Color _color, 
+    //int _penwidth,
+    Gdiplus::Font* font
+)
+{
+    RectF r = NormToViewRect(_obj.Rct, view);
+
+    //Pen pen(L.color, (REAL)(L.penWidth > 0 ? L.penWidth : 2));
+    //Pen pen(_color, (REAL)(_penwidth > 0 ? _penwidth : 2));
+
+    int penWidth = _obj.penWidth + (_obj.mOver ? 2 : 0);    // ペン幅はマウスオーバーで太く
+    Gdiplus::Pen pen(_obj.color, static_cast<REAL>(penWidth));
+    pen.SetDashStyle(_obj.dashStyle);                         // 破線で「提案」感
+    
+    //小さすぎるバウンディングボックスは赤くする
+    bool _isogno = isIgnoreBox(_obj,
+        GDNNP.yolo.MINSIZEW / GDNNP.yolo.inputW,
+        GDNNP.yolo.MINSIZEH / GDNNP.yolo.inputH);
+    if (_isogno)
+    {
+        //赤で表示
+        pen.SetColor(Gdiplus::Color::Red);
+        pen.SetWidth(static_cast<REAL>(3));
+    }
+    
+	//矩形描画
+    g.DrawRectangle(&pen, r.X, r.Y, r.Width, r.Height);
+
+	//ラベル文字描画
+    if (!_obj.ClassName.empty()) {
+        //SolidBrush br(Color(200, L.color.GetR(), L.color.GetG(), L.color.GetB())); // 半透明
+        //SolidBrush br(Color(200, _color.GetR(), _color.GetG(), _color.GetB())); // 半透明
+        Gdiplus::SolidBrush textBrush(_obj.color);
+        const std::wstring& text = _obj.ClassName;
+
+        // 文字高さを測定
+        Gdiplus::RectF textBounds;
+        g.MeasureString(
+            text.c_str(), -1,
+            font,
+            Gdiplus::PointF(0, 0),
+            &textBounds
+        );
+        float textHeight = textBounds.Height;
+        //Font font(L"Segoe UI", 12, FontStyleBold, UnitPixel);
+
+        //const int txtoffset_x = 0;
+        //const int txtoffset_y = -18;
+        //g.DrawString(_obj.ClassName.c_str(), -1, 
+        //    &font, PointF(r.X + txtoffset_x, r.Y + txtoffset_y), &br);
+        Gdiplus::PointF textPos(r.X, r.Y - textHeight - 2.0f);
+        g.DrawString(
+            text.c_str(), -1,
+            font,
+            textPos,
+            &textBrush
+        );
+
     }
 }
 
@@ -1870,6 +2026,7 @@ int MoveCurrentImageAndLabel(HWND hWnd, int imgIdx)
         MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING))
     {
         std::wstring _msg = _LabelFilePath + L"\n" + _tempLabelFilePath;
+
 #ifdef _DEBUG
         MessageBox(hWnd, _msg.c_str(), L"ラベルファイルはなかったようです 続行します",
             MB_OK | MB_ICONWARNING);
@@ -1894,9 +2051,141 @@ int MoveCurrentImageAndLabel(HWND hWnd, int imgIdx)
 }
 
 ///////////////////////////////////////////////////////////////////////
+Viewport ComputeViewport(const RECT& rcClient, UINT imgW, UINT imgH)
+{
+    float W = float(rcClient.right - rcClient.left);
+    float H = float(rcClient.bottom - rcClient.top);
+    float base = std::min(W / imgW, H / imgH);                 // Fitスケール
+    float s = base * GP.zoom;                                  // 実スケール
+    float drawW = imgW * s, drawH = imgH * s;
+    // 中央配置 + ユーザーオフセット
+    float ox = (W - drawW) * 0.5f + GP.viewOffset.X;
+    float oy = (H - drawH) * 0.5f + GP.viewOffset.Y;
+    Viewport vp;
+    vp.scale = s;
+    vp.origin = { ox, oy };
+    vp.dest = Gdiplus::RectF(ox, oy, drawW, drawH);
+    return vp;
+}
+
+// 正規化矩形(画像座標0..1) → 画面座標（ビューポート内）に変換
+Gdiplus::RectF NormRectToScreen(const Gdiplus::RectF& r01,
+    const Viewport& vp, UINT imgW, UINT imgH) {
+    float px = r01.X * imgW * vp.scale + vp.origin.X;
+    float py = r01.Y * imgH * vp.scale + vp.origin.Y;
+    float pw = r01.Width * imgW * vp.scale;
+    float ph = r01.Height * imgH * vp.scale;
+    return Gdiplus::RectF(px, py, pw, ph);
+}
+
+// 画面座標 → 画像正規化座標（0..1）に変換（ヒットテスト用）
+Gdiplus::PointF ScreenPtToNorm(float sx, float sy,
+    const Viewport& vp, UINT imgW, UINT imgH) {
+    float ix = (sx - vp.origin.X) / (vp.scale * imgW);
+    float iy = (sy - vp.origin.Y) / (vp.scale * imgH);
+    return Gdiplus::PointF(ix, iy);
+}
+
+///////////////////////////////////////////////////////////////////////
 // 描画処理を行う関数
 ///////////////////////////////////////////////////////////////////////
 void DoPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, size_t _idx)
+{
+    // マウス移動中でない場合は、描画処理を行う
+    if (!GP.isMouseMoving)
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+
+        // メモリDC作成
+        HDC memDC = CreateCompatibleDC(hdc);
+        HBITMAP memBitmap = CreateCompatibleBitmap(hdc, GP.width, GP.height);
+        HBITMAP oldBitmap = (HBITMAP)SelectObject(memDC, memBitmap);
+
+        // GDI+ の Graphics を memDC に結びつける
+        Graphics graphics(memDC);
+        graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+        graphics.SetSmoothingMode(SmoothingModeAntiAlias); // 任意
+
+        // 背景塗りつぶし（必要に応じて）
+        graphics.Clear(Color(0, 0, 0)); // 黒背景
+
+        // [拡大縮小] 画像サイズ
+        //Gdiplus::Image* bmp = nullptr;
+        //GP.imgObjs[GP.imgIdx].image;
+        //if (_idx < GP.imgObjs.size())
+        //    bmp = GP.imgObjs[_idx].image.get();
+
+		//if (bmp) // 画像が存在する場合
+        {
+
+            UINT imgW = GP.imgObjs[_idx].image.get()->GetWidth();
+            UINT imgH = GP.imgObjs[_idx].image.get()->GetHeight();
+            // [拡大縮小] ビューポート計算
+            RECT rc; GetClientRect(hWnd, &rc);
+            Viewport vp = ComputeViewport(rc, imgW, imgH);
+
+
+            // 補間品質 スケーリング
+            graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
+            if (GP.imgObjs.size() > 0)
+            {
+                //画像の描画
+                if (GP.imgObjs[_idx].image) //配列が空でなければ
+                {
+                    //スケーリングしながら描画
+                    //graphics.DrawImage(GP.imgObjs[_idx].image.get(), 0, 0, GP.width, GP.height);
+
+                    // 画像をビューポートへ描画
+                    graphics.DrawImage(GP.imgObjs[_idx].image.get(),
+                        Gdiplus::Rect((INT)vp.dest.X, (INT)vp.dest.Y, (INT)vp.dest.Width, (INT)vp.dest.Height));
+
+
+                    graphics.Flush();
+                }
+                // 矩形を描画
+                if (GP.isShowBbox)
+                {
+                    // YOLOの推論結果を描画
+                    if (g_showProposals && !AutoDetctedObjs.objs.empty()) {
+                        RECT rcClient;
+                        GetClientRect(hWnd, &rcClient);
+                        //DrawLabelObjects(graphics, AutoDetctedObjs.objs, ToRectF(rcClient));
+                        DrawLabelObjects(graphics, AutoDetctedObjs.objs, vp.dest, GP.font);
+                    }
+                    //確定したバウンディングボックスを描画
+                    //WM_PAINT_DrawLabels(graphics, GP.imgObjs[_idx].objs, GP.width, GP.height, GP.font);
+					DrawLabelObjects(graphics, GP.imgObjs[_idx].objs, vp.dest, GP.font);
+                }
+            }
+
+            // ドラッグ中の矩形を描画
+            if (GP.dgMode == DragMode::MakeBox)
+                //WM_PAINT_DrawTmpBox(graphics, GP.tmpLabel.Rct, GP.width, GP.height);
+                DrawLabelObject(graphics, GP.tmpLabel, vp.dest, GP.font);
+
+
+            // 最後に画面に転送
+            BitBlt(hdc, 0, 0, GP.width, GP.height, memDC, 0, 0, SRCCOPY);
+        }
+        // クリーンアップ
+        SelectObject(memDC, oldBitmap);
+        DeleteObject(memBitmap);
+        DeleteDC(memDC);
+        EndPaint(hWnd, &ps);
+    }
+    //すべての操作 
+    GP.isMouseMoving = false; // フラグをリセット
+    // 十字目盛りを描画
+    DrawCrosshairLines(hWnd);
+}
+
+
+///////////////////////////////////////////////////////////////////////
+// 描画処理を行う関数
+///////////////////////////////////////////////////////////////////////
+/*
+void DoPaint_org_20250920(HWND hWnd, WPARAM wParam, LPARAM lParam, size_t _idx)
 {
     // マウス移動中でない場合は、描画処理を行う
     if (!GP.isMouseMoving)
@@ -1929,7 +2218,7 @@ void DoPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, size_t _idx)
                 graphics.Flush();
             }
             // 矩形を描画
-            if(GP.isShowBbox)
+            if (GP.isShowBbox)
             {
                 // YOLOの推論結果を描画
                 if (g_showProposals && !AutoDetctedObjs.objs.empty()) {
@@ -1962,7 +2251,7 @@ void DoPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, size_t _idx)
     // 十字目盛りを描画
     DrawCrosshairLines(hWnd);
 }
-
+*/
 ///////////////////////////////////////////////////////////////////////
 // ファイル保存ダイアログを表示
 // この関数はWinProcの一部という位置づけ

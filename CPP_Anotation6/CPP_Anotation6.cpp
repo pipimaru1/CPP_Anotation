@@ -272,7 +272,6 @@ void set_onnx_files_in_menu(int _num)
 // メニューのチェック状態を更新する関数
 int CreatePopupMenuFor_Labels_in_CurrentImage(HWND hWnd);
 
-
 /////////////////////////////////////////////////////////////////////////
 //未ラベルの画像までジャンプする関数
 void JumpToUnlabeledImage(HWND hWnd);
@@ -845,71 +844,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         else
             DoPaint(hWnd, wParam, lParam, GP.imgIdxCompare); // 描画処理を行う関数を呼び出す
 
-#ifdef ORG_WMPAINT
-        // マウス移動中でない場合は、描画処理を行う
-        if (!GP.isMouseMoving)
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-
-            // メモリDC作成
-            HDC memDC = CreateCompatibleDC(hdc);
-            HBITMAP memBitmap = CreateCompatibleBitmap(hdc, GP.width, GP.height);
-            HBITMAP oldBitmap = (HBITMAP)SelectObject(memDC, memBitmap);
-
-            // GDI+ の Graphics を memDC に結びつける
-            Graphics graphics(memDC);
-            graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
-            graphics.SetSmoothingMode(SmoothingModeAntiAlias); // 任意
-
-            // 背景塗りつぶし（必要に応じて）
-            graphics.Clear(Color(0, 0, 0)); // 黒背景
-
-            // 補間品質
-            graphics.SetInterpolationMode(InterpolationModeHighQualityBicubic);
-            if (GP.imgObjs.size() > 0)
-            {
-                //画像の描画
-                if (GP.imgObjs[GP.imgIdx].image) //配列が空でなければ
-                {
-                    //スケーリングしながら描画
-                    graphics.DrawImage(GP.imgObjs[GP.imgIdx].image.get(), 0, 0, GP.width, GP.height);
-                    graphics.Flush();
-                }
-                // 矩形を描画
-                WM_PAINT_DrawLabels(graphics, GP.imgObjs[GP.imgIdx].objs, GP.width, GP.height, GP.font);
-            }
-            
-			// YOLOの推論結果を描画
-            if (g_showProposals && !AutoDetctedObjs.objs.empty()) {
-                // 1) 画像を既存ロジックで描画（例：Fit表示）
-                RECT rcClient; 
-                GetClientRect(hWnd, &rcClient);
-                //const int imgW = GP.imgObjs[GP.imgIdx].image->GetWidth(); // ←あなたの構造体の実フィールド名に合わせてください
-                //const int imgH = GP.imgObjs[GP.imgIdx].image->GetHeight(); // 例示
-                //RectF view = FitImageToClientRect(imgW, imgH, rcClient);
-                //DrawLabelObjects(graphics, AutoDetctedObjs, view);
-                DrawLabelObjects(graphics, AutoDetctedObjs.objs, ToRectF(rcClient));
-            }
-            
-            // ドラッグ中の矩形を描画
-            if(GP.dgMode==DragMode::MakeBox)
-                WM_PAINT_DrawTmpBox(graphics, GP.tmpLabel.rect, GP.width, GP.height);
-         
-            // 最後に画面に転送
-            BitBlt(hdc, 0, 0, GP.width, GP.height, memDC, 0, 0, SRCCOPY);
-
-            // クリーンアップ
-            SelectObject(memDC, oldBitmap);
-            DeleteObject(memBitmap);
-            DeleteDC(memDC);
-            EndPaint(hWnd, &ps);
-        }
-		//すべての操作 
-        GP.isMouseMoving = false; // フラグをリセット
-        // 十字目盛りを描画
-        DrawCrosshairLines(hWnd);
-#endif
     }
     break;
 
@@ -940,16 +874,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	// マウスの左ボタンが押されたときの処理
 	case WM_LBUTTONDOWN:
 	{
-        // マウスの位置を取得
+        // ビューポートを算出
+        RECT rc; GetClientRect(hWnd, &rc);
+        //auto bmp = GP.imgObjs[GP.imgIdx].image;
+        UINT imgW = GP.imgObjs[GP.imgIdx].image.get()->GetWidth();
+        UINT imgH = GP.imgObjs[GP.imgIdx].image.get()->GetHeight();
+        auto vp = ComputeViewport(rc, imgW, imgH);
+
+        // マウスの位置を取得しビューポート座標に変換
         POINT pt;
         GetCursorPos(&pt);
         ScreenToClient(hWnd, &pt);
+
+        // ビューポート座標に変換
+        float vp_x = float(pt.x - vp.dest.X) / float(vp.dest.Width);
+        float vp_y = float(pt.y - vp.dest.Y) / float(vp.dest.Height);
+
+        // マウスの位置を取得
+        //POINT pt;
+        //GetCursorPos(&pt);
+        //ScreenToClient(hWnd, &pt);
+
         //矩形にマウスオーバーしていない時は矩形を作成する。
         if( GP.imgObjs[GP.imgIdx].mOverIdx == -1 )
         {
             // 矩形の開始位置を設定
-            GP.tmpLabel.Rct.X = float(pt.x) / float(GP.width);
-            GP.tmpLabel.Rct.Y = float(pt.y) / float(GP.height);
+            GP.tmpLabel.Rct.X = vp_x;
+            GP.tmpLabel.Rct.Y = vp_y;
             GP.tmpLabel.Rct.Width = 0;
             GP.tmpLabel.Rct.Height = 0;
             GP.dgMode = DragMode::MakeBox;
@@ -966,21 +917,44 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         SetCapture(hWnd); // マウスキャプチャを取得 ウィンドウの外に出てもマウスイベントを受け取る
     }
 	break;
+
+	////////////////////////////////////////////////////
+    // 
 	// マウスの左ボタンが離されたときの処理
+    // 
+	////////////////////////////////////////////////////
 	case WM_LBUTTONUP:
 	{
 		//if (GP.makeBox)
         if (GP.dgMode == DragMode::MakeBox)
         {
+            // ビューポートを算出
+            RECT rc; GetClientRect(hWnd, &rc);
+            //auto bmp = GP.imgObjs[GP.imgIdx].image;
+            UINT imgW = GP.imgObjs[GP.imgIdx].image.get()->GetWidth();
+            UINT imgH = GP.imgObjs[GP.imgIdx].image.get()->GetHeight();
+            auto vp = ComputeViewport(rc, imgW, imgH);
+
+            // マウスの位置を取得しビューポート座標に変換
+            //POINT pt_org;
+            //GetCursorPos(&pt_org);
+            //ScreenToClient(hWnd, &pt_org);
+            //POINT pt{ pt_org.x - (LONG)vp.origin.X, pt_org.y - (LONG)vp.origin.Y };
             // マウスの位置を取得
+
             POINT pt;
             GetCursorPos(&pt);
             ScreenToClient(hWnd, &pt);
+            
+            // ビューポート座標に変換
+            float vp_x = float(pt.x - vp.dest.X) / float(vp.dest.Width);
+            float vp_y = float(pt.y - vp.dest.Y) / float(vp.dest.Height);
+
             ReleaseCapture(); // マウスキャプチャを解放
 
             // 矩形の幅と高さを計算
-            GP.tmpLabel.Rct.Width = float(pt.x) / float(GP.width) - GP.tmpLabel.Rct.X;
-            GP.tmpLabel.Rct.Height = float(pt.y) / float(GP.height) - GP.tmpLabel.Rct.Y;
+            GP.tmpLabel.Rct.Width = vp_x - GP.tmpLabel.Rct.X;
+            GP.tmpLabel.Rct.Height = vp_y - GP.tmpLabel.Rct.Y;
             NormalizeRect(GP.tmpLabel.Rct); // 矩形の座標を正規化
 
 			//クラス名をポップアップメニューで表示
@@ -1020,10 +994,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     ////////////////////////////////////////////////////
 	case WM_RBUTTONDOWN:
 	{
-		// マウスの位置を取得
-		POINT pt;
-		GetCursorPos(&pt);
-		ScreenToClient(hWnd, &pt);
+        // ビューポートを算出
+        RECT rc; GetClientRect(hWnd, &rc);
+        //auto bmp = GP.imgObjs[GP.imgIdx].image;
+        UINT imgW = GP.imgObjs[GP.imgIdx].image.get()->GetWidth();
+        UINT imgH = GP.imgObjs[GP.imgIdx].image.get()->GetHeight();
+        auto vp = ComputeViewport(rc, imgW, imgH);
+
+        // マウスの位置を取得しビューポート座標に変換
+        POINT pt_org;
+        GetCursorPos(&pt_org);
+        ScreenToClient(hWnd, &pt_org);
+        POINT pt{ pt_org.x - (LONG)vp.origin.X, pt_org.y - (LONG)vp.origin.Y };
+       
+        // マウスの位置を取得
+		//POINT pt;
+		//GetCursorPos(&pt);
+		//ScreenToClient(hWnd, &pt);
+
+
 		// ヒット中の矩形のインデックスを保存
 		GP.activeIdx = GP.imgObjs[GP.imgIdx].mOverIdx;
         // YOLOの推論結果のバウンディングボックスの場合
@@ -1058,24 +1047,63 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		}
 	}
-
-
     break;
+
+
+    case WM_MBUTTONDOWN:
+    {
+        SetCapture(hWnd);
+        POINT pt; GetCursorPos(&pt); ScreenToClient(hWnd, &pt);
+        GP.panLast = pt;
+		GP.dgMode = DragMode::Pan; // ドラッグ中フラグを立てる
+        // 視覚フィードバックが欲しければ:
+        // SetCursor(LoadCursor(NULL, IDC_SIZEALL));
+    }
+    break;
+
+    case WM_MBUTTONUP:
+    {
+        if (GP.dgMode == DragMode::Pan) {
+            ReleaseCapture();
+			GP.dgMode = DragMode::None; // ドラッグ中フラグを下ろす
+            //GP.isPanning = false;
+            // SetCursor(LoadCursor(NULL, IDC_ARROW));
+        }
+    }
+    break;
+
+
     // マウスの移動中の処理
 	// BOXと重なっているかどうかを判定したり、矩形の編集を行う
     case WM_MOUSEMOVE:
     {
-        // マウスの位置を取得
+        // ビューポートを算出
+        RECT rc; GetClientRect(hWnd, &rc);
+        //auto bmp = GP.imgObjs[GP.imgIdx].image;
+        UINT imgW = GP.imgObjs[GP.imgIdx].image.get()->GetWidth();
+        UINT imgH = GP.imgObjs[GP.imgIdx].image.get()->GetHeight();
+        auto vp = ComputeViewport(rc, imgW, imgH);
+
+
+		// マウスの位置を取得しビューポート座標に変換
+        //POINT pt_org;
+        //GetCursorPos(&pt_org);
+        //ScreenToClient(hWnd, &pt_org);
+        //POINT pt{ pt_org.x - (LONG)vp.origin.X, pt_org.y - (LONG)vp.origin.Y };
+
         POINT pt;
         GetCursorPos(&pt);
         ScreenToClient(hWnd, &pt);
 
+		// ビューポート座標に変換
+        float vp_x = float(pt.x - vp.dest.X) / float(vp.dest.Width);
+        float vp_y = float(pt.y - vp.dest.Y) / float(vp.dest.Height);
 
         //if (GP.makeBox)
         if (GP.dgMode == DragMode::MakeBox)
         {
-            GP.tmpLabel.Rct.Width = float(pt.x) / float(GP.width) - GP.tmpLabel.Rct.X;
-            GP.tmpLabel.Rct.Height = float(pt.y) / float(GP.height) - GP.tmpLabel.Rct.Y;
+            GP.tmpLabel.Rct.Width = vp_x - GP.tmpLabel.Rct.X;
+            GP.tmpLabel.Rct.Height = vp_y - GP.tmpLabel.Rct.Y;
 
             // 再描画
             InvalidateRect(hWnd, NULL, TRUE);
@@ -1092,26 +1120,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 // 矩形の編集モードで、マウス移動分を適用
                 auto& r = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct;
 
-                /*
-                //矩形サイズが小さい場合は、編集しない
-                bool isSmallRectX = false; // 矩形サイズが小さいかどうかのフラグ
-                bool isSmallRectY = false; // 矩形サイズが小さいかどうかのフラグ
-				if ((int(r.Width * GP.IMGSIZEW) + dx) < GP.MINSIZEW )
-                    isSmallRectX = true; // 矩形サイズが小さい場合は、小さい方向に変形できない
-				if ((int(r.Height * GP.IMGSIZEH) + dy) < GP.MINSIZEH )
-                    isSmallRectY = true; // 矩形サイズが小さい場合は、小さい方向に変形できない
-                */
                 GP.imgObjs[GP.imgIdx].isEdited = true; // 編集されたことにする
                 switch (GP.edMode)
                 {
                 case EditMode::Top:
                     // 矩形サイズが小さく、かつ、小さい方向に動かす場合は、上辺を動かさない 
-                    //if(isSmallRectY && dy > 0) 
-					//  break; // 編集しない
-                    
                     // 上辺を dy だけ動かす → 矩形の高さは −dy だけ変わる
-                    r.Y += dy / GP.height;
-                    r.Height -= dy / GP.height;
+                    r.Y += dy / vp.dest.Height;
+                    r.Height -= dy / vp.dest.Height;
                     break;
                 case EditMode::Bottom:
                     // 矩形サイズが小さく、かつ、小さい方向に動かす場合は、上辺を動かさない 
@@ -1119,7 +1135,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     //    break; // 編集しない
 
                     // 下辺を dy だけ動かす → 矩形の高さは +dy だけ変わる
-                    r.Height += dy / GP.height;
+                    r.Height += dy / vp.dest.Height;
                     break;
                 case EditMode::Left:
                     // 矩形サイズが小さく、かつ、小さい方向に動かす場合は、左辺を動かさない 
@@ -1127,8 +1143,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     //    break; // 編集しない
 
                     // 左辺を dx だけ動かす → 矩形の幅は −dx だけ変わる
-                    r.X += dx / GP.width;
-                    r.Width -= dx / GP.width;
+                    r.X += dx / vp.dest.Width;
+                    r.Width -= dx / vp.dest.Width;
                     break;
                 case EditMode::Right:
                     // 矩形サイズが小さく、かつ、小さい方向に動かす場合は、左辺を動かさない 
@@ -1136,35 +1152,35 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     //    break; // 編集しない
 
                     // 右辺を dx だけ動かす → 矩形の幅は +dx だけ変わる
-                    r.Width += dx / GP.width;
+                    r.Width += dx / vp.dest.Width;
                     break;
                 case EditMode::LeftTop:
                     // 左上を dx,dy だけ動かす → 矩形の幅は −dx だけ変わる
                     // 矩形の高さは −dy だけ変わる
-                    r.X += dx / GP.width;
-                    r.Y += dy / GP.height;
-                    r.Width -= dx / GP.width;
-                    r.Height -= dy / GP.height;
+                    r.X += dx / vp.dest.Width;
+                    r.Y += dy / vp.dest.Height;
+                    r.Width -= dx / vp.dest.Width;
+                    r.Height -= dy / vp.dest.Height;
                     break;
                 case EditMode::RightTop:
                     // 右上を dx,dy だけ動かす → 矩形の幅は +dx だけ変わる
                     // 矩形の高さは −dy だけ変わる
-                    r.Y += dy / GP.height;
-                    r.Width += dx / GP.width;
-                    r.Height -= dy / GP.height;
+                    r.Y += dy / vp.dest.Height;
+                    r.Width += dx / vp.dest.Width;
+                    r.Height -= dy / vp.dest.Height;
                     break;
                 case EditMode::LeftBottom:
                     // 左下を dx,dy だけ動かす → 矩形の幅は −dx だけ変わる
                     // 矩形の高さは +dy だけ変わる
-                    r.X += dx / GP.width;
-                    r.Height += dy / GP.height;
-                    r.Width -= dx / GP.width;
+                    r.X += dx / vp.dest.Width;
+                    r.Height += dy / vp.dest.Height;
+                    r.Width -= dx / vp.dest.Width;
                     break;
                 case EditMode::RightBottom:
                     // 右下を dx,dy だけ動かす → 矩形の幅は +dx だけ変わる
                     // 矩形の高さは +dy だけ変わる
-                    r.Width += dx / GP.width;
-                    r.Height += dy / GP.height;
+                    r.Width += dx / vp.dest.Width;
+                    r.Height += dy / vp.dest.Height;
                     break;
                 default:
                     break;
@@ -1179,13 +1195,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         else if (GP.dgMode == DragMode::dummy) // 矩形の編集モード
         {
-
             if (GP.imgIdx < GP.imgObjs.size()) {              // ← これが先
                 auto& curImg = GP.imgObjs[GP.imgIdx];         // 安全に参照取得
                 if (!curImg.objs.empty()) {
                     curImg.mOverIdx =
-                        GetIdxMouseOnRectEdge(pt, curImg.objs,
-                            GP.edMode, GP.Overlap);
+                        GetIdxMouseOnRectEdgeVP(pt, curImg.objs,
+                            GP.edMode, GP.Overlap, vp.dest);
                 }
             }
 
@@ -1193,45 +1208,45 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             {
             case EditMode::Top:
                 // 上辺をドラッグ。 直接、マウスの値を辺の位置に設定
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y = float(pt.y) / float(GP.height);
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y = vp_y;
                 GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Height = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y - GP.prevMouse.Y;
                 break;
             case EditMode::Bottom:
                 // 下辺をドラッグ。 直接、マウスの値を辺の位置に設定
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Height = float(pt.y) / float(GP.height) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Height = vp_y - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y;
                 break;
             case EditMode::Left:
                 // 左辺をドラッグ。 直接、マウスの値を辺の位置に設定
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X = float(pt.x) / float(GP.width);
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X = vp_x;
                 GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Width = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X - GP.prevMouse.X;
                 break;
             case EditMode::Right:
                 // 右辺をドラッグ。 直接、マウスの値を辺の位置に設定
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Width = float(pt.x) / float(GP.width) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Width = vp_x - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X;
                 break;
             case EditMode::LeftTop:
                 // 左上をドラッグ。 直接、マウスの値を辺の位置に設定   
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X = float(pt.x) / float(GP.width);
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y = float(pt.y) / float(GP.height);
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X = vp_x;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y = vp_y;
                 GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Width = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X - GP.prevMouse.X;
                 GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Height = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y - GP.prevMouse.Y;
                 break;
             case EditMode::RightTop:
                 // 右上をドラッグ。 直接、マウスの値を辺の位置に設定
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y = float(pt.y) / float(GP.height);
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Width = float(pt.x) / float(GP.width) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y = vp_y;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Width = vp_x - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X;
                 GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Height = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y - GP.prevMouse.Y;
                 break;
             case EditMode::LeftBottom:
                 // 左下をドラッグ。 直接、マウスの値を辺の位置に設定
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X = float(pt.x) / float(GP.width);
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Height = float(pt.y) / float(GP.height) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X = vp_x;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Height = vp_y - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y;
                 GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Width = GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X - GP.prevMouse.X;
                 break;
             case EditMode::RightBottom:
                 // 右下をドラッグ。 直接、マウスの値を辺の位置に設定
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Width = float(pt.x) / float(GP.width) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X;
-                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Height = float(pt.y) / float(GP.height) - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Width = vp_x - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.X;
+                GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Height = vp_y - GP.imgObjs[GP.imgIdx].objs[GP.activeIdx].Rct.Y;
                 break;
             case EditMode::None:
                 // 何もしない    
@@ -1242,24 +1257,96 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // 再描画
             InvalidateRect(hWnd, NULL, TRUE);
         }
-		else // BOXと重なっているかどうかを判定
+        else if (GP.dgMode == DragMode::Pan) // パンモード
+        {
+            // マウス移動分を計算
+            POINT pt; GetCursorPos(&pt); ScreenToClient(hWnd, &pt);
+
+            int dx = pt.x - GP.panLast.x;
+            int dy = pt.y - GP.panLast.y;
+
+            // ピクセル単位で viewOffset に加算
+            GP.viewOffset.X += static_cast<float>(dx);
+            GP.viewOffset.Y += static_cast<float>(dy);
+
+            GP.panLast = pt;
+            InvalidateRect(hWnd, nullptr, TRUE);
+            //break; // パン中は他の編集ロジックはスキップ
+        }
+
+        else // BOXと重なっているかどうかを判定
         {
 			// マウスカーソルと矩形が重なっていないかどうかを調べて、
             // 重なっていたらそのインデックスを取得し、現在アクティブな画像のmOverIdxに格納
             if (GP.imgIdx < GP.imgObjs.size()) {              // ← これが先
                 auto& curImg = GP.imgObjs[GP.imgIdx];         // 安全に参照取得
-                if (!curImg.objs.empty()) {
-                    curImg.mOverIdx =
-                        GetIdxMouseOnRectEdge(pt, curImg.objs,
-                            GP.edMode, GP.Overlap);
+                if (!curImg.objs.empty()) 
+                {
+                    const int overlap = GP.Overlap; // 既存設定でOK
+                
+                    curImg.mOverIdx = GetIdxMouseOnRectEdgeVP(pt,
+                        GP.imgObjs[GP.imgIdx].objs,
+                        GP.edMode,
+                        overlap,
+                        vp.dest);
+
+                    //if (hit != -1)
+                    //{
+                    //    GP.imgObjs[GP.imgIdx].objIdx = (int)hit;
+                    //}
+                    //curImg.mOverIdx =
+                    //    GetIdxMouseOnRectEdge(pt, curImg.objs,
+                    //        GP.edMode, GP.Overlap);
                 }
             }
             //上と同じ安全措置必要か
 			EditMode _dummy; //edModeは矩形の辺の位置を調べるのに必要だが、ここでは使わないのでダミー変数
             //AutoDetctedObjs.mOverIdx = GetIdxMouseOnRectEdge(pt, AutoDetctedObjs.objs, GP.edMode, GP.Overlap); // マウスカーソルの位置を取得
-            AutoDetctedObjs.mOverIdx = GetIdxMouseOnRectEdge(pt, AutoDetctedObjs.objs, _dummy, GP.Overlap); // マウスカーソルの位置を取得
+            //AutoDetctedObjs.mOverIdx = GetIdxMouseOnRectEdge(pt, AutoDetctedObjs.objs, _dummy, GP.Overlap); // マウスカーソルの位置を取得
+            AutoDetctedObjs.mOverIdx = GetIdxMouseOnRectEdgeVP(pt, AutoDetctedObjs.objs, _dummy, GP.Overlap, vp.dest); // マウスカーソルの位置を取得
+
             InvalidateRect(hWnd, NULL, TRUE);
         }
+    }
+    break;
+
+    case WM_MOUSEWHEEL:
+    {
+        if (GP.imgObjs.empty() || !GP.imgObjs[GP.imgIdx].image) break;
+
+        POINT ptScr{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+        ScreenToClient(hWnd, &ptScr);
+
+        const auto& bmp = GP.imgObjs[GP.imgIdx].image;
+        UINT imgW = bmp->GetWidth(), imgH = bmp->GetHeight();
+
+        // 現在のビューポート
+        RECT rc; GetClientRect(hWnd, &rc);
+        auto vpBefore = ComputeViewport(rc, imgW, imgH);
+
+        // スクロール方向で倍率
+        int delta = GET_WHEEL_DELTA_WPARAM(wParam);
+        float step = (delta > 0) ? 1.1f : 1.0f / 1.1f;
+
+        // 不動点（カーソル下の画像上の正規化座標）を求める
+        Gdiplus::PointF fixed01 = ScreenPtToNorm((float)ptScr.x, (float)ptScr.y, vpBefore, imgW, imgH);
+
+        // 新しいズームに更新（クランプ）
+        GP.zoom = std::clamp(GP.zoom * step, GP.minZoom, GP.maxZoom);
+
+        // 新ビューポート
+        auto vpAfter = ComputeViewport(rc, imgW, imgH);
+
+        if (GP.zoomToCursor) {
+            // 同じ画像上の点が同じスクリーン位置に来るようオフセットを補正
+            // 目標スクリーン座標 = 不動点(画像)を新ビューポートへ投影
+            float targetX = fixed01.X * imgW * vpAfter.scale + vpAfter.origin.X;
+            float targetY = fixed01.Y * imgH * vpAfter.scale + vpAfter.origin.Y;
+            // 目標が現在のマウス位置に一致するようoriginを動かす ⇒ viewOffset を補正
+            GP.viewOffset.X += (ptScr.x - targetX);
+            GP.viewOffset.Y += (ptScr.y - targetY);
+        }
+        InvalidateRect(hWnd, nullptr, TRUE);
     }
     break;
 
