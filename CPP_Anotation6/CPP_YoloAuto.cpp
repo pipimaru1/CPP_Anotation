@@ -50,6 +50,7 @@ static cv::dnn::Net LoadOrGetNet(const std::wstring& onnxPath, const DnnOptions&
         net.setPreferableBackend(opt.backend);
         net.setPreferableTarget(opt.target);
         cache.emplace(onnxPath, net);
+
         return net;
     }
     else {
@@ -89,24 +90,26 @@ static void MakeBlobResizeLetterbox(const cv::Mat& bgr, const YoloConfig& yc,
 // cocoの640モデル、1280モデルで成功
 // V5,V8で成功
 // 独自モデルでは640、1280ともにダメ
+/*
 static void DecodeYoloGeneric_coco(
     const cv::Mat& out, const YoloConfig& yc,
     const cv::Size& orig, const cv::Rect& padRect,
     std::vector<cv::Rect>& boxesPx,
     std::vector<float>& scores,
     std::vector<int>& classIds);
-
+*/
 // COCO V5,V8 x640で成功       NMS効かない
 // COCO V5,V8 x1280で成功      NMS効かない
 // オリジナルのV5モデル x640 で成功  NMS効かない
 // オリジナルのV5モデル x1280 何も出ない
+/*
 static void DecodeYoloGeneric_awz(
     const cv::Mat& out, const YoloConfig& yc,
     const cv::Size& orig, const cv::Rect& padRect,
     std::vector<cv::Rect>& boxesPx,
     std::vector<float>& scores,
     std::vector<int>& classIds);
-
+ */
 // y11モデルでテスト中
 static void DecodeYoloGeneric_y11(
     const std::wstring yolo_version,
@@ -138,6 +141,7 @@ inline float Sigmoid(float x) { return 1.f / (1.f + std::exp(-x)); }
 // YOLO(v5/v8) 汎用デコード（forward出力が(1,N,85) or (1,85,N) or (1,84,N)想定）
 // cocoの640モデル、1280モデルで成功
 // 独自モデルでは640、1280ともに成功 (/・ω・)/
+/*
 static void DecodeYoloGeneric_coco(const cv::Mat& out, const YoloConfig& yc,
     const cv::Size& orig, const cv::Rect& padRect,
     std::vector<cv::Rect>& boxesPx,
@@ -205,6 +209,7 @@ static void DecodeYoloGeneric_coco(const cv::Mat& out, const YoloConfig& yc,
         classIds.push_back(tmpCls[k]);
     }
 }
+*/
 /*
 static void DecodeYoloGeneric(const cv::Mat& out, const YoloConfig& yc,
     const cv::Size& orig, const cv::Rect& padRect,
@@ -330,6 +335,7 @@ static void DecodeYoloGeneric(const cv::Mat& out, const YoloConfig& yc,
 // YOLO(v5/v8) 汎用デコード（forward出力が(1,N,85) or (1,85,N) or (1,84,N)想定）
 // cocoの640モデル、1280モデルで成功
 // 独自モデルでは640、1280ともに成功 (/・ω・)/
+/*
 static void DecodeYoloGeneric_awz(const cv::Mat& out, const YoloConfig& yc,
     const cv::Size& orig, const cv::Rect& padRect,
     std::vector<cv::Rect>& boxesPx,
@@ -448,6 +454,7 @@ static void DecodeYoloGeneric_awz(const cv::Mat& out, const YoloConfig& yc,
         classIds.push_back(tmpCls[k]);
     }
 }
+*/
 
 /*
 #define _YOLO11 0 // YOLOv11以降のモデルを想定
@@ -983,6 +990,11 @@ std::vector<LabelObj> DnnInfer(
             }
             else
             {
+#if defined(_USEGPU)
+				//モデルの読込前にGPU設定を行う
+                GDNNP.opt.backend = cv::dnn::DNN_BACKEND_CUDA;           // ★CUDA バックエンド
+                GDNNP.opt.target = cv::dnn::DNN_TARGET_CUDA;            // ★GPU (FP32)
+#endif
                 if (GDNNP.net.empty())
                 {
                     // ONNXモデルの読み込み

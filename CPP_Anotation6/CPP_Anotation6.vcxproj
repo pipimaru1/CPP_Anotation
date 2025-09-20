@@ -174,7 +174,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions);_CUDA</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions);_USEGPU</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -259,6 +259,7 @@
     <Text Include="..\TimeStudyW.txt" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="_default.ini" />
     <None Include="default_.ini" />
     <None Include="default_home.ini" />
     <None Include="default_k.ini" />
