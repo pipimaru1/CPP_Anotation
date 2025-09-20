@@ -393,3 +393,4 @@ FodyWeavers.xsd
 /TSV5X6100250901.onnx
 TSV5X1002508313_op12.onnx
 *.onnx
+/labels/FILE0000.txt
