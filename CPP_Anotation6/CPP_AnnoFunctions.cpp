@@ -1414,14 +1414,15 @@ void WM_PAINT_DrawLabels(
 void DrawLabelObjects(Graphics& g, 
     const std::vector<LabelObj>& objs, 
     const RectF& view, 
-    //Gdiplus::Color _color, 
-    //int _penwidth,
-    Gdiplus::Font* font)
+    Gdiplus::Font* font,
+    bool _force_color, // 強制的に色を変える
+    Gdiplus::Color _color
+)
 {
     for (const auto& L : objs)
     {
         //DrawLabelObject(g, L, view, _color, _penwidth, font);
-        DrawLabelObject(g, L, view, font);
+        DrawLabelObject(g, L, view, font, _force_color, _color);
     }
 }
 
@@ -1431,9 +1432,9 @@ void DrawLabelObjects(Graphics& g,
 void DrawLabelObject(Graphics& g, 
     const LabelObj& _obj, 
     const RectF& view, 
-    //Gdiplus::Color _color, 
-    //int _penwidth,
-    Gdiplus::Font* font
+    Gdiplus::Font* font,
+    bool _force_color, // 強制的に色を変える
+    Gdiplus::Color _color
 )
 {
     RectF r = NormToViewRect(_obj.Rct, view);
@@ -1455,7 +1456,12 @@ void DrawLabelObject(Graphics& g,
         pen.SetColor(Gdiplus::Color::Red);
         pen.SetWidth(static_cast<REAL>(3));
     }
-    
+    if(_force_color)
+    {
+        pen.SetColor(_color);
+        pen.SetWidth(static_cast<REAL>(penWidth));
+	}
+
 	//矩形描画
     g.DrawRectangle(&pen, r.X, r.Y, r.Width, r.Height);
 
@@ -1463,7 +1469,11 @@ void DrawLabelObject(Graphics& g,
     if (!_obj.ClassName.empty()) {
         //SolidBrush br(Color(200, L.color.GetR(), L.color.GetG(), L.color.GetB())); // 半透明
         //SolidBrush br(Color(200, _color.GetR(), _color.GetG(), _color.GetB())); // 半透明
+    
         Gdiplus::SolidBrush textBrush(_obj.color);
+        if(_force_color)
+            textBrush.SetColor(_color);
+
         const std::wstring& text = _obj.ClassName;
 
         // 文字高さを測定
@@ -2151,7 +2161,8 @@ void DoPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, size_t _idx)
                         RECT rcClient;
                         GetClientRect(hWnd, &rcClient);
                         //DrawLabelObjects(graphics, AutoDetctedObjs.objs, ToRectF(rcClient));
-                        DrawLabelObjects(graphics, AutoDetctedObjs.objs, vp.dest, GP.font);
+						//強制的に色を灰色にする
+                        DrawLabelObjects(graphics, AutoDetctedObjs.objs, vp.dest, GP.font, true, Gdiplus::Color(255, 255, 255, 255));
                     }
                     //確定したバウンディングボックスを描画
                     //WM_PAINT_DrawLabels(graphics, GP.imgObjs[_idx].objs, GP.width, GP.height, GP.font);

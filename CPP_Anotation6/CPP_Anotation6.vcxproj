@@ -195,7 +195,7 @@
     <Text Include="..\TimeStudyW.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="default.ini" />
+    <None Include="default_.ini" />
     <None Include="default_home.ini" />
     <None Include="default_k.ini" />
   </ItemGroup>

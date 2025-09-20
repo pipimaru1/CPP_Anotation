@@ -196,16 +196,24 @@ size_t GetIdxMouseOnRectEdgeVP(const POINT& pt,
 ///////////////////////////////////////////////////////////////////////////////////////////
 RectF FitImageToClientRect(int imgW, int imgH, const RECT& rcClient);
 RectF NormToViewRect(const RectF& rNorm, const RectF& view);
-void DrawLabelObjects(Graphics& g, const std::vector<LabelObj>& objs,
+
+
+void DrawLabelObjects(
+	Graphics& g, 
+	const std::vector<LabelObj>& objs,
 	const RectF& view,
-	//Gdiplus::Color _color,// = Gdiplus::Color::White,
-	//int _penwidth,
-	Gdiplus::Font* font
+	Gdiplus::Font* font,
+	bool _force_color = false, // 強制的に色を変える
+	Gdiplus::Color _color = Gdiplus::Color::White
 );
-void DrawLabelObject(Graphics& g, const LabelObj& _obj, const RectF& view,
-	//Gdiplus::Color _color,// = Gdiplus::Color(255, 0, 0),
+void DrawLabelObject(
+	Graphics& g, 
+	const LabelObj& _obj, 
+	const RectF& view,
 	//int _penwidth,
-	Gdiplus::Font* font
+	Gdiplus::Font* font,
+	bool _force_color = false, // 強制的に色を変える
+	Gdiplus::Color _color = Gdiplus::Color::White
 );
 
 
