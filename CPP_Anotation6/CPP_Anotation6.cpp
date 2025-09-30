@@ -694,23 +694,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     hInst,
                     hWnd,
                     GDNNP.yolo.nmsThreshold,
-                    0.0f, 1.0f,   // min, max
-                    true,          // 横型
-                    L"NMS",   // ラベル文字列
-                    rcClient.right - 60, 0,   // ← 初期位置 x, y 
-                    60, 250                 // ← 初期サイズ width, height
+                    0.0f, 1.0f,                 // min, max
+                    true,                       // 横型
+                    L"NMS",                     // ラベル文字列
+                    rcClient.right - 60, 0,     // ← 初期位置 x, y 
+                    60, 250                     // ← 初期サイズ width, height
                 );
-                pDlgf->ShowModeless(hWnd);  // ← 即リターンしてメイン処理継続
+                pDlgf->ShowModeless(hWnd);      // ← 即リターンしてメイン処理継続
 
                 pDlgf = new SliderDialogT<float>(
                     hInst,
                     hWnd,
                     GDNNP.yolo.confThreshold,
-                    0.0f, 1.0f,   // min, max
-                    true,          // 横型
-                    L"Conf",   // ラベル文字列
+                    0.0f, 1.0f,                 // min, max
+                    true,                       // 横型
+                    L"Conf",                    // ラベル文字列
                     rcClient.right - 60 - 60, 0,   // ← 初期位置 x, y 
-                    60, 250                 // ← 初期サイズ width, height
+                    60, 250                     // ← 初期サイズ width, height
                 );
                 pDlgf->ShowModeless(hWnd);  // ← 即リターンしてメイン処理継続
 
@@ -1501,7 +1501,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }break;
             case '5': // 自動アノテーション 超々々高感度
             {
-                GDNNP.yolo.confThreshold = 0.0f;
+                GDNNP.yolo.confThreshold = 0.0001f;
+                PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+            }break;
+            case '6': // 自動アノテーション 超々々高感度
+            {
+                GDNNP.yolo.confThreshold = 0.000005f;
+                PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+            }break;
+            case '7': // 自動アノテーション 超々々高感度
+            {
+                GDNNP.yolo.confThreshold = 0.0000005f;
                 PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
             }break;
 
