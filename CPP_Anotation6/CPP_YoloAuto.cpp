@@ -692,6 +692,7 @@ static void DecodeYoloGeneric_y11(const cv::Mat& out, const YoloConfig& yc,
 // cocoの640モデル、1280モデルで成功
 // 独自モデルでは640、1280ともに成功 (/・ω・)/
 // yolo_version : 5, 8, 11
+// yoloバージョンはパラメータで指定する
 static void DecodeYoloGeneric_y11(
     const std::wstring yolo_version,
     const cv::Mat& out, 
@@ -1052,6 +1053,10 @@ std::vector<LabelObj> DnnInfer(
                     if (L.ClassNum >= 0 && L.ClassNum < (int)GP.ClsNames.size())
                         L.ClassName = GP.ClsNames[L.ClassNum];
                     SetupStyleForProposal(L, L.ClassNum, params.yolo);
+
+                    // ★追加：信頼度を保持
+					L.Conf = scores[i];
+
                     outLabels.push_back(L);
                 }
             }
@@ -1107,7 +1112,6 @@ RectF NormToViewRect(const RectF& rNorm, const RectF& view)
     
     return _rect1;
 }
-
 
 
 

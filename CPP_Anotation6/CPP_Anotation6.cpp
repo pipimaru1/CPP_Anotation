@@ -281,6 +281,38 @@ void JumpToUnlabeledImage(HWND hWnd);
 // _scは0,25,50,75,100のいずれかで、0だとスケールしない
 //int  SaveAnnotations(HWND hWnd, int _sc);
 
+
+// 「Alt+数字」キーのハンドリング　ヘルパ関数（確定処理本体）
+static void AutoConfirmByKey(int keyIdx /*0..4*/)
+{
+    if (keyIdx < 0 || keyIdx >= 8) 
+        return;
+
+    const float th = GP.autoConfirmThresh[keyIdx];
+    //const int   _targetClass = keyIdx;            // 1→クラス0, 2→クラス1 ... の既存マッピングに合わせる
+    ImgObject& _cur = GP.imgObjs[GP.imgIdx];
+
+    size_t _before = _cur.objs.size();
+    for (const auto& p : AutoDetctedObjs.objs) {
+        // クラス一致 & Confが閾値以上 → 確定（書き込み）
+        if (p.Conf >= th) {
+            LabelObj o = p;
+            // 必要なら最小サイズ補正や正規化をここで
+            // NormalizeRect(o.Rct);
+            // FixLabelBox(o, minW, minH) を使うならここで呼ぶ
+            _cur.objs.push_back(std::move(o));
+        }
+    }
+
+    if (_cur.objs.size() != _before) {
+        _cur.isEdited = true;
+        // 再描画
+        // InvalidateRect(hWnd, NULL, TRUE); ← 呼び元でやる
+        // サウンド
+        // PlaySound(...); ← 既存の通知音があれば流用
+    }
+}
+
 /////////////////////////////////////////////////////////////////////////
 //  関数: WndProc(HWND, UINT, WPARAM, LPARAM)
 //  目的: メイン ウィンドウのメッセージを処理します。
@@ -1360,7 +1392,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
     break;
 
-    //キー入力を処理する
+	// キー入力を処理する 
+    // Altキーの処理はWM_SYSKEYDOWNで処理する
     case WM_KEYDOWN:
     {   // swtch文で入力されたキーを判定、処理を分ける
         // swtch文が二重になっている(Windowsプログラミングでは定石)
@@ -1372,7 +1405,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// Ctrl が押されているかどうかを調べる
 		bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
         bool alt = (GetKeyState(VK_MENU) & 0x8000) != 0; // Altキーが押されているかどうかを調べる
-        
+
 		// 何らかのキーダウンがあれば、比較モードをオフにする
         GP.isCompare = false; // 比較モードをオフ
 
@@ -1480,42 +1513,82 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case '1': // 自動アノテーション
             {
-                GDNNP.yolo.confThreshold = 0.1f;
-                PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+                //GDNNP.yolo.confThreshold = 0.1f;
+                if(ctrl){
+                    int idx = (int)wParam - '1';
+                    AutoConfirmByKey(idx);
+                }else{
+                    GDNNP.yolo.confThreshold = GP.autoConfirmThresh[0];
+                    PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+                }
             }break;
 
             case '2': // 自動アノテーション 高感度
             {
-                GDNNP.yolo.confThreshold = 0.01f;
-                PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+                //GDNNP.yolo.confThreshold = 0.01f;
+                if (ctrl) {
+                    int idx = (int)wParam - '1';
+                    AutoConfirmByKey(idx);
+                }else {
+                    GDNNP.yolo.confThreshold = GP.autoConfirmThresh[1];
+                    PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+                }
             }break;
-			case '3': // 自動アノテーション 超高感度
+            case '3': // 自動アノテーション 超高感度
             {
-                GDNNP.yolo.confThreshold = 0.005f;
-                PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+                if (ctrl) {
+                    int idx = (int)wParam - '1';
+                    AutoConfirmByKey(idx);
+                }else {
+                    //GDNNP.yolo.confThreshold = 0.005f;
+                    GDNNP.yolo.confThreshold = GP.autoConfirmThresh[2];
+                    PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+                }
             }break;
-			case '4': // 自動アノテーション 超々高感度
+            case '4': // 自動アノテーション 超々高感度
             {
-                GDNNP.yolo.confThreshold = 0.001f;
-                PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+                if (ctrl) {
+                    int idx = (int)wParam - '1';
+                    AutoConfirmByKey(idx);
+                }else {
+                    //GDNNP.yolo.confThreshold = 0.001f;
+                    GDNNP.yolo.confThreshold = GP.autoConfirmThresh[3];
+                    PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+                }
             }break;
             case '5': // 自動アノテーション 超々々高感度
             {
-                GDNNP.yolo.confThreshold = 0.0001f;
-                PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+                if (ctrl) {
+                    int idx = (int)wParam - '1';
+                    AutoConfirmByKey(idx);
+                } else {
+                    //GDNNP.yolo.confThreshold = 0.0001f;
+                    GDNNP.yolo.confThreshold = GP.autoConfirmThresh[4];
+                    PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+                }
             }break;
             case '6': // 自動アノテーション 超々々高感度
             {
-                GDNNP.yolo.confThreshold = 0.000005f;
-                PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+                if (ctrl) {
+                    int idx = (int)wParam - '1';
+                    AutoConfirmByKey(idx);
+                } else {
+                    //GDNNP.yolo.confThreshold = 0.000005f;
+                    GDNNP.yolo.confThreshold = GP.autoConfirmThresh[5];
+                    PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+                }
             }break;
             case '7': // 自動アノテーション 超々々高感度
             {
-                GDNNP.yolo.confThreshold = 0.0000005f;
-                PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+                if (ctrl) {
+                    int idx = (int)wParam - '1';
+                    AutoConfirmByKey(idx);
+                } else {
+                    //GDNNP.yolo.confThreshold = 0.0000005f;
+                    GDNNP.yolo.confThreshold = GP.autoConfirmThresh[6];
+                    PostMessageW(hWnd, WM_COMMAND, IDM_YOLO_PRESETBOX, 0); // 自動アノテーションメニューを呼び出す
+                }
             }break;
-
-
 
             case 'Q': // バウンディングボックスの表示を切り替え
             case 'q':
@@ -1529,6 +1602,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         InvalidateRect(hWnd, NULL, TRUE); // 再描画
     }
     break;
+
+
     case WM_TIMER:
 	{
         //画像比較用のタイマーの処理

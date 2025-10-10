@@ -25,6 +25,9 @@ public:
     bool mOver;                 //マウスがオーバーラップしているときの辺を表す
     //bool isAbnormal = false;    // 異常フラグ：true のとき目立つように描画
 
+    // ★追加：候補の信頼度（0.0～1.0）。未設定は負値に。
+    float Conf = -1.0f;
+
 	// コンストラクタ
     LabelObj();
 };
@@ -134,6 +137,10 @@ struct GlobalParams
 	// 中ボタンドラッグによるパン
 	//bool    isPanning = false; dragModeで代用
     POINT   panLast{};
+
+	//自動アノテーション
+    float autoConfirmThresh[7] = { 0.25f, 0.1f, 0.01f, 0.001f, 0.0001f, 0.000005f, 0.0000005f }; // Alt+1..7
+
 };
 
 extern GlobalParams GP;
