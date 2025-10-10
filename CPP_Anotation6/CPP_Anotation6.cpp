@@ -281,7 +281,8 @@ void JumpToUnlabeledImage(HWND hWnd);
 // _scは0,25,50,75,100のいずれかで、0だとスケールしない
 //int  SaveAnnotations(HWND hWnd, int _sc);
 
-
+/////////////////////////////////////////////////////////////////////////
+// 自動アノテーション確定
 // 「Alt+数字」キーのハンドリング　ヘルパ関数（確定処理本体）
 static void AutoConfirmByKey(int keyIdx /*0..4*/)
 {
@@ -312,6 +313,21 @@ static void AutoConfirmByKey(int keyIdx /*0..4*/)
         // PlaySound(...); ← 既存の通知音があれば流用
     }
 }
+
+/////////////////////////////////////////////////////////////////////////
+// どこか共通のヘルパ（任意）
+//static void ClearCurrentImageLabels(HWND hWnd)
+//{
+//    if (GP.imgObjs.empty()) return;
+//    auto& cur = GP.imgObjs[GP.imgIdx];
+//    if (!cur.objs.empty()) {
+//        cur.objs.clear();          // ラベルを全消去
+//        cur.isEdited = true;       // 編集フラグON（後で保存判定に使えます）:contentReference[oaicite:0]{index=0}
+//        InvalidateRect(hWnd, nullptr, TRUE);  // 再描画
+//        // 必要なら通知音：
+//        // PlaySound(SOUND_ARRY[37][1], NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
+//    }
+//}
 
 /////////////////////////////////////////////////////////////////////////
 //  関数: WndProc(HWND, UINT, WPARAM, LPARAM)
@@ -848,6 +864,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case IDM_ONNX000 + 18: { set_onnx_files_in_menu(17); CheckMenues(hWnd);}  break;
             case IDM_ONNX000 + 19: { set_onnx_files_in_menu(18); CheckMenues(hWnd);}  break;
             case IDM_ONNX000 + 20: { set_onnx_files_in_menu(19); CheckMenues(hWnd);}  break;
+
+            case IDM_EDIT_CLEAR_LABELS:
+            {
+                //ClearCurrentImageLabels(hWnd);
+                if (GP.imgObjs.empty()) 
+                    break;
+                auto& cur = GP.imgObjs[GP.imgIdx];
+                if (!cur.objs.empty()) {
+                    cur.objs.clear();          // ラベルを全消去
+                    cur.isEdited = true;       // 編集フラグON（後で保存判定に使えます）:contentReference[oaicite:0]{index=0}
+                    InvalidateRect(hWnd, nullptr, TRUE);  // 再描画
+                    // 必要なら通知音：
+                    // PlaySound(SOUND_ARRY[37][1], NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
+                }
+                AutoDetctedObjs.objs.clear();
+                AutoDetctedObjs.objIdx = 0;
+                g_showProposals = false;
+
+                PlaySound(SOUND_ARRY[37][1], NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
+
+            }break;
 
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
@@ -1511,7 +1548,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
             }break;
 
-			case '1': // 自動アノテーション
+            case '0': // 自動アノテーション
+            {
+                //if (ctrl && shift) { //上手くいかない
+                if (ctrl && shift) {
+                    PostMessageW(hWnd, WM_COMMAND, IDM_EDIT_CLEAR_LABELS, 0); // 自動アノテーションメニューを呼び出す
+                }
+            }break;
+
+            case '1': // 自動アノテーション
             {
                 //GDNNP.yolo.confThreshold = 0.1f;
                 if(ctrl){

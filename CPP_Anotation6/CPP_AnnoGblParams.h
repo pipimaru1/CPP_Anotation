@@ -141,6 +141,8 @@ struct GlobalParams
 	//自動アノテーション
     float autoConfirmThresh[7] = { 0.25f, 0.1f, 0.01f, 0.001f, 0.0001f, 0.000005f, 0.0000005f }; // Alt+1..7
 
+    //サウンド配列
 };
 
 extern GlobalParams GP;
+extern wchar_t SOUND_ARRY[39][2][256];

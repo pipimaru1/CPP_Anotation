@@ -9,6 +9,7 @@
 #pragma comment(lib, "Pathcch.lib")
 #pragma comment(lib,"winmm.lib")
 
+/*
 //Windowsの音
 wchar_t SOUND_ARRY[39][2][256] = {
     {L"NFP 完了",                          L"Notification.Proximity" },
@@ -51,9 +52,7 @@ wchar_t SOUND_ARRY[39][2][256] = {
     {L"通知",                              L"Notification.Default" },
     {L"選択",                              L"CCSelect" }
 };
-
-
-
+*/
 ///////////////////////////////////////////////////////////////////////
 // 画像ファイルかどうかを判定する関数
 bool IsImageFile(const std::wstring& fileName)
