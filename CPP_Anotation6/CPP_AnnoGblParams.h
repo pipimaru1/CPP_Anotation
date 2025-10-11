@@ -22,11 +22,12 @@ public:
 	int 		        penWidth; // ペンの幅
 	Gdiplus::DashStyle  dashStyle; // ダッシュスタイル
 
-    bool mOver;                 //マウスがオーバーラップしているときの辺を表す
-    //bool isAbnormal = false;    // 異常フラグ：true のとき目立つように描画
+    bool mOver;                     //マウスがオーバーラップしているときの辺を表す
+    //bool isAbnormal = false;      // 異常フラグ：true のとき目立つように描画
 
     // ★追加：候補の信頼度（0.0～1.0）。未設定は負値に。
     float Conf = -1.0f;
+	bool isAutoConfirmed = false;       // 確認済みかどうか。自動登録の時の重複を避ける。
 
 	// コンストラクタ
     LabelObj();

@@ -294,14 +294,19 @@ static void AutoConfirmByKey(int keyIdx /*0..4*/)
     ImgObject& _cur = GP.imgObjs[GP.imgIdx];
 
     size_t _before = _cur.objs.size();
-    for (const auto& p : AutoDetctedObjs.objs) {
+    for (auto& p : AutoDetctedObjs.objs) {
         // クラス一致 & Confが閾値以上 → 確定（書き込み）
-        if (p.Conf >= th) {
-            LabelObj o = p;
-            // 必要なら最小サイズ補正や正規化をここで
-            // NormalizeRect(o.Rct);
-            // FixLabelBox(o, minW, minH) を使うならここで呼ぶ
-            _cur.objs.push_back(std::move(o));
+        if(!p.isAutoConfirmed)
+        {
+            if (p.Conf >= th) {
+                LabelObj o = p;
+                // 必要なら最小サイズ補正や正規化をここで
+                // NormalizeRect(o.Rct);
+                // FixLabelBox(o, minW, minH) を使うならここで呼ぶ
+
+				p.isAutoConfirmed = true; // 自動アノテーション済みフラグを立てる このフラグもコピーされるが構わないのかな
+                _cur.objs.push_back(std::move(o));
+            }
         }
     }
 
@@ -1551,7 +1556,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case '0': // 自動アノテーション
             {
                 //if (ctrl && shift) { //上手くいかない
-                if (ctrl && shift) {
+                if (ctrl) {
                     PostMessageW(hWnd, WM_COMMAND, IDM_EDIT_CLEAR_LABELS, 0); // 自動アノテーションメニューを呼び出す
                 }
             }break;
