@@ -60,6 +60,14 @@ struct ImgObject
 
 };
 
+//Undo用構造体
+struct UndoData
+{
+    std::vector<LabelObj> lastCleared; // 直前にクリアしたラベル
+    bool hasUndo = false;               // Undo可能かどうか
+    size_t imgIdxUndo = 0;              // Undo時の画像インデックス
+};
+
 ///////////////////////////////////////////////////////
 // グローバル変数の定義
 // 課題ではヘッダファイルに記載だが、教材のためにここに記載します。
@@ -143,6 +151,12 @@ struct GlobalParams
     float autoConfirmThresh[7] = { 0.25f, 0.1f, 0.01f, 0.001f, 0.0001f, 0.000005f, 0.0000005f }; // Alt+1..7
 
     //サウンド配列
+
+	//Undo
+    //std::vector<LabelObj> g_lastCleared;
+    //bool g_hasUndo = false;
+    //size_t imgIdxUndo
+	UndoData undo; // Undo用構造体 将来は配列にしても良いかも
 };
 
 extern GlobalParams GP;

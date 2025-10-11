@@ -320,6 +320,32 @@ static void AutoConfirmByKey(int keyIdx /*0..4*/)
 }
 
 /////////////////////////////////////////////////////////////////////////
+// Undo機能の実装
+// グローバル or 静的
+//static std::vector<LabelObj> g_lastCleared;
+//static bool g_hasUndo = false;
+
+// クリア前に保存
+//g_lastCleared = cur.objs;
+//g_hasUndo = true;
+
+// Undo ハンドラ（Ctrl+Zに割当）
+static void UndoClear()
+{
+    if (!GP.undo.hasUndo || GP.imgObjs.empty()) 
+        return;
+    if (GP.undo.imgIdxUndo == GP.imgIdx)
+    {
+        auto& cur = GP.imgObjs[GP.imgIdx];
+        cur.objs = GP.undo.lastCleared;
+        cur.isEdited = true;
+        GP.undo.hasUndo = false;
+        //InvalidateRect(hWnd, nullptr, TRUE);
+    }
+    return; // 画像が変わっていたらUndoしない
+}
+
+/////////////////////////////////////////////////////////////////////////
 // どこか共通のヘルパ（任意）
 //static void ClearCurrentImageLabels(HWND hWnd)
 //{
@@ -875,7 +901,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 //ClearCurrentImageLabels(hWnd);
                 if (GP.imgObjs.empty()) 
                     break;
+
+                //Undo処理のために、現在のラベルを保存
+                GP.undo.lastCleared = GP.imgObjs[GP.imgIdx].objs;
+                GP.undo.hasUndo = true;
+                GP.undo.imgIdxUndo = GP.imgIdx;
+
                 auto& cur = GP.imgObjs[GP.imgIdx];
+
                 if (!cur.objs.empty()) {
                     cur.objs.clear();          // ラベルを全消去
                     cur.isEdited = true;       // 編集フラグON（後で保存判定に使えます）:contentReference[oaicite:0]{index=0}
@@ -889,6 +922,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                 PlaySound(SOUND_ARRY[37][1], NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
 
+            }break;
+
+            case IDM_UNDO_CLEAR_LABELS:
+            {
+                if (GP.imgObjs.empty())
+                    break;
+                UndoClear();
+
+                InvalidateRect(hWnd, nullptr, TRUE);  // 再描画
+                // 必要なら通知音：
+				//PlaySound(SOUND_ARRY[37][1], NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT);
             }break;
 
             case IDM_ABOUT:
@@ -1550,6 +1594,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 {
                     SaveLabelsToFileSingle(hWnd, GP.imgIdx, 0.0f);
                     PostMessage(hWnd, WM_COMMAND, ID_ANNOT_JUMP_IGNOREBOX, 0); // ジャンプメニューを呼び出す
+                }
+            }break;
+
+			case 'z': // Undo
+			case 'Z':
+            {
+                if(ctrl)
+                {
+                    if (GP.imgIdx < GP.imgObjs.size())
+                    {
+                        // 画像が存在する場合
+                        //UndoClear();
+                        //InvalidateRect(hWnd, NULL, TRUE); // 再描画
+						PostMessageW(hWnd, WM_COMMAND, IDM_UNDO_CLEAR_LABELS, 0); // Undoメニューを呼び出す
+                    }
                 }
             }break;
 

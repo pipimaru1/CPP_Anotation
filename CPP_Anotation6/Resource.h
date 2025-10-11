@@ -82,6 +82,7 @@
 #define ID_ANNOT_JUMP_IGNOREBOX 2202 //異常ラベルまでジャンプ
 #define IDM_JUNP_NO_ANNOTATION	2203 //アノテーションのない画像までジャンプ
 #define IDM_EDIT_CLEAR_LABELS   2204   // 空いている番号を使用
+#define IDM_UNDO_CLEAR_LABELS   2205   // Undoでクリアしたラベルを復元する
 
 #define IDT_COMPARE				3001 // 比較用タイマーID
 

@@ -1701,6 +1701,11 @@ int ShowClassPopupMenu_for_Edit(HWND hWnd, ImgObject& _imgobj, int activeObjectI
         }
         else if (cmd == IDM_PMENU_CLSNAME00 + static_cast<UINT>(GP.ClsNames.size()) + 1) // DELETE
         {
+			//Undoのために、削除前の状態を保存
+			GP.undo.lastCleared = GP.imgObjs[GP.imgIdx].objs;
+            GP.undo.hasUndo = true;
+			GP.undo.imgIdxUndo = GP.imgIdx;
+
             // オブジェクトを削除
             //GP.imgObjs[GP.imgIdx].objs.erase(GP.imgObjs[GP.imgIdx].objs.begin() + activeObjectIDX);
             _imgobj.objs.erase(_imgobj.objs.begin() + activeObjectIDX);
