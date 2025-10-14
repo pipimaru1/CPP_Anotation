@@ -2163,12 +2163,13 @@ void DoPaint(HWND hWnd, WPARAM wParam, LPARAM lParam, size_t _idx)
                     if (g_showProposals && !AutoDetctedObjs.objs.empty()) {
                         RECT rcClient;
                         GetClientRect(hWnd, &rcClient);
-                        //DrawLabelObjects(graphics, AutoDetctedObjs.objs, ToRectF(rcClient));
+
+                        Gdiplus::Font* _font;
+
 						//強制的に色を灰色にする
                         DrawLabelObjects(graphics, AutoDetctedObjs.objs, vp.dest, GP.font, true, Gdiplus::Color(255, 255, 255, 255));
                     }
                     //確定したバウンディングボックスを描画
-                    //WM_PAINT_DrawLabels(graphics, GP.imgObjs[_idx].objs, GP.width, GP.height, GP.font);
 					DrawLabelObjects(graphics, GP.imgObjs[_idx].objs, vp.dest, GP.font);
                 }
             }

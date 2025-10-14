@@ -898,8 +898,6 @@ static void DecodeYoloGeneric_y11(
     }
 }
 
-
-
 static inline Gdiplus::RectF PxToNormXYWH_RectF(const cv::Rect& r, const cv::Size& sz)
 {
     return Gdiplus::RectF(
@@ -910,13 +908,18 @@ static inline Gdiplus::RectF PxToNormXYWH_RectF(const cv::Rect& r, const cv::Siz
     );
 }
 
+///////////////////////////////////////////////////////////////////////////////////
+// 
+// AI推定バウンディングボックスのスタイル設定してるのはここ
+//
+///////////////////////////////////////////////////////////////////////////////////
 static inline void SetupStyleForProposal(LabelObj& L, int classId, const YoloConfig& yc)
 {
     // 既存のクラス設定を踏襲（色・線種・太さ）
     if (classId >= 0 && classId < (int)GP.ClsColors.size())      L.color = GP.ClsColors[classId];
     if (classId >= 0 && classId < (int)GP.ClsDashStyles.size())  L.dashStyle = GP.ClsDashStyles[classId];
     if (classId >= 0 && classId < (int)GP.ClsPenWidths.size())   L.penWidth = GP.ClsPenWidths[classId];
-
+    
     // 提案は破線で見分けたい場合
     if (yc.proposalDashed) L.dashStyle = Gdiplus::DashStyleDash;
     if (L.penWidth <= 0)   L.penWidth = 2;
@@ -1052,6 +1055,8 @@ std::vector<LabelObj> DnnInfer(
                     L.ClassNum = classIds[i];
                     if (L.ClassNum >= 0 && L.ClassNum < (int)GP.ClsNames.size())
                         L.ClassName = GP.ClsNames[L.ClassNum];
+
+                    //線のスタイル
                     SetupStyleForProposal(L, L.ClassNum, params.yolo);
 
                     // ★追加：信頼度を保持
