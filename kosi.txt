@@ -1,0 +1,12 @@
+0, Stand_Work,   64,  64, 255, DashStyleSolid, 4
+1, Stand,        64,  64, 200, DashStyleSolid, 4
+2, Bend_Work,   255, 255,   0, DashStyleSolid, 2
+3, Bend,        200, 200,  64, DashStyleSolid, 2
+4, Squat_Work,  255,   0,   0, DashStyleSolid, 2
+5, Squat,       200,   0,  64, DashStyleSolid, 2
+6, Sit_Work,      0, 255,   0, DashStyleSolid, 2
+7, Sit,          64, 200,  64, DashStyleSolid, 2
+8, Move_Work,     0, 255, 255, DashStyleSolid, 4
+9, Move,         64, 220, 220, DashStyleSolid, 4
+10, Others_Work,220, 150, 150, DashStyleSolid, 4
+11, Others,     210, 150, 150, DashStyleSolid, 4
