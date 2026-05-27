@@ -1,4 +1,5 @@
 # CPP_Anotation6 説明書
+<img width="1441" height="1133" alt="image" src="https://github.com/user-attachments/assets/24e32fe3-7ebc-4b31-90f2-2bb1b61b58cb" />
 
 ## 1. 概要
 
