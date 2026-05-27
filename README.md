@@ -9,14 +9,6 @@
 
 本書では、最終バージョンである `CPP_Anotation6` プロジェクトのみを説明します。
 
-> アプリケーション画面の画像は後で追加してください。
->
-> ```md
-> ![メイン画面](images/cpp_anotation6_main.png)
-> ![自動アノテーション結果](images/cpp_anotation6_auto_annotation.png)
-> ![クラス選択メニュー](images/cpp_anotation6_class_menu.png)
-> ```
-
 ## 2. 主な機能
 
 - 画像フォルダ内の画像を一覧化して順番に表示
